@@ -1,4 +1,11 @@
 ----------------------------
+Installing fermi firstly
+
+cd fermi
+make
+cd ..
+
+----------------------------
 Installing SNVAS
 
 make
@@ -34,13 +41,13 @@ Running SNVAS
 
 2 For paired-end data, you can run:
 
-SNVAS -bed sample_peaks_sorted.bed -bam sample_peaks_sorted.bam -controlbam control_peaks_sorted.bam -f PE -o sample.vcf -fermi src/fermi -tmp tmp1 &
+SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf src/fermi/fermi tmp1 &
 
--f PE is the parameter shows the data is paired-end
--fermi src/fermi is the path of fermi executable file
--o sample.vcf is the output vcf file
+PE is the parameter shows the data is paired-end
+src/fermi/fermi is the path of fermi executable file
+sample.vcf is the output vcf file
 
-3 For single-end data, you should change "-f PE" to "-f SE".
+3 For single-end data, you should change "PE" to "SE".
 
 ----------------------------
 Release Notes

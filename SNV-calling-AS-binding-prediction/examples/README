@@ -4,10 +4,10 @@ Running example
 1 Paired-end ChIP-seq dataset
 
 cd PE_demo
-../../src/SNVAS -bed PEsample_peaks_sorted.bed -bam PEsample_peaks_sorted.bam -controlbam PEcontrol_peaks_sorted.bam -f PE -o PEsample.vcf -fermi ../../src/fermi -tmp tmp
+../../src/SNVAS PEsample_peaks_sorted.bed PEsample_peaks_sorted.bam PEcontrol_peaks_sorted.bam PE PEsample.vcf ../../src/fermi/fermi tmp
 
 
 2 Single-end ChIP-seq dataset
 
 cd SE_demo
-../../src/SNVAS -bed SEsample_peaks_sorted.bed -bam SEsample_peaks_sorted.bam -controlbam SEcontrol_peaks_sorted.bam -f SE -o SEsample.vcf -fermi ../../src/fermi -tmp tmp
+../../src/SNVAS SEsample_peaks_sorted.bed SEsample_peaks_sorted.bam SEcontrol_peaks_sorted.bam SE SEsample.vcf ../../src/fermi/fermi tmp

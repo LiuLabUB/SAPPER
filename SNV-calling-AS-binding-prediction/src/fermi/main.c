@@ -62,8 +62,9 @@ int main_test(int argc, char *argv[])
 */
 int main(int argc, char *argv[])
 {
-	int i, ret = 0;
-	double start = realtime();
+	//int i, ret = 0;
+	int ret = 0;
+	//double start = realtime();
 	liftrlimit();
 	if (argc == 1) {
 		fprintf(stderr, "\n");
@@ -127,12 +128,13 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "[E::%s] unrecognized command.\n", __func__);
 		return -1;
 	}
-	if (ret == 0 && fm_verbose >= 3) {
+	/*if (ret == 0 && fm_verbose >= 3) {
 		fprintf(stderr, "[M::%s] Version: %s\n", __func__, FERMI_VERSION);
 		fprintf(stderr, "[M::%s] CMD:", __func__);
 		for (i = 0; i < argc; ++i)
 			fprintf(stderr, " %s", argv[i]);
 		fprintf(stderr, "\n[M::%s] Real time: %.3f sec; CPU: %.3f sec; RSS: %.3f MB\n", __func__, realtime() - start, cputime(), rssmem());
-	}
+	}*/
 	return ret;
 }
+

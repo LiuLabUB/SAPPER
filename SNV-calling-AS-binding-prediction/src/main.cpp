@@ -14,28 +14,28 @@ using namespace std;
 
 int main(int argc,char *argv[])
 {
-	if(argc<15)
+	if(argc<8)
 	{
 		cout<<"\nProgram: SNVAS (call SNV and allele-specific events from ChIP-seq data)\n";
 		cout<<"Version: 0.1\n";
-		cout<<"Usage: SNVAS -bed <peaks.bed> -bam <peaks.bam> -controlbam <controlpeaks.bam> -f {PE,SE} -o <output.vcf> -fermi <fermi> -tmp <tmp>\n\n";
-		cout<<"Options: -bed            sorted bed file of peak regions\n";
-		cout<<"         -bam            sorted bam file of peak regions\n";
-		cout<<"         -controlbam     sorted control bam file of peak regions\n";
-		cout<<"         -f              {PE,SE}, format of bam file, PE (paired-end) or SE (single-end)\n";
-		cout<<"         -o              output vcf file\n";
-		cout<<"         -fermi          path of fermi executable file\n";
-		cout<<"         -tmp            temparary file folder\n\n";
+		cout<<"Usage: SNVAS <peaks.bed> <peaks.bam> <controlpeaks.bam> {PE,SE} <output.vcf> <fermi> <tmp>\n\n";
+		cout<<"Options: <peaks.bed>            sorted bed file of peak regions\n";
+		cout<<"         <peaks.bam>            sorted bam file of peak regions\n";
+		cout<<"         <controlpeaks.bam>     sorted control bam file of peak regions\n";
+		cout<<"         {PE,SE}                format of bam file, PE (paired-end) or SE (single-end)\n";
+		cout<<"         <output.vcf>           output vcf file\n";
+		cout<<"         <fermi>                path of fermi executable file\n";
+		cout<<"         <tmp>                  temparary file folder\n\n";
 	}
 	else
 	{
-		const string Peakbedfile(argv[2]);
-		const string Bamfile(argv[4]);
-		const string InputBamfile(argv[6]);
-		const string PEorSE(argv[8]);
-		const string OutputVcffile(argv[10]);
-		const string fermi_location(argv[12]);
-		const string tmpfilefolder(argv[14]);
+		const string Peakbedfile(argv[1]);
+		const string Bamfile(argv[2]);
+		const string InputBamfile(argv[3]);
+		const string PEorSE(argv[4]);
+		const string OutputVcffile(argv[5]);
+		const string fermi_location(argv[6]);
+		const string tmpfilefolder(argv[7]);
 
 		if(PEorSE!="PE" && PEorSE!="SE") {cout<<"wrong format {PE,SE}"<<endl;exit(0);}
 
