@@ -695,7 +695,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 				if(PeakIndex%100==0)
 				{
 					//cout<<"read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
-					string stemp="rm "+tmpfilefolder+"/* -f";
+					string stemp="rm -f "+tmpfilefolder+"/*";
 					system(stemp.c_str());
 				}
 				peakchr=peakbedregion_set[PeakIndex].chr;
@@ -717,7 +717,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 			if(PeakIndex%100==0)
 			{
 				//cout<<"read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
-				string stemp="rm "+tmpfilefolder+"/* -f";
+				string stemp="rm -f "+tmpfilefolder+"/*";
 				system(stemp.c_str());
 			}
 			peakchr=peakbedregion_set[PeakIndex].chr;
@@ -738,7 +738,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 		PeakBamInfor.clear();
 		cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
-		string stemp="rm "+tmpfilefolder+"/* -f";
+		string stemp="rm -f "+tmpfilefolder+"/*";
 		system(stemp.c_str());
 	}
 }
