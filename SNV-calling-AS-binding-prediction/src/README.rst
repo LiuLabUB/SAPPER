@@ -1,0 +1,116 @@
+Install
+=======
+
+Compile 'fermi' https://github.com/lh3/fermi/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+```
+$ cd fermi
+$ make
+$ cd ..
+```
+
+Then Compile SNVAS
+~~~~~~~~~~~~~~~~~~
+
+```
+$ make
+```
+
+You will have executable binary files fermi under 'fermi' directory
+and SNVAS under the current src directory.
+
+Usage
+=====
+
+Before running SNVAS/Preprocessing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. SNVAS only accepts base quality scores with Illumina 1.8+ (Phred+33) coding. For Illumina 1.3+ or 1.5+ (Phred+64) coding, the fastq file should be changed to Phred+33 type. We recommand using the tool "seqtk" (https://github.com/lh3/seqtk).
+
+2. Map fastq file to reference genome, and get the BAM file. For
+paired-end data, we recommend 'bwa mem', and for single-end, 'bwa aln'.
+
+3. Remove reads flagged as low mapping quality (MAPQ), unmapped,
+secondary alignment or supplementary alignment in the BAM file. Check
+both ChIP-seq and control SAM/BAM files.
+
+e.g. 
+
+```
+$ samtools view -q 30 -F 4 -F 256 -F 2048 -bS sample.sam -o sample_filter.bam
+```
+
+4. Sort the BAM file after filtering accroding to coordinate, using
+samtools or Picard.
+
+```
+$ samtools sort  sample_filter.bam  sample_filter_sorted
+```
+
+5. Peak calling. We recommand using the software "macs2"
+(https://github.com/taoliu/MACS).
+
+Exampel for paired-end ChIP-seq:
+
+```
+$ macs2 callpeak -f BAMPE -t CHIP_filtered_sorted.bam -c Ctrl_filtered_sorted.bam -n MyFactor -g hs
+```
+
+And for single-end ChIP-seq:
+
+```
+$ macs2 callpeak -f BAM -t CHIP_filtered_sorted.bam -c Ctrl_filtered_sorted.bam -n MyFactor -g hs
+```
+
+Then the peak region file 'MyFactor_peaks.narrowPeak' should be used
+in downstream analysis. Then the peak regions should be sorted
+according to coordinates.
+
+```
+sort -k1,1 -k2,2n MyFactor_peaks.narrowPeak > MyFactor_peaks.sorted.bed
+```
+
+
+6. Extract reads in selected peak region, and generate the subset BAM files
+from both ChIP-seq and control dataset.
+
+e.g.
+
+```
+samtools view -b sample_filter_sorted.bam -L sample_peaks_sorted.bed -o sample_peaks_sorted.bam
+```
+
+Finally, there are 3 files which should be prepared before running SNVAS
+
+1. peak region bed file (sorted by coordinate)
+
+2. bam file of ChIP-seq dataset in the peak region (sorted by coordinate) 
+
+3. bam file of control dataset in the peak region (sorted by coordinate)
+
+Running SNVAS
+~~~~~~~~~~~~~
+
+1. To get a listing of all parameters, run ```SNVAS -h```.
+
+2. For paired-end data, you can run:
+
+```
+$ SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf src/fermi/fermi tmp1 &
+```
+
+PE is the parameter shows the data is paired-end
+src/fermi/fermi is the path of fermi executable file
+sample.vcf is the output vcf file
+
+3 For single-end data, you should change "PE" to "SE".
+
+Interpret Results
+=================
+
+
+Release Notes
+=============
+Release 0.1 (2015-08-12)
+This is the first public release of SNVAS.
