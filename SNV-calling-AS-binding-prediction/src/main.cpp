@@ -49,14 +49,31 @@ int main(int argc,char *argv[])
 {
   if ( argc < 6 )
     {
-      cout<<"\nProgram: SNVAS (call SNV and allele-specific events from ChIP-seq data)\n";
+      cout<<"Program: SNVAS (call SNV and allele-specific events from ChIP-seq data)\n";
       cout<<"Version: 0.1\n";
+      cout<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
       cout<<"Usage: SNVAS <peaks.bed> <peaks.bam> <controlpeaks.bam> {PE,SE} <output.vcf>\n\n";
       cout<<"Options: <peaks.bed>            sorted bed file of peak regions\n";
       cout<<"         <peaks.bam>            sorted bam file of peak regions\n";
       cout<<"         <controlpeaks.bam>     sorted control bam file of peak regions\n";
       cout<<"         {PE,SE}                format of bam file, PE (paired-end) or SE (single-end)\n";
-      cout<<"         <output.vcf>           output vcf file\n";
+      cout<<"         <output.vcf>           output vcf file\n\n";
+      cout<<"Tips to prepare your input files from ChIP-Seq IP and CTRL BAM files:\n*Note: You need to modify the following sample command lines.*\n\n";
+      cout<<"1. Clean the BAM files:\n";
+      cout<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -bS IP.sam -o IP_clean.bam\n";
+      cout<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -bS CTRL.sam -o CTRL_clean.bam\n";
+      cout<<"2. Sort the BAM file:\n";
+      cout<<"    $ samtools sort  IP_clean.bam  IP_clean_sorted\n";
+      cout<<"    $ samtools sort  CTRL_clean.bam  CTRL_clean_sorted\n";
+      cout<<"3. Peak calling (example is for paired-end data):\n";
+      cout<<"    $ macs2 callpeak -f BAMPE -t IP_clean_sort.bam -c CTRL_clean_sort.bam -n MyFactor\n";
+      cout<<"4. Sort peak file:\n";
+      cout<<"    $ sort -k1,1 -k2,2n MyFactor_peaks.narrowPeak > MyFactor_peaks.sorted.bed\n";
+      cout<<"5. Extract reads in peak regions:\n";
+      cout<<"    $ samtools view -b IP_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o IP_peaks.bam\n";
+      cout<<"    $ samtools view -b CTRL_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o CTRL_peaks.bam\n\n";
+      cout<<"To run SNVAS:\n\n";
+      cout<<"    $ SNVAS  MyFactor_peaks.sorted.bed IP_peaks.bam CTRL_peaks.bam PE MyFactor.vcf\n";
       return(1);
     }
   
