@@ -119,7 +119,16 @@ PE is the parameter shows the data is paired-end. sample.vcf is the output vcf f
 
 Interpret Results
 =================
+The output vcf file is based on VCF v4.1 format; the detail information of each term is defined in the header of the vcf file.
 
+Note:
+1 Column1(CHROM) and column2(POS) define the position (1-based) of the SNV.
+
+2 The last column stands for the SNV type. "0|1" or "1|2" stands for heterozygous SNV, and "1|1" stands for homozygous SNV. By now, this tool is only for single ChIP-seq data, so there is no "0|2", "2|2" or other type.
+
+3 The term "MinBIC_model" defines the heterozygous SNV is allele-specific binding or not. "MinBIC_model:heter_AS" means it is allele-specific, while "MinBIC_model:heter_noAS" means it is not allele-specific; "MinBIC_model:homo" means it is homozygous SNV.
+
+4 We use genotype quality score to measure the reliability of predicted SNV. For homozygous SNV, see the term "GQ_homo"; for allele-specific heterozygous SNV, see the term "GQ_heter_AS"; for no allele-specific heterozygous SNV, see the term "GQ_heter_noAS". The genotype quality score is higher, then the SNV is more reliable.
 
 Release Notes
 =============
