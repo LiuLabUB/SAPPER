@@ -51,7 +51,7 @@ int main(int argc,char *argv[])
     {
       cout<<"\nProgram: SNVAS (call SNV and allele-specific events from ChIP-seq data)\n";
       cout<<"Version: 0.1\n";
-      cout<<"Usage: SNVAS <peaks.bed> <peaks.bam> <controlpeaks.bam> {PE,SE} <output.vcf> <fermi> <tmp>\n\n";
+      cout<<"Usage: SNVAS <peaks.bed> <peaks.bam> <controlpeaks.bam> {PE,SE} <output.vcf>\n\n";
       cout<<"Options: <peaks.bed>            sorted bed file of peak regions\n";
       cout<<"         <peaks.bam>            sorted bam file of peak regions\n";
       cout<<"         <controlpeaks.bam>     sorted control bam file of peak regions\n";

@@ -10,6 +10,15 @@ $ make
 $ cd ..
 ```
 
+You will have executable fermi binary file under 'fermi'
+directory. Now copy/move it to one of your PATH such as
+/usr/local/bin.
+
+```
+$ mv fermi /usr/local/bin
+```
+
+
 Then Compile SNVAS
 ~~~~~~~~~~~~~~~~~~
 
@@ -17,8 +26,12 @@ Then Compile SNVAS
 $ make
 ```
 
-You will have executable binary files fermi under 'fermi' directory
-and SNVAS under the current src directory.
+You will have executable binary files 'SNVAS' under the current src
+directory. Now copy/move it to one of your PATH such as /usr/loca/bin.
+
+```
+$ mv SNVAS /usr/local/bin
+```
 
 Usage
 =====
@@ -97,14 +110,12 @@ Running SNVAS
 2. For paired-end data, you can run:
 
 ```
-$ SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf src/fermi/fermi tmp1 &
+$ SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf
 ```
 
-PE is the parameter shows the data is paired-end
-src/fermi/fermi is the path of fermi executable file
-sample.vcf is the output vcf file
+PE is the parameter shows the data is paired-end. sample.vcf is the output vcf file
 
-3 For single-end data, you should change "PE" to "SE".
+3. For single-end data, you should change "PE" to "SE".
 
 Interpret Results
 =================
