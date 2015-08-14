@@ -122,6 +122,7 @@ Interpret Results
 The output vcf file is based on VCF v4.1 format; the detail information of each term is defined in the header of the vcf file.
 
 Note:
+
 1 Column1(CHROM) and column2(POS) define the position (1-based) of the SNV.
 
 2 The last column stands for the SNV type. "0|1" or "1|2" stands for heterozygous SNV, and "1|1" stands for homozygous SNV. By now, this tool is only for single ChIP-seq data, so there is no "0|2", "2|2" or other type.
