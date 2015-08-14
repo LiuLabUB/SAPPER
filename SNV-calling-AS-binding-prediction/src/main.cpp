@@ -60,8 +60,8 @@ int main(int argc,char *argv[])
       cout<<"         <output.vcf>           output vcf file\n\n";
       cout<<"Tips to prepare your input files from ChIP-Seq IP and CTRL BAM files:\n*Note: You need to modify the following sample command lines.*\n\n";
       cout<<"1. Clean the BAM files:\n";
-      cout<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -bS IP.sam -o IP_clean.bam\n";
-      cout<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -bS CTRL.sam -o CTRL_clean.bam\n";
+      cout<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -b IP.bam -o IP_clean.bam\n";
+      cout<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -b CTRL.bam -o CTRL_clean.bam\n";
       cout<<"2. Sort the BAM file:\n";
       cout<<"    $ samtools sort  IP_clean.bam  IP_clean_sorted\n";
       cout<<"    $ samtools sort  CTRL_clean.bam  CTRL_clean_sorted\n";
