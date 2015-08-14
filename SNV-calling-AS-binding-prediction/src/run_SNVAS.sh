@@ -33,21 +33,21 @@ MACS2MODE="narrow";
 
 if [ ${MACS2MODE} = "narrow" ];then
     MACS2OUTPUTFILE="${MyFactor}_peaks.narrowPeak";
-else if [ ${MACS2MODE} = "broad" ];then
+elif [ ${MACS2MODE} = "broad" ];then
     MACS2OUTPUTFILE="${MyFactor}_peaks.broadPeak";
     MACS2EXTPARAM="${MACS2EXTPARAM} --broad";
 else
     echo "Wrong MACS2MODE setting! Please choose from 'narrow' and 'broad'!";
-    exit(1);
+    exit;
 fi
 
 if [ ${MODE} = "PE" ];then
     MACS2EXTPARAM="${MACS2EXTPARAM} -f BAMPE";
-else if [ ${MODE} = "SE" ];then
+elif [ ${MODE} = "SE" ];then
     MACS2EXTPARAM="${MACS2EXTPARAM} -f BAM";
 else
     echo "Wrong MODE setting! Please choose from 'PE' and 'SE'!";
-    exit(1);
+    exit;
 fi  
 
 # step 1 filter
