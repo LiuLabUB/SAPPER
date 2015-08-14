@@ -125,6 +125,14 @@ output vcf file
 
 3. For single-end data, you should change "PE" to "SE".
 
+Batch script
+~~~~~~~~~~~~
+
+We provided a shell script to go through the above steps in a
+pipeline. Please open and edit the run_SNVAS.sh file, and put it in
+the working directory where your BAM files are located.
+
+
 Interpret Results
 =================
 
