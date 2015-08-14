@@ -212,5 +212,5 @@ TBA
 
 Release Notes
 =============
-Release 0.1 (2015-08-12)
+Release 0.1 (2015-08-14)
 This is the first public release of SNVAS.
