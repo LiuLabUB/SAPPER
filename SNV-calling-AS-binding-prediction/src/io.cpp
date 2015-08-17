@@ -1905,7 +1905,9 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 		{
 			os<<regionchr<<"\t"<<miPtmp->first<<"\t.\t"<<myReadsInfor.ref;
 			os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<"\t.\t.";
-			os<<"\tMinBIC_model:"<<myReadsInfor.type<<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
+			os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
+			  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
+			  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
 			  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
 			for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 //cout<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -1927,7 +1929,9 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			if(NTindex2char(myReadsInfor.top1ntindex)==myReadsInfor.ref)
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top2ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
+				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
+				  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
+				  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
 				  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -1942,7 +1946,9 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			else if(NTindex2char(myReadsInfor.top2ntindex)==myReadsInfor.ref)
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
+				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
+				  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
+				  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
 				  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -1957,7 +1963,9 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			else
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<","<<NTindex2char(myReadsInfor.top2ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
+				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
+				  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
+				  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
 				  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -1987,8 +1995,10 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##source=SNVAS_V0.1"<<endl;
 	os<<"##Program_Args: "<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<" "<<argv[5]<<endl;
 	os<<"##INFO=<ID=MinBIC_model,Number=.,Type=String,Description=\"Model with minimum BIC value\">"<<endl;
-	os<<"##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description=\"Approximate read depth in ChIP-seq data; some reads may have been filtered\">"<<endl;
-	os<<"##INFO=<ID=DP_input,Number=1,Type=Integer,Description=\"Approximate read depth in input data; some reads may have been filtered\">"<<endl;
+	os<<"##INFO=<ID=raw_depth_ChIP,Number=1,Type=Integer,Description=\"Raw read depth in ChIP-seq data\">"<<endl;
+	os<<"##INFO=<ID=raw_depth_input,Number=1,Type=Integer,Description=\"Raw read depth in input data\">"<<endl;
+	os<<"##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description=\"Read depth in ChIP-seq data; some reads may have been filtered\">"<<endl;
+	os<<"##INFO=<ID=DP_input,Number=1,Type=Integer,Description=\"Read depth in input data; some reads may have been filtered\">"<<endl;
 	os<<"##INFO=<ID=fermiNTs,Number=.,Type=String,Description=\"Nucleotides from the genotype information of fermi assembly result\">"<<endl;
 	os<<"##INFO=<ID=top1,Number=.,Type=String,Description=\"Read depth of top1 nucleotide in ChIP-seq data; some reads may have been filtered\">"<<endl;
 	os<<"##INFO=<ID=top2,Number=.,Type=String,Description=\"Read depth of top2 nucleotide in ChIP-seq data; some reads may have been filtered\">"<<endl;

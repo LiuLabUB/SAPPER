@@ -18,10 +18,11 @@ struct PosReadsInfor
 	char ref;
 	bool filterout;//if true, do not output
 
-	vector<vector<double> > Qual_set;//A C G T N
-	vector<vector<double> > InputQual_set;//A C G T N
+	vector<vector<double> > Qual_set;//A C G T N, only stat for the reads consistent with any contig
+	vector<vector<double> > InputQual_set;//A C G T N, only stat for the reads consistent with any contig
 	vector<int> ChIP_rawNo;//A C G T N
 	vector<int> Input_rawNo;//A C G T N
+	//int raw_read_depth;//ChIP_rawNo[0].size()+ChIP_rawNo[1].size()+...+Input_rawNo[0].size()+Input_rawNo[1].size()+...
 
 	//
 	int top1ntindex,top2ntindex;
