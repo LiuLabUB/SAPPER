@@ -1973,14 +1973,19 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 	}
 }
 
-void OutputVcfResultHasInput_header(const string outputfile)
+void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 {
 	int i;
+	time_t t = time(0);   // get time now
+	struct tm * now = localtime( & t );
 
 	//output
 	ofstream os(outputfile.c_str());
 	if(!os) {cout<<"error open output file: "<<endl;exit(0);}
 	os<<"##fileformat=VCFv4.1"<<endl;
+	os<<"##fileDate="<<(now->tm_year + 1900)<<(now->tm_mon + 1)<<now->tm_mday<<endl;
+	os<<"##source=SNVAS_V0.1"<<endl;
+	os<<"##Program_Args: "<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<" "<<argv[5]<<endl;
 	os<<"##INFO=<ID=MinBIC_model,Number=.,Type=String,Description=\"Model with minimum BIC value\">"<<endl;
 	os<<"##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description=\"Approximate read depth in ChIP-seq data; some reads may have been filtered\">"<<endl;
 	os<<"##INFO=<ID=DP_input,Number=1,Type=Integer,Description=\"Approximate read depth in input data; some reads may have been filtered\">"<<endl;
