@@ -4,35 +4,34 @@ Install
 Compile 'fermi' https://github.com/lh3/fermi/
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-```
-$ cd fermi
-$ make
-$ cd ..
-```
+We modified fermi codes. So please do not compile and install the
+official one but just use the embedded subdir::
+
+ $ cd fermi
+ $ make
+ $ cd ..
 
 You will have executable fermi binary file under 'fermi'
 directory. Now copy/move it to one of your PATH such as
-/usr/local/bin.
+/usr/local/bin::
 
-```
-$ mv fermi /usr/local/bin
-```
-
+ $ mv fermi /usr/local/bin
 
 Then Compile SNVAS and SNVAS_filter
 ~~~~~~~~~~~~~~~~~~
 
-```
-$ make
-```
+Simply go back to SNVAS dir then compile SNVAS::
+
+ $ cd ..
+ $ make
 
 You will have executable binary files 'SNVAS' and 'SNVAS_filter' under the current src
-directory. Now copy/move them to one of your PATH such as /usr/loca/bin.
+directory. Now copy/move them to one of your PATH such as
+/usr/loca/bin::
 
-```
-$ mv SNVAS /usr/local/bin
-$ mv SNVAS_filter /usr/local/bin
-```
+ $ mv SNVAS /usr/local/bin
+ $ mv SNVAS_filter /usr/local/bin
+
 
 Usage
 =====
@@ -142,41 +141,39 @@ Format of the output
 
 The output vcf file follows VCF v4.1 format
 (http://samtools.github.io/hts-specs/VCFv4.1.pdf); the detail
-information of each term is defined in the header of the vcf file.
+information of each term is defined in the header of the vcf file::
 
-```
-##fileformat=VCFv4.1
-##fileDate=2015817
-##source=SNVAS_V0.1
-##Program Args: sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf
-##INFO=<ID=MinBIC_model,Number=.,Type=String,Description="Model with minimum BIC value">
-##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Approximate read depth in ChIP-seq data; some reads may have been filtered">
-##INFO=<ID=DP_input,Number=1,Type=Integer,Description="Approximate read depth in input data; some reads may have been filtered">
-##INFO=<ID=fermiNTs,Number=.,Type=String,Description="Nucleotides from the genotype information of fermi assembly result">
-##INFO=<ID=top1,Number=.,Type=String,Description="Read depth of top1 nucleotide in ChIP-seq data; some reads may have been filtered">
-##INFO=<ID=top2,Number=.,Type=String,Description="Read depth of top2 nucleotide in ChIP-seq data; some reads may have been filtered">
-##INFO=<ID=top1input,Number=.,Type=String,Description="Read depth of top1 nucleotide in input data; some reads may have been filtered">
-##INFO=<ID=top2input,Number=.,Type=String,Description="Read depth of top2 nucleotide in input data; some reads may have been filtered">
-##INFO=<ID=top1raw,Number=.,Type=Integer,Description="Read depth of top1 nucleotide in raw ChIP-seq data">
-##INFO=<ID=top2raw,Number=.,Type=Integer,Description="Read depth of top2 nucleotide in raw ChIP-seq data">
-##INFO=<ID=top1inputraw,Number=.,Type=Integer,Description="Read depth of top1 nucleotide in raw input data">
-##INFO=<ID=top2inputraw,Number=.,Type=Integer,Description="Read depth of top1 nucleotide in raw input data">
-##INFO=<ID=lnL_homo_major,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with major allele model">
-##INFO=<ID=lnL_homo_minor,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with minor allele model">
-##INFO=<ID=lnL_heter_noAS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with no allele-specific model">
-##INFO=<ID=lnL_heter_AS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with allele-specific model">
-##INFO=<ID=BIC_homo_major,Number=1,Type=Float,Description="BIC value of homozygous with major allele model">
-##INFO=<ID=BIC_homo_minor,Number=1,Type=Float,Description="BIC value of homozygous with minor allele model">
-##INFO=<ID=BIC_heter_noAS,Number=1,Type=Float,Description="BIC value of heterozygous with no allele-specific model">
-##INFO=<ID=BIC_heter_AS,Number=1,Type=Float,Description="BIC value of heterozygous with allele-specific model">
-##INFO=<ID=GQ_homo,Number=1,Type=Float,Description="Genotype quality of homozygous with major allele model">
-##INFO=<ID=GQ_heter_noAS,Number=1,Type=Float,Description="Genotype quality of heterozygous with no allele-specific model">
-##INFO=<ID=GQ_heter_AS,Number=1,Type=Float,Description="Genotype quality of heterozygous with allele-specific model">
-##INFO=<ID=GQ_heter_ASsig,Number=1,Type=Float,Description="Genotype quality of allele-specific significance compared with no allele-specific model">
-##INFO=<ID=Allele_ratio_heter_AS,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  SAMPLE
-```
+ ##fileformat=VCFv4.1
+ ##fileDate=2015817
+ ##source=SNVAS_V0.1
+ ##Program Args: sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf
+ ##INFO=<ID=MinBIC_model,Number=.,Type=String,Description="Model with minimum BIC value">
+ ##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Approximate read depth in ChIP-seq data; some reads may have been filtered">
+ ##INFO=<ID=DP_input,Number=1,Type=Integer,Description="Approximate read depth in input data; some reads may have been filtered">
+ ##INFO=<ID=fermiNTs,Number=.,Type=String,Description="Nucleotides from the genotype information of fermi assembly result">
+ ##INFO=<ID=top1,Number=.,Type=String,Description="Read depth of top1 nucleotide in ChIP-seq data; some reads may have been filtered">
+ ##INFO=<ID=top2,Number=.,Type=String,Description="Read depth of top2 nucleotide in ChIP-seq data; some reads may have been filtered">
+ ##INFO=<ID=top1input,Number=.,Type=String,Description="Read depth of top1 nucleotide in input data; some reads may have been filtered">
+ ##INFO=<ID=top2input,Number=.,Type=String,Description="Read depth of top2 nucleotide in input data; some reads may have been filtered">
+ ##INFO=<ID=top1raw,Number=.,Type=Integer,Description="Read depth of top1 nucleotide in raw ChIP-seq data">
+ ##INFO=<ID=top2raw,Number=.,Type=Integer,Description="Read depth of top2 nucleotide in raw ChIP-seq data">
+ ##INFO=<ID=top1inputraw,Number=.,Type=Integer,Description="Read depth of top1 nucleotide in raw input data">
+ ##INFO=<ID=top2inputraw,Number=.,Type=Integer,Description="Read depth of top1 nucleotide in raw input data">
+ ##INFO=<ID=lnL_homo_major,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with major allele model">
+ ##INFO=<ID=lnL_homo_minor,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with minor allele model">
+ ##INFO=<ID=lnL_heter_noAS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with no allele-specific model">
+ ##INFO=<ID=lnL_heter_AS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with allele-specific model">
+ ##INFO=<ID=BIC_homo_major,Number=1,Type=Float,Description="BIC value of homozygous with major allele model">
+ ##INFO=<ID=BIC_homo_minor,Number=1,Type=Float,Description="BIC value of homozygous with minor allele model">
+ ##INFO=<ID=BIC_heter_noAS,Number=1,Type=Float,Description="BIC value of heterozygous with no allele-specific model">
+ ##INFO=<ID=BIC_heter_AS,Number=1,Type=Float,Description="BIC value of heterozygous with allele-specific model">
+ ##INFO=<ID=GQ_homo,Number=1,Type=Float,Description="Genotype quality of homozygous with major allele model">
+ ##INFO=<ID=GQ_heter_noAS,Number=1,Type=Float,Description="Genotype quality of heterozygous with no allele-specific model">
+ ##INFO=<ID=GQ_heter_AS,Number=1,Type=Float,Description="Genotype quality of heterozygous with allele-specific model">
+ ##INFO=<ID=GQ_heter_ASsig,Number=1,Type=Float,Description="Genotype quality of allele-specific significance compared with no allele-specific model">
+ ##INFO=<ID=Allele_ratio_heter_AS,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
+ ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+ #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  SAMPLE
 
 Important information in the file:
 

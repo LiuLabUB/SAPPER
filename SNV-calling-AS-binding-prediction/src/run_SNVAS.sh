@@ -20,8 +20,10 @@ MODE="PE";
 # Extra parameters for MACS2. Note, do not change '--broad' setting
 # here. Do such in the next setting for MACS2MODE. And do not set '-f
 # BAMPE' here if you are dealing with PE data, it will be set
-# according to your previous MODE setting.
-MACS2EXTPARAM="-g hs -q 0.05";
+# according to your previous MODE setting. If you plan to use "PE"
+# MODE, you have to set '--broad-cutoff' together with '-q' or '-p'.
+MACS2EXTPARAM="-g hs -q 0.05 --fe-cutoff 5";
+#MACS2EXTPARAM="-g hs --broad-cutoff 0.1 -p 0.05 --fe-cutoff 5"; # this is for broad peak calling
 
 # For broad region calling, use 'broad'; for narrow peak calling, use
 # 'narrow'. 
@@ -32,9 +34,9 @@ MACS2MODE="narrow";
 # check settings
 
 if [ ${MACS2MODE} = "narrow" ];then
-    MACS2OUTPUTFILE="${MyFactor}_peaks.narrowPeak";
+    MACS2OUTPUTFILE="${FACTORNAME}_peaks.narrowPeak";
 elif [ ${MACS2MODE} = "broad" ];then
-    MACS2OUTPUTFILE="${MyFactor}_peaks.broadPeak";
+    MACS2OUTPUTFILE="${FACTORNAME}_peaks.broadPeak";
     MACS2EXTPARAM="${MACS2EXTPARAM} --broad";
 else
     echo "Wrong MACS2MODE setting! Please choose from 'narrow' and 'broad'!";
