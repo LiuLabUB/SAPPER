@@ -70,18 +70,19 @@ int main(int argc,char *argv[])
 {
 	if ( argc < 5 )
 	{
-		cout<<"Program: SNVAS_filter (filter vcf file of SNV calling from SNVAS)\n";
+		cout<<"Program: SNVAS_filter (filter vcf file from SNVAS)\n";
 		cout<<"Version: 0.1\n";
 		cout<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-		cout<<"Usage: SNVAS_filter <snv.vcf> <homo/hete/heterAS/heterNonAS> <cutoff> <snv_afterfilter.vcf>\n\n";
-		cout<<"Options: <snv.vcf>                            raw output vcf file of SNV calling from SNVAS\n";
-		cout<<"         <homo/hete/heter_AS/heter_noAS>      homo: get homozygous SNV after filtering\n"
-			<<"                                              hete: get heterozygous SNV after filtering\n"
-			<<"                                              heter_AS: get heterozygous SNV with allele-specific binding after filtering\n"
-			<<"                                              heter_noAS: get heterozygous SNV with non allele-specific binding after filtering\n";
-		cout<<"         <cutoff>                             genotype quality cutoff for SNV filtering, \n"
-			<<"                                              which should be integer more than 0\n";
-		cout<<"         <snv_afterfilter.vcf>                output vcf file after filtering\n\n";
+		cout<<"Usage: SNVAS_filter <snvas.vcf> <homo|hetero|hetero_AS|hetero_nonAS> <cutoff> <output.vcf>\n\n";
+		cout<<"Options: <snvas.vcf>                            The raw output vcf file of SNV calling from SNVAS\n";
+		cout<<"         <homo|hetero|hetero_AS|hetero_nonAS>   Actions can be chose from:\n"
+		    <<"                                                homo: get homozygous SNVs above cutoff\n"
+		    <<"                                                hetero: get heterozygous SNVs above cutoff\n"
+		    <<"                                                hetero_AS: get heterozygous SNVs with allele-specific binding above cutoff\n"
+		    <<"                                                hetero_nonAS: get heterozygous SNV with non allele-specific binding above cutoff\n";
+		cout<<"         <cutoff>                               Genotype quality cutoff. To decide a good cutoff, please refer to...\n"
+		    <<"                                                The cutoff should be integer more than 0\n";
+		cout<<"         <output.vcf>                           The output vcf file after filtering\n\n";
 		return(1);
 	}
 
@@ -89,9 +90,9 @@ int main(int argc,char *argv[])
 	string sbuf,INFO,s1,s2,s3,s4,s5,s6,s7,s8,s9;
 
 	const string type(argv[2]);
-	if(type!="homo" && type!="hete" && type!="heter_AS" && type!="heter_noAS")
+	if(type!="homo" && type!="hetero" && type!="hetero_AS" && type!="hetero_nonAS")
 	{
-		cout<<"wrong argv[2], which should be <homo/hete/heter_AS/heter_noAS>"<<endl;return(1);
+		cout<<"Wrong action! It should be either homo|hetero|hetero_AS|hetero_nonAS."<<endl;return(1);
 	}
 
 	const int GQcutoff=atoi(argv[3]);
@@ -123,21 +124,21 @@ int main(int argc,char *argv[])
 				if(snvastemp.GQ>=GQcutoff) os<<s1<<"\t"<<s2<<"\t"<<s3<<"\t"<<s4<<"\t"<<s5<<"\t"<<s6<<"\t"<<s7<<"\t"<<INFO<<"\t"<<s8<<"\t"<<s9<<endl;
 			}
 		}
-		else if(type=="hete")
+		else if(type=="hetero")
 		{
 			if(snvastemp.predicttype=="heter_noAS" || snvastemp.predicttype=="heter_AS")
 			{
 				if(snvastemp.GQ>=GQcutoff) os<<s1<<"\t"<<s2<<"\t"<<s3<<"\t"<<s4<<"\t"<<s5<<"\t"<<s6<<"\t"<<s7<<"\t"<<INFO<<"\t"<<s8<<"\t"<<s9<<endl;
 			}
 		}
-		else if(type=="heter_AS")
+		else if(type=="hetero_AS")
 		{
 			if(snvastemp.predicttype=="heter_AS")
 			{
 				if(snvastemp.GQ>=GQcutoff) os<<s1<<"\t"<<s2<<"\t"<<s3<<"\t"<<s4<<"\t"<<s5<<"\t"<<s6<<"\t"<<s7<<"\t"<<INFO<<"\t"<<s8<<"\t"<<s9<<endl;
 			}
 		}
-		else if(type=="heter_noAS")
+		else if(type=="hetero_nonAS")
 		{
 			if(snvastemp.predicttype=="heter_noAS")
 			{
