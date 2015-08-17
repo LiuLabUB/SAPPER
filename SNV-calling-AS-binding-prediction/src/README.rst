@@ -19,18 +19,19 @@ $ mv fermi /usr/local/bin
 ```
 
 
-Then Compile SNVAS
+Then Compile SNVAS and SNVAS_filter
 ~~~~~~~~~~~~~~~~~~
 
 ```
 $ make
 ```
 
-You will have executable binary files 'SNVAS' under the current src
-directory. Now copy/move it to one of your PATH such as /usr/loca/bin.
+You will have executable binary files 'SNVAS' and 'SNVAS_filter' under the current src
+directory. Now copy/move them to one of your PATH such as /usr/loca/bin.
 
 ```
 $ mv SNVAS /usr/local/bin
+$ mv SNVAS_filter /usr/local/bin
 ```
 
 Usage
@@ -145,6 +146,9 @@ information of each term is defined in the header of the vcf file.
 
 ```
 ##fileformat=VCFv4.1
+##fileDate=2015817
+##source=SNVAS_V0.1
+##Program Args: sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf
 ##INFO=<ID=MinBIC_model,Number=.,Type=String,Description="Model with minimum BIC value">
 ##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Approximate read depth in ChIP-seq data; some reads may have been filtered">
 ##INFO=<ID=DP_input,Number=1,Type=Integer,Description="Approximate read depth in input data; some reads may have been filtered">
@@ -207,8 +211,28 @@ files.
 Filtering results using SNVAS_filter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TBA
+1. To get a listing of all parameters, run ```SNVAS_filter -h```.
 
+2. To get homozygous SNVs with quality score >=cutoff (integer), you can run:
+
+```
+$ SNVAS_filter sample.vcf homo cutoff sample_homo_afterfilter.vcf
+```
+3. To get all heterozygous SNVs with quality score >=cutoff (integer), you can run:
+
+```
+$ SNVAS_filter sample.vcf hete cutoff sample_hete_afterfilter.vcf
+```
+4. To get allele-specific heterozygous SNVs with quality score >=cutoff (integer), you can run:
+
+```
+$ SNVAS_filter sample.vcf heter_AS cutoff sample_heterAS_afterfilter.vcf
+```
+5. To get non allele-specific heterozygous SNV with quality score >=cutoff (integer), you can run:
+
+```
+$ SNVAS_filter sample.vcf heter_noAS cutoff sample_heterNonAS_afterfilter.vcf
+```
 
 Release Notes
 =============

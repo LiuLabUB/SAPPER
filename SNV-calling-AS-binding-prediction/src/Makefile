@@ -2,6 +2,9 @@ CC = g++
 CFLAGS = -g -Wall -O3
 OBJS = main.o io.o analysis.o swalign.o math.o
 
+all: SNVAS SNVAS_filter
+.PHONY:all
+
 SNVAS : $(OBJS)
 	$(CC) $(CFLAGS) -lz -o SNVAS $(OBJS)
 
@@ -19,6 +22,11 @@ io.o : io.cpp io.hpp swalign.hpp analysis.hpp
 
 main.o : main.cpp io.hpp
 	$(CC) -c $(CFLAGS) main.cpp
+	
+SNVAS_filter : SNVAS_filter.cpp
+	$(CC) $(CFLAGS) -o SNVAS_filter SNVAS_filter.cpp
+
 
 clean :
-	-rm -f SNVAS $(OBJS)
+	-rm -f SNVAS $(OBJS) SNVAS_filter SNVAS_filter.o
+
