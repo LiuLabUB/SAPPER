@@ -83,15 +83,9 @@ files from both ChIP-seq and control dataset. Such as::
  $ samtools view -b sample_filter_sorted.bam -L sample_peaks_sorted.bed -o sample_peaks_sorted.bam
 
 Finally, there are 3 files which should be prepared before running
-SNVAS:
-
-1. peak region bed file (sorted by coordinate)
-
-2. bam file of ChIP-seq dataset in the peak region (sorted by
-coordinate)
-
-3. bam file of control dataset in the peak region (sorted by
-coordinate)
+SNVAS: a bed file for peak regions; a BAM file of ChIP-seq reads
+mapped to the peak regions; and a BAM file of control reads mapped 
+to the peak region. All of them are sorted by genome coordinate.
 
 Running SNVAS
 ~~~~~~~~~~~~~
@@ -192,7 +186,7 @@ Filtering results using SNVAS_filter
 We provided a postprocessing tool ``SNVAS_filter`` to further filter
 the output VCF file. It can be used to get a list of 1) homozygous
 SNVs; 2) heterozygous SNVs; 3) heterozygous SNVs with non-allele
-specific binding; 4) heterozygous SNVs with allele-specific binding.
+specific binding; 4) heterozygous SNVs with allele-specific binding:
 
 1. To get a listing of all parameters, run ``SNVAS_filter -h``.
 
