@@ -202,17 +202,17 @@ can run::
  $ SNVAS_filter sample.vcf homo cutoff sample_homo_afterfilter.vcf
 
 3. To get all heterozygous SNVs with quality score >=cutoff (integer),
-you can run:：
+you can run::
 
  $ SNVAS_filter sample.vcf hete cutoff sample_hete_afterfilter.vcf
 
 4. To get allele-specific heterozygous SNVs with quality score
->=cutoff (integer), you can run:：
+>=cutoff (integer), you can run::
 
  $ SNVAS_filter sample.vcf heter_AS cutoff sample_heterAS_afterfilter.vcf
 
 5. To get non allele-specific heterozygous SNV with quality score
->=cutoff (integer), you can run:：
+>=cutoff (integer), you can run::
 
  $ SNVAS_filter sample.vcf heter_noAS cutoff sample_heterNonAS_afterfilter.vcf
 
