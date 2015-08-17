@@ -1,9 +1,18 @@
+MAKE = make
+MKDIR = mkdir
 CC = g++ 
 CFLAGS = -g -Wall -O3
 OBJS = main.o io.o analysis.o swalign.o math.o
 
-all: SNVAS SNVAS_filter
 .PHONY:all
+
+all: bin SNVAS SNVAS_filter
+	cd fermi && ${MAKE}
+	mv fermi/fermi bin/
+	mv SNVAS SNVAS_filter bin/
+
+bin:
+	${MKDIR} bin	
 
 SNVAS : $(OBJS)
 	$(CC) $(CFLAGS) -lz -o SNVAS $(OBJS)
@@ -22,11 +31,13 @@ io.o : io.cpp io.hpp swalign.hpp analysis.hpp
 
 main.o : main.cpp io.hpp
 	$(CC) -c $(CFLAGS) main.cpp
-	
-SNVAS_filter : SNVAS_filter.cpp
-	$(CC) $(CFLAGS) -o SNVAS_filter SNVAS_filter.cpp
 
+SNVAS_filter : SNVAS_filter.cpp
+	$(CC) $(CFLAGS) -lz -o SNVAS_filter SNVAS_filter.cpp
 
 clean :
-	-rm -f SNVAS $(OBJS) SNVAS_filter SNVAS_filter.o
+	cd fermi && ${MAKE} clean
+	-rm -f $(OBJS)
+	-rm -f bin/fermi bin/SNVAS bin/SNVAS_filter
+	-rmdir bin
 

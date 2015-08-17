@@ -1,37 +1,18 @@
 Install
 =======
 
-Compile 'fermi' https://github.com/lh3/fermi/
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Simply go to SNVAS source code dir then compile SNVAS and the modified
+fermi (https://github.com/lh3/fermi/)::
 
-We modified fermi codes. So please do not compile and install the
-official one but just use the embedded subdir::
-
- $ cd fermi
  $ make
- $ cd ..
 
-You will have executable fermi binary file under 'fermi'
-directory. Now copy/move it to one of your PATH such as
-/usr/local/bin::
+You will have executable binary files 'fermi', 'SNVAS' and
+'SNVAS_filter' in the 'bin' subdirectory. Now copy/move them to one of
+your PATH such as /usr/loca/bin::
 
  $ mv fermi /usr/local/bin
-
-Then Compile SNVAS and SNVAS_filter
-~~~~~~~~~~~~~~~~~~
-
-Simply go back to SNVAS dir then compile SNVAS::
-
- $ cd ..
- $ make
-
-You will have executable binary files 'SNVAS' and 'SNVAS_filter' under the current src
-directory. Now copy/move them to one of your PATH such as
-/usr/loca/bin::
-
  $ mv SNVAS /usr/local/bin
  $ mv SNVAS_filter /usr/local/bin
-
 
 Usage
 =====
