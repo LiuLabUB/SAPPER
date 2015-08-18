@@ -74,14 +74,18 @@ sort -k1,1 -k2,2n ${MACS2OUTPUTFILE} > ${FACTORNAME}_peaks.sorted.bed &
 
 wait;
 
-# step 5 extract reads in peak regions:
-samtools view -b ${CHIPBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_peaks.sorted.bed -o ${FACTORNAME}_CHIP_peaks.bam &
-samtools view -b ${CTRLBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_peaks.sorted.bed -o ${FACTORNAME}_CTRL_peaks.bam &
+# step 5 extract reads in peak regions towards each side for 150bps then merge:
+
+awk -v OFS="\t" '{print $1,(($2-150)>0?($2-150)):0,$3+150}' ${FACTORNAME}_peaks.sorted.bed | bedtools merge - > ${FACTORNAME}_extended_peaks.bed
+
+
+samtools view -b ${CHIPBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_extended_peaks.bed -o ${FACTORNAME}_CHIP_peaks.bam &
+samtools view -b ${CTRLBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_extended_peaks.bed -o ${FACTORNAME}_CTRL_peaks.bam &
 
 wait;
 
 # step 6 run SNVAS
-SNVAS ${FACTORNAME}_peaks.sorted.bed ${FACTORNAME}_CHIP_peaks.bam ${FACTORNAME}_CTRL_peaks.bam ${MODE} ${FACTORNAME}_SNVAS.vcf &
+SNVAS ${FACTORNAME}_extended_peaks.bed ${FACTORNAME}_CHIP_peaks.bam ${FACTORNAME}_CTRL_peaks.bam ${MODE} ${FACTORNAME}_SNVAS.vcf &
 
 wait;
 
