@@ -43,7 +43,7 @@ Before running SNVAS/Preprocessing
 5. Peak calling. We recommand using the software "macs2"
    (https://github.com/taoliu/MACS).
 
-   Exampel for paired-end ChIP-seq::
+   Example for paired-end ChIP-seq::
 
       $ macs2 callpeak -f BAMPE -t CHIP_filtered_sorted.bam -c Ctrl_filtered_sorted.bam -n MyFactor -g hs
 
@@ -58,10 +58,12 @@ Before running SNVAS/Preprocessing
 
       $ sort -k1,1 -k2,2n MyFactor_peaks.narrowPeak > MyFactor_peaks.sorted.bed
 
-6. Extract reads in selected peak region, and generate the subset BAM
-   files from both ChIP-seq and control dataset. Such as::
+6. Extract reads in selected peak region with extension to each side
+   (e.g. 300bps), and generate the subset BAM files from both ChIP-seq
+   and control dataset. Such as::
 
-      $ samtools view -b sample_filter_sorted.bam -L sample_peaks_sorted.bed -o sample_peaks_sorted.bam
+      $ awk -v OFS="\t" '{print $1,(($2-150)>0?($2-150):0),$3+150}' MyFactor_peaks.sorted.bed > MyFactor_extended_peaks.bed
+      $ samtools view -b sample_filter_sorted.bam -L MyFactor_extended_peaks.bed -o reads_in_extended_peaks.bam
 
 Finally, there are 3 files which should be prepared before running
 SNVAS: a bed file for peak regions; a BAM file of ChIP-seq reads

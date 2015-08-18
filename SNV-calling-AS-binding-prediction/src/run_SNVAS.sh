@@ -76,7 +76,7 @@ wait;
 
 # step 5 extract reads in peak regions towards each side for 150bps then merge:
 
-awk -v OFS="\t" '{print $1,(($2-150)>0?($2-150)):0,$3+150}' ${FACTORNAME}_peaks.sorted.bed | bedtools merge - > ${FACTORNAME}_extended_peaks.bed
+awk -v OFS="\t" '{print $1,(($2-150)>0?($2-150):0),$3+150}' ${FACTORNAME}_peaks.sorted.bed | bedtools merge - > ${FACTORNAME}_extended_peaks.bed
 
 
 samtools view -b ${CHIPBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_extended_peaks.bed -o ${FACTORNAME}_CHIP_peaks.bam &
