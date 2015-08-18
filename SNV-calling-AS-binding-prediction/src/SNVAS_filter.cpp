@@ -85,7 +85,7 @@ int main(int argc,char *argv[])
 		cout<<"Options: <snvas.vcf>                            The raw output vcf file of SNV calling from SNVAS\n";
 		cout<<"         <homo|hetero|hetero_AS|hetero_nonAS>   Actions can be chose from:\n"
 		    <<"         <depth_cutoff>                         only show the SNV with read depth >=depth_cutoff (recommand 20), \n"
-            <<"                                                which is an integer >=0\n"
+		    <<"                                                which is an integer >=0\n"
 		    <<"                                                homo: get homozygous SNVs above cutoff\n"
 		    <<"                                                hetero: get heterozygous SNVs above cutoff\n"
 		    <<"                                                hetero_AS: get heterozygous SNVs with allele-specific binding above cutoff\n"
