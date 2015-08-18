@@ -90,7 +90,7 @@ int main(int argc,char *argv[])
 		    <<"                                                hetero: get heterozygous SNVs above cutoff\n"
 		    <<"                                                hetero_AS: get heterozygous SNVs with allele-specific binding above cutoff\n"
 		    <<"                                                hetero_nonAS: get heterozygous SNV with non allele-specific binding above cutoff\n";
-		cout<<"         <GQ_cutoff>                               Genotype quality cutoff. To decide a good cutoff, please refer to...\n"
+		cout<<"         <GQ_cutoff>                            Genotype quality cutoff. To decide a good cutoff, please refer to...\n"
 		    <<"                                                The cutoff should be integer more than 0\n";
 		cout<<"         <output.vcf>                           The output vcf file after filtering\n\n";
 		return(1);
