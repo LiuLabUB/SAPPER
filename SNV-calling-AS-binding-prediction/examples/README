@@ -4,22 +4,22 @@ Running example
 1 Paired-end ChIP-seq dataset
 
 cd PE_demo
-../../src/SNVAS PEsample_peaks_sorted.bed PEsample_peaks_sorted.bam PEcontrol_peaks_sorted.bam PE PEsample.vcf
+SNVAS PEsample_peaks_sorted.bed PEsample_peaks_sorted.bam PEcontrol_peaks_sorted.bam PE PEsample.vcf
 
 Filtering process:
-../../src/SNVAS_filter PEsample.vcf 20 homo 10 PEsample_homo.vcf
-../../src/SNVAS_filter PEsample.vcf 20 hetero 100 PEsample_heter.vcf
-../../src/SNVAS_filter PEsample.vcf 20 hetero_AS 100 PEsample_heterAS.vcf
-../../src/SNVAS_filter PEsample.vcf 20 hetero_nonAS 100 PEsample_heterNonAS.vcf
+SNVAS_filter PEsample.vcf 20 homo 10 PEsample_homo.vcf
+SNVAS_filter PEsample.vcf 20 hetero 100 PEsample_heter.vcf
+SNVAS_filter PEsample.vcf 20 hetero_AS 100 PEsample_heterAS.vcf
+SNVAS_filter PEsample.vcf 20 hetero_nonAS 100 PEsample_heterNonAS.vcf
 
 2 Single-end ChIP-seq dataset
 
 cd SE_demo
-../../src/SNVAS SEsample_peaks_sorted.bed SEsample_peaks_sorted.bam SEcontrol_peaks_sorted.bam SE SEsample.vcf
+SNVAS SEsample_peaks_sorted.bed SEsample_peaks_sorted.bam SEcontrol_peaks_sorted.bam SE SEsample.vcf
 
 Filtering process:
-../../src/SNVAS_filter SEsample.vcf 20 homo 10 SEsample_homo.vcf
-../../src/SNVAS_filter SEsample.vcf 20 hetero 100 SEsample_heter.vcf
-../../src/SNVAS_filter SEsample.vcf 20 hetero_AS 100 SEsample_heterAS.vcf
-../../src/SNVAS_filter SEsample.vcf 20 hetero_nonAS 100 SEsample_heterNonAS.vcf
+SNVAS_filter SEsample.vcf 20 homo 10 SEsample_homo.vcf
+SNVAS_filter SEsample.vcf 20 hetero 100 SEsample_heter.vcf
+SNVAS_filter SEsample.vcf 20 hetero_AS 100 SEsample_heterAS.vcf
+SNVAS_filter SEsample.vcf 20 hetero_nonAS 100 SEsample_heterNonAS.vcf
 
