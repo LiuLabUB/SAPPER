@@ -6,11 +6,11 @@ fermi (https://github.com/lh3/fermi/)::
 
  $ make
 
-You will have executable binary files 'fermi', 'SNVAS' and
-'SNVAS_filter' in the 'bin' subdirectory. Now copy/move them to one of
-your PATH such as /usr/loca/bin::
+You will have executable binary files 'SNVAS_fermi' (our modifed
+'fermi'), 'SNVAS' and 'SNVAS_filter' in the 'bin' subdirectory. Now
+copy/move them to one of your PATH such as /usr/loca/bin::
 
- $ mv fermi /usr/local/bin
+ $ mv SNVAS_fermi /usr/local/bin
  $ mv SNVAS /usr/local/bin
  $ mv SNVAS_filter /usr/local/bin
 
@@ -58,11 +58,14 @@ Before running SNVAS/Preprocessing
 
       $ sort -k1,1 -k2,2n MyFactor_peaks.narrowPeak > MyFactor_peaks.sorted.bed
 
+   Note, we really need high quality peaks to proceed, because if a
+   peak is weak 
+
 6. Extract reads in selected peak region with extension to each side
    (e.g. 300bps), and generate the subset BAM files from both ChIP-seq
    and control dataset. Such as::
 
-      $ awk -v OFS="\t" '{print $1,(($2-150)>0?($2-150):0),$3+150}' MyFactor_peaks.sorted.bed > MyFactor_extended_peaks.bed
+      $ awk -v OFS="\t" '{print $1,(($2-150)>0?($2-150):0),$3+150}' MyFactor_peaks.sorted.bed | bedtools merge -i - > MyFactor_extended_peaks.bed
       $ samtools view -b sample_filter_sorted.bam -L MyFactor_extended_peaks.bed -o reads_in_extended_peaks.bam
 
 Finally, there are 3 files which should be prepared before running
