@@ -31,7 +31,7 @@ string lookupFermi()
     {
       string temp = path_array[i];
 
-      temp = temp + "/" + "fermi";
+      temp = temp + "/" + "SNVAS_fermi";
       // let execv determine if it is executable
       // or you can do that here if required
       if ( access(temp.c_str(), F_OK) == 0)

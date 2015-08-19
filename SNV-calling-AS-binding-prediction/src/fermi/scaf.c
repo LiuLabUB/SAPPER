@@ -52,7 +52,6 @@ static utig_v *read_utig(const char *fn)
 	utig_v *u;
 
 	fp = strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
-
 	kseq = kseq_init(fp);
 	u = calloc(1, sizeof(utig_v));
 	while (kseq_read(kseq) >= 0) {
@@ -643,15 +642,6 @@ void mag_scaf_core(const rld_t *e, const char *fn, const fmscafopt_t *opt, int n
 	max_dist = (int)(opt->avg + 2. * opt->std + .499);
 	t = cputime();
 	v = read_utig(fn);
-
-	//check, tianlq@gmail.com
-	gzFile fp;
-	fp = strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return; // quit, if sequence file is empty.
-	}
-
 	if (fm_verbose >= 3)
 		fprintf(stderr, "[M::%s] read unitigs in %.3f sec\n", __func__, cputime() - t);
 	t = cputime();

@@ -417,26 +417,8 @@ int main(int argc, char *argv[])
 	}
 	for (j = 0; j < 5; ++j) mat[k++] = 0;
 	// open file
-	fpt = gzopen(argv[optind],   "r");
-
-	//check, tianlq@gmail.com
-	if (fpt == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
-	kst = kseq_init(fpt);
-
-	fpq = gzopen(argv[optind+1], "r");
-
-	//check, tianlq@gmail.com
-	if (fpq == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
-	ksq = kseq_init(fpq);
-
+	fpt = gzopen(argv[optind],   "r"); kst = kseq_init(fpt);
+	fpq = gzopen(argv[optind+1], "r"); ksq = kseq_init(fpq);
 	// all-pair alignment
 	while (kseq_read(ksq) > 0) {
 		kswq_t *q[2] = {0, 0};

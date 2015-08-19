@@ -98,17 +98,6 @@ int main_ropebwt(int argc, char *argv[])
 		if (!(flag&FLAG_CUTN)) fprintf(stderr, "Warning: With bcr, an ambiguous base will be converted to a random base\n");
 	} else if (algo == BPR) bpr = bpr_init(max_nodes, max_runs);
 	fp = strcmp(argv[optind], "-")? gzopen(argv[optind], "rb") : gzdopen(fileno(stdin), "rb");
-<<<<<<< HEAD
-	if ( feof( fp ) ) return 1; // quit, if sequence file is empty. 
-=======
-
-	//check, tianlq@gmail.com
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
->>>>>>> bd18623af3d465967bb1928bac2460242a7b8a4e
 	ks = kseq_init(fp);
 	while (kseq_read(ks) >= 0) {
 		int j;

@@ -98,13 +98,6 @@ int main_splitfa(int argc, char *argv[])
 		out[i] = gzopen(str, "wb1");
 	}
 	fp = strcmp(argv[1], "-")? gzopen(argv[1], "r") : gzdopen(fileno(stdin), "r");
-
-	//check, tianlq@gmail.com
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0) {
 		i = (n_seqs>>1) % n_files;
@@ -164,7 +157,6 @@ int main_fltuniq(int argc, char *argv[])
 		fprintf(stderr, "[E::%s] fail to open file '%s'\n", __func__, argv[optind]);
 		return 1;
 	}
-
 	seq = kseq_init(fp);
 	flags = xcalloc(1ULL<<k*2>>5, 8);
 	mask = (1ULL<<k*2) - 1;
@@ -183,13 +175,6 @@ int main_fltuniq(int argc, char *argv[])
 	}
 	kseq_destroy(seq);
 	gzrewind(fp);
-
-	//check, tianlq@gmail.com
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
 	seq = kseq_init(fp);
 	out.l = out.m = 0; out.s = 0;
 	prev_name.l = prev_name.m = 0; prev_name.s = 0;
@@ -236,13 +221,6 @@ int main_cg2cofq(int argc, char *argv[])
 	}
 	str.l = str.m = 0; str.s = 0;
 	fp = strcmp(argv[1], "-")? gzopen(argv[1], "r") : gzdopen(fileno(stdin), "r");
-
-	//check, tianlq@gmail.com
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0) {
 		int i;
@@ -289,18 +267,6 @@ int main_pe2cofq(int argc, char *argv[])
 	str.l = str.m = 0; str.s = 0;
 	fp1 = strcmp(argv[1], "-")? gzopen(argv[1], "r") : gzdopen(fileno(stdin), "r");
 	fp2 = strcmp(argv[2], "-")? gzopen(argv[2], "r") : gzdopen(fileno(stdin), "r");
-
-	//check, tianlq@gmail.com
-	if (fp1 == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-	//check, tianlq@gmail.com
-	if (fp2 == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
 	seq[0] = kseq_init(fp1);
 	seq[1] = kseq_init(fp2);
 	while (kseq_read(seq[0]) >= 0) {
@@ -341,13 +307,6 @@ int main_trimseq(int argc, char *argv[])
 	str.l = str.m = 0; str.s = 0;
 	prev_name.l = prev_name.m = 0; prev_name.s = 0;
 	fp = strcmp(argv[optind], "-")? gzopen(argv[optind], "r") : gzdopen(fileno(stdin), "r");
-
-	//check, tianlq@gmail.com
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0) {
 		int i, is_paired = 0, left, right, drop = 0;
@@ -430,13 +389,6 @@ int64_t fm6_api_readseq(const char *fn, char **_seq, char **_qual)
 	kstring_t seq, qual;
 	seq.l = seq.m = qual.l = qual.m = 0; seq.s = qual.s = 0;
 	fp = strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
-
-	//check, tianlq@gmail.com
-	if (fp == NULL) {
-		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
-		return 1; // quit, if sequence file is empty.
-	}
-
 	kseq = kseq_init(fp);
 	while (kseq_read(kseq) >= 0) {
 		kputsn(kseq->seq.s, kseq->seq.l + 1, &seq);
