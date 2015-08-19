@@ -373,6 +373,13 @@ int fm6_remap(const char *fn, const rld_t *e, uint64_t *sorted, int skip, int mi
 	}
 	
 	fp = strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
+
+	//check, tianlq@gmail.com
+	if (fp == NULL) {
+		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
+		return 1; // quit, if sequence file is empty.
+	}
+
 	seq = kseq_init(fp);
 
 	while (fill_seqbuf(seq, buf, 1<<28) > 0) {

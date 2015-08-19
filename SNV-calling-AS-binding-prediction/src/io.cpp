@@ -964,11 +964,15 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 		system(cmdstring.c_str());
 		cmdstring=fermi_location+" pe2cofq "+ss1.str()+" "+ss2.str()+" | "+fermi_location+" correct -pt 2 "+raw_fmd.str()+" - 2> "+ec_fq_gz_log.str()+" | gzip -1 > "+ec_fq_gz.str();
 		system(cmdstring.c_str());
+
+		//gzFile fp = gzopen(ec_fq_gz.str().c_str(), "r");
+		//if(fp==NULL) {cout<<"skip assembly"<<endl; return;}
+
 		cmdstring=fermi_location+" fltuniq "+ec_fq_gz.str()+" - 2> "+fltuniq_log.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btf "+ec_tmp.str()+" - > "+ec_fmd.str()+" 2> "+ec_fmd_log.str();
 		system(cmdstring.c_str());
-		cmdstring=fermi_location+" seqrank -t 2 "+ec_fmd.str()+" > "+ec_rank.str()+" 2> "+ec_rank_log.str();
+		cmdstring=fermi_location+" seqrank -t 1 "+ec_fmd.str()+" > "+ec_rank.str()+" 2> "+ec_rank_log.str();
 		system(cmdstring.c_str());
-		cmdstring=fermi_location+" unitig -t 2 -l 50 -r "+ec_rank.str()+" "+ec_fmd.str()+" 2> "+p0_mag_gz_log.str()+" | gzip -1 > "+p0_mag_gz.str();
+		cmdstring=fermi_location+" unitig -t 1 -l 50 -r "+ec_rank.str()+" "+ec_fmd.str()+" 2> "+p0_mag_gz_log.str()+" | gzip -1 > "+p0_mag_gz.str();
 		system(cmdstring.c_str());
 		cmdstring=fermi_location+" clean "+p0_mag_gz.str()+" 2> "+p1_mag_log.str()+" | cat > "+p1_mag.str();
 		system(cmdstring.c_str());
@@ -978,7 +982,7 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 		vector<string> contigseq_set;
 
 		ifstream is(p1_mag.str().c_str());
-		if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;exit(0);}
+		if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;return;}
 		do
 		{
 			sbuf.clear();
@@ -1385,11 +1389,15 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 
 		cmdstring="gzip -c "+ss1.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btNf "+raw_tmp.str()+" - > "+raw_fmd.str()+" 2> "+raw_fmd_log.str();
 		system(cmdstring.c_str());
-		cmdstring="gzip -c "+ss1.str()+" | "+fermi_location+" correct -t 2 "+raw_fmd.str()+" - 2> "+ec_fq_gz_log.str()+" | gzip -1 > "+ec_fq_gz.str();
+		cmdstring="gzip -c "+ss1.str()+" | "+fermi_location+" correct -t 1 "+raw_fmd.str()+" - 2> "+ec_fq_gz_log.str()+" | gzip -1 > "+ec_fq_gz.str();
 		system(cmdstring.c_str());
+
+		//gzFile fp = gzopen(ec_fq_gz.str().c_str(), "r");
+		//if(fp==NULL) {cout<<"skip assembly"<<endl; return;}
+
 		cmdstring=fermi_location+" fltuniq "+ec_fq_gz.str()+" - 2> "+fltuniq_log.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btf "+ec_tmp.str()+" - > "+ec_fmd.str()+" 2> "+ec_fmd_log.str();
 		system(cmdstring.c_str());
-		cmdstring=fermi_location+" unitig -t 2 -l 18 "+ec_fmd.str()+" 2> "+p0_mag_gz_log.str()+" | gzip -1 > "+p0_mag_gz.str();
+		cmdstring=fermi_location+" unitig -t 1 -l 18 "+ec_fmd.str()+" 2> "+p0_mag_gz_log.str()+" | gzip -1 > "+p0_mag_gz.str();
 		system(cmdstring.c_str());
 		cmdstring=fermi_location+" clean "+p0_mag_gz.str()+" 2> "+p1_mag_log.str()+" | cat > "+p1_mag.str();
 		system(cmdstring.c_str());
@@ -1399,7 +1407,7 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 		vector<string> contigseq_set;
 
 		ifstream is(p1_mag.str().c_str());
-		if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;exit(0);}
+		if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;return;}
 		do
 		{
 			sbuf.clear();
