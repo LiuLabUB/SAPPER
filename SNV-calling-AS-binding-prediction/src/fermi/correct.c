@@ -373,6 +373,13 @@ int fm6_ec_correct(const rld_t *e, fmecopt_t *opt, const char *fn, int _n_thread
 		g_tc = cputime(); g_tr = realtime();
 		out.m = out.l = 0; out.s = 0;
 		fp = strcmp(fn, "-")? gzopen(fn, "r") : gzdopen(fileno(stdin), "r");
+
+		//check, tianlq@gmail.com
+		if (fp == NULL) {
+			fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
+			return 1; // quit, if sequence file is empty.
+		}
+
 		seq = kseq_init(fp);
 		w2 = calloc(n_threads, sizeof(worker2_t));
 		max_seqs = ((BATCH_SIZE < e->mcnt[1]/2? BATCH_SIZE : e->mcnt[1]/2) + n_threads - 1) / n_threads;

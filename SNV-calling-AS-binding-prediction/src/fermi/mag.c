@@ -201,6 +201,7 @@ mag_t *mag_g_read(const char *fn, const magopt_t *opt)
 	if (fp == 0) return 0;
 	kv_init(nei);
 	g = calloc(1, sizeof(mag_t));
+
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0) {
 		int i, j;

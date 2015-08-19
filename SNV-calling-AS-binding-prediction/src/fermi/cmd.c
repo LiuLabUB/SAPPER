@@ -21,6 +21,13 @@ int main_cnt2qual(int argc, char *argv[])
 	}
 	if (argc >= 3) q = atoi(argv[2]);
 	fp = strcmp(argv[1], "-")? gzopen(argv[1], "r") : gzdopen(fileno(stdin), "r");
+
+	//check, tianlq@gmail.com
+	if (fp == NULL) {
+		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
+		return 1; // quit, if sequence file is empty.
+	}
+
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0) {
 		if (seq->qual.l) {
@@ -309,6 +316,13 @@ int main_exact(int argc, char *argv[])
 		return 1;
 	}
 	fp = strcmp(argv[optind+1], "-")? gzopen(argv[optind+1], "r") : gzdopen(fileno(stdin), "r");
+
+	//check, tianlq@gmail.com
+	if (fp == NULL) {
+		fprintf(stderr, "[E::%s] The input file is empty.\n", __func__);
+		return 1; // quit, if sequence file is empty.
+	}
+
 	seq = kseq_init(fp);
 	e = use_mmap? rld_restore_mmap(argv[optind]) : rld_restore(argv[optind]);
 
@@ -437,6 +451,7 @@ int main_build(int argc, char *argv[]) // this routinue to replace main_index() 
 			fprintf(stderr, "[E::%s] Fail to open the input file.\n", __func__);
 			return 1;
 		}
+
 		seq = kseq_init(fp);
 		l = 0; max = 16;
 		s = malloc(max);
