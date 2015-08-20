@@ -62,11 +62,13 @@ struct BamInfor
 	string refseq;
 };
 
+int GetReadLengthFromBamFile(const string Bamfile);
+
 void ReadPeakBedFile(const string Peakbedfile,const string Bamfile,vector<BedRegion> &peakbedregion_set);
 void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string InputBamfile,vector<vector<BamInfor> > &AllPeakInputBamInfor);
-void ReadBamfile(const string PEorSE,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile);
+void ReadBamfile(const string PEorSE,const int ReadLength,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile);
 void GetReverseComplementary(const string &input,string &output);
-void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor);
+void AssembleAndSNVAS(const string PEorSE,const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor);
 void MyFree(vector<BamInfor> &PeakBamInfor);
 
 void FillChIPraw(const int snvpos,const char readnt,map<int,PosReadsInfor> &pos2Readsinfo);
