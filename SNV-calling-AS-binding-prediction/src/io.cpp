@@ -455,7 +455,7 @@ int GetReadLengthFromBamFile(const string Bamfile)
 	if(read_length_set.size()==0) {cout<<"#reads in ChIP-seq is less than 100"<<endl;exit(0);}
 	if(sum==0) {cout<<"wrong reads length for the first 100 reads of ChIP-seq"<<endl;exit(0);}
 
-	cout<<read_length_set.size()<<"\t"<<sum/read_length_set.size()<<endl;
+	cout<<"read length in ChIP-seq (according to the first "<<read_length_set.size()<<" reads): \t"<<sum/read_length_set.size()<<endl;
 	return sum/read_length_set.size();
 }
 
