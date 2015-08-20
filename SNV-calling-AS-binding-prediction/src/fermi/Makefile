@@ -4,7 +4,7 @@ DFLAGS=		#-D_USE_RLE6 #-DNDEBUG
 OBJS=		utils.o seq.o ksa.o ksa64.o rld.o exact.o merge.o sub.o correct.o \
 			build.o smem.o unitig.o seqsort.o cmp.o cmd.o example.o \
 			ksw.o mag.o bubble.o scaf.o bcr.o bprope6.o ropebwt.o
-PROG=		fermi
+PROG=		SNVAS_fermi
 INCLUDES=	
 LIBS=		-lpthread -lm -lz
 
@@ -15,7 +15,7 @@ LIBS=		-lpthread -lm -lz
 
 all:$(PROG)
 
-fermi:$(OBJS) main.o
+SNVAS_fermi:$(OBJS) main.o
 		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) main.o -o $@ $(LIBS)
 
 ksa64.o:ksa.c
