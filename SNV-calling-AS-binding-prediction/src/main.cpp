@@ -103,9 +103,13 @@ int main(int argc,char *argv[])
   vector<vector<BamInfor> > AllPeakInputBamInfor;
   ReadInputBamfile(peakbedregion_set,InputBamfile,AllPeakInputBamInfor);
   cout<<"finish read input bam"<<endl;
+
+  //get the read length from the first 100 reads of bam file
+  int ReadLength=GetReadLengthFromBamFile(Bamfile);
+
   //read bam file and calculate
   OutputVcfResultHasInput_header(OutputVcffile,argv);
-  ReadBamfile(PEorSE,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
+  ReadBamfile(PEorSE,ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
   cout<<"finish all"<<endl;
 
   // remove temp dir
