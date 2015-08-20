@@ -357,6 +357,108 @@ void MyFree(vector<BamInfor> &PeakBamInfor)
 	PeakBamInfor.swap(vBamtemp);
 }
 
+int GetReadLengthFromBamFile(const string Bamfile)
+{
+	//read bam header
+	map<int,string> chrindex2name;
+
+	gzFile fp = gzopen(Bamfile.c_str(), "r");
+	if(fp==NULL) {cout<<"gzopen error "<<Bamfile<<endl;exit(0);}
+
+	//read header
+	char magic[4];
+	int32_t l_text,n_ref,l_name,l_ref;
+
+	gzread(fp, magic, sizeof(char)*4);
+	gzread(fp, &l_text, sizeof(int32_t));
+
+	char text[l_text];
+	gzread(fp, text, sizeof(char)*l_text);
+	gzread(fp, &n_ref, sizeof(int32_t));
+
+	for(int i=0;i<n_ref;i++)
+	{
+		gzread(fp, &l_name, sizeof(int32_t));
+		char name[l_name];
+		gzread(fp, name, sizeof(char)*l_name);
+		gzread(fp, &l_ref, sizeof(int32_t));
+
+		string stemp(name);
+		chrindex2name[i+1]=stemp;
+	}
+
+	//read bam reads
+	int i=0;
+	vector<int> read_length_set;
+	do
+	{
+		i++;
+
+		//read a read
+		int32_t block_size,refID,readstart,l_seq,next_refID,next_pos,tlen,l_read_name,flag,n_cigar_op;
+		uint32_t bin_mq_nl,MAPQ,flag_nc;
+		bool reversestrand=false;//if true, read is located in reverse strand
+		int firstsegment=0;// /1 or /2
+
+		if(gzread(fp, &block_size, sizeof(int32_t))!=sizeof(int32_t)) break;//alignment end
+		gzread(fp, &refID, sizeof(int32_t));refID++;
+
+		//
+		if(chrindex2name.find(refID)==chrindex2name.end()) {cout<<"wrong refID: "<<refID<<endl;exit(0);}
+
+		gzread(fp, &readstart, sizeof(int32_t));
+		readstart++;//in bam, readstart is 0 based
+		gzread(fp, &bin_mq_nl, sizeof(uint32_t));
+		MAPQ=bin_mq_nl>>8&0xff;
+		l_read_name = bin_mq_nl&0xff;
+
+		gzread(fp, &flag_nc, sizeof(uint32_t));
+		flag=flag_nc>>16;
+		if(flag&16) reversestrand=true;
+
+		if(flag&64) firstsegment=1;
+		else if(flag&128) firstsegment=2;
+
+		n_cigar_op=flag_nc&0xffff;
+		gzread(fp, &l_seq, sizeof(int32_t));
+		gzread(fp, &next_refID, sizeof(int32_t));
+		gzread(fp, &next_pos, sizeof(int32_t));
+		gzread(fp, &tlen, sizeof(int32_t));
+
+		char read_name[l_read_name];
+		gzread(fp, read_name, sizeof(char)*l_read_name);
+
+		uint32_t cigar[n_cigar_op];
+		gzread(fp, (char *)&cigar, sizeof(uint32_t)*n_cigar_op);
+		stringstream cigar_ss;
+		for(int i=0;i<n_cigar_op;i++) cigar_ss<<bam_cigar_oplen(cigar[i])<<bam_cigar_opchr(cigar[i]);
+
+		uint8_t seq[(l_seq+1)>>1];
+		gzread(fp, (char *)&seq, sizeof(uint8_t)*((l_seq+1)>>1));
+
+		char qual[l_seq];
+		gzread(fp, qual, sizeof(char)*l_seq);
+
+		int32_t aux_size=block_size-32-l_read_name-(n_cigar_op<<2)-((l_seq+1)>>1)-l_seq;
+		uint8_t aux[aux_size];
+		gzread(fp, aux, sizeof(uint8_t)*aux_size);
+
+		//
+		read_length_set.push_back(l_seq);
+
+	}while(i<100);
+
+	//
+	int sum=0;
+	for(i=0;i<read_length_set.size();i++) sum+=read_length_set[i];
+
+	if(read_length_set.size()==0) {cout<<"#reads in ChIP-seq is less than 100"<<endl;exit(0);}
+	if(sum==0) {cout<<"wrong reads length for the first 100 reads of ChIP-seq"<<endl;exit(0);}
+
+	cout<<read_length_set.size()<<"\t"<<sum/read_length_set.size()<<endl;
+	return sum/read_length_set.size();
+}
+
 void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string InputBamfile,vector<vector<BamInfor> > &AllPeakInputBamInfor)
 {
 	//
@@ -546,7 +648,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 	}
 }
 
-void ReadBamfile(const string PEorSE,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile)
+void ReadBamfile(const string PEorSE,const int ReadLength,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile)
 {
 	//
 	const int PeakNo=peakbedregion_set.size();
@@ -687,7 +789,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 			if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
 			else if(readstart>peakend)
 			{//cout<<peakstart<<" "<<peakend<<" "<<readstart<<endl;
-				AssembleAndSNVAS(PEorSE,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+				AssembleAndSNVAS(PEorSE,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 				PeakBamInfor.clear();
 				cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
@@ -709,7 +811,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 		}
 		else
 		{
-			AssembleAndSNVAS(PEorSE,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+			AssembleAndSNVAS(PEorSE,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 			PeakBamInfor.clear();
 			cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
@@ -734,7 +836,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 
 	if(!PeakBamInfor.empty())
 	{
-		AssembleAndSNVAS(PEorSE,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+		AssembleAndSNVAS(PEorSE,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 		PeakBamInfor.clear();
 		cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
@@ -759,9 +861,11 @@ void GetReverseComplementary(const string &input,string &output)
 	}
 }
 
-void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
+void AssembleAndSNVAS(const string PEorSE,const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
 {
 	if(PeakBamInfor.size()==0) return;
+
+	const int Fermi_overlap_par=ReadLength/2;
 
 	int i,j;
 	string sbuf;
@@ -769,14 +873,11 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 	if(PEorSE=="PE")
 	{
 		//get seq and bq, and ref seq in the extended peak region
-		stringstream ss1,ss2;
-		ss1<<tmpfilefolder<<"/"<<PeakIndex<<"_1.fastq";
-		ss2<<tmpfilefolder<<"/"<<PeakIndex<<"_2.fastq";
+		stringstream ss1;
+		ss1<<tmpfilefolder<<"/"<<PeakIndex+1<<".fastq";
 
 		ofstream os1(ss1.str().c_str());
 		if(!os1) {cout<<"can not open tmp output file: "<<ss1.str()<<endl;exit(0);}
-		ofstream os2(ss2.str().c_str());
-		if(!os2) {cout<<"can not open tmp output file: "<<ss2.str()<<endl;exit(0);}
 
 		//
 		string extendrefseq=PeakBamInfor[0].refseq;
@@ -825,10 +926,10 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 			}
 			else if(mybaminfor.firstsegment==2)
 			{
-				os2<<"@"<<mybaminfor.readname<<"/2"<<endl;
-				os2<<mybaminfor.seq<<endl;
-				os2<<"+"<<endl;
-				os2<<mybaminfor.bq<<endl;
+				os1<<"@"<<mybaminfor.readname<<"/2"<<endl;
+				os1<<mybaminfor.seq<<endl;
+				os1<<"+"<<endl;
+				os1<<mybaminfor.bq<<endl;
 			}
 			else {cout<<"wrong segment: "<<mybaminfor.firstsegment<<endl;exit(0);}
 		}
@@ -887,15 +988,15 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 			}
 			else if(mybaminfor.firstsegment==2)
 			{
-				os2<<"@"<<mybaminfor.readname<<"/2"<<endl;
-				os2<<mybaminfor.seq<<endl;
-				os2<<"+"<<endl;
-				os2<<mybaminfor.bq<<endl;
+				os1<<"@"<<mybaminfor.readname<<"/2"<<endl;
+				os1<<mybaminfor.seq<<endl;
+				os1<<"+"<<endl;
+				os1<<mybaminfor.bq<<endl;
 			}
 			else {cout<<"wrong segment: "<<mybaminfor.firstsegment<<endl;exit(0);}
 		}
 	//cout<<"Inputextend_infor:\t"<<extendref_input_start<<"-"<<extendref_input_end<<endl<<extendrefseq_input<<endl;
-		os1.close();os2.close();
+		os1.close();
 
 		//
 		if(extendref_end-extendref_start+1 != extendrefseq.size()) {cout<<"wrong ref seq for ChIP: "<<endl;exit(0);}
@@ -941,40 +1042,12 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 
 
 		//fermi
-		stringstream raw_tmp,raw_fmd,raw_fmd_log,ec_fq_gz,ec_fq_gz_log,fltuniq_log,ec_tmp,ec_fmd,ec_fmd_log,ec_rank,ec_rank_log,p0_mag_gz,p0_mag_gz_log,p1_mag,p1_mag_log;
-		raw_tmp<<tmpfilefolder<<"/"<<PeakIndex<<"_raw.tmp";
-		raw_fmd<<tmpfilefolder<<"/"<<PeakIndex<<"_raw.fmd";
-		raw_fmd_log<<tmpfilefolder<<"/"<<PeakIndex<<"_raw.fmd.log";
-		ec_fq_gz<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fq.gz";
-		ec_fq_gz_log<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fq.gz.log";
-		fltuniq_log<<tmpfilefolder<<"/"<<PeakIndex<<"_fltuniq.log";
-		ec_tmp<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.tmp";
-		ec_fmd<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fmd";
-		ec_fmd_log<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fmd.log";
-		ec_rank<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.rank";
-		ec_rank_log<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.rank.log";
-		p0_mag_gz<<tmpfilefolder<<"/"<<PeakIndex<<"_p0.mag.gz";
-		p0_mag_gz_log<<tmpfilefolder<<"/"<<PeakIndex<<"_p0.mag.gz.log";
-		p1_mag<<tmpfilefolder<<"/"<<PeakIndex<<"_p1.mag";
-		p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex<<"_p1.mag.log";
-
+		stringstream p1_mag,p1_mag_log,sstemp;
+		p1_mag<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag";
+		p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
 		string cmdstring;
-
-		cmdstring=fermi_location+" pe2cofq "+ss1.str()+" "+ss2.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btNf "+raw_tmp.str()+" - > "+raw_fmd.str()+" 2> "+raw_fmd_log.str();
-		system(cmdstring.c_str());
-		cmdstring=fermi_location+" pe2cofq "+ss1.str()+" "+ss2.str()+" | "+fermi_location+" correct -pt 2 "+raw_fmd.str()+" - 2> "+ec_fq_gz_log.str()+" | gzip -1 > "+ec_fq_gz.str();
-		system(cmdstring.c_str());
-
-		//gzFile fp = gzopen(ec_fq_gz.str().c_str(), "r");
-		//if(fp==NULL) {cout<<"skip assembly"<<endl; return;}
-
-		cmdstring=fermi_location+" fltuniq "+ec_fq_gz.str()+" - 2> "+fltuniq_log.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btf "+ec_tmp.str()+" - > "+ec_fmd.str()+" 2> "+ec_fmd_log.str();
-		system(cmdstring.c_str());
-		cmdstring=fermi_location+" seqrank -t 1 "+ec_fmd.str()+" > "+ec_rank.str()+" 2> "+ec_rank_log.str();
-		system(cmdstring.c_str());
-		cmdstring=fermi_location+" unitig -t 1 -l 50 -r "+ec_rank.str()+" "+ec_fmd.str()+" 2> "+p0_mag_gz_log.str()+" | gzip -1 > "+p0_mag_gz.str();
-		system(cmdstring.c_str());
-		cmdstring=fermi_location+" clean "+p0_mag_gz.str()+" 2> "+p1_mag_log.str()+" | cat > "+p1_mag.str();
+		sstemp<<Fermi_overlap_par;
+		cmdstring=fermi_location+" -ce -l "+sstemp.str()+" "+ss1.str()+" >"+p1_mag.str()+" 2>"+p1_mag_log.str();
 		system(cmdstring.c_str());
 
 		//read contig
@@ -1370,36 +1443,12 @@ void AssembleAndSNVAS(const string PEorSE,const string fermi_location,const stri
 
 
 		//fermi
-		stringstream raw_tmp,raw_fmd,raw_fmd_log,ec_fq_gz,ec_fq_gz_log,fltuniq_log,ec_tmp,ec_fmd,ec_fmd_log,p0_mag_gz,p0_mag_gz_log,p1_mag,p1_mag_log;
-		raw_tmp<<tmpfilefolder<<"/"<<PeakIndex<<"_raw.tmp";
-		raw_fmd<<tmpfilefolder<<"/"<<PeakIndex<<"_raw.fmd";
-		raw_fmd_log<<tmpfilefolder<<"/"<<PeakIndex<<"_raw.fmd.log";
-		ec_fq_gz<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fq.gz";
-		ec_fq_gz_log<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fq.gz.log";
-		fltuniq_log<<tmpfilefolder<<"/"<<PeakIndex<<"_fltuniq.log";
-		ec_tmp<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.tmp";
-		ec_fmd<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fmd";
-		ec_fmd_log<<tmpfilefolder<<"/"<<PeakIndex<<"_ec.fmd.log";
-		p0_mag_gz<<tmpfilefolder<<"/"<<PeakIndex<<"_p0.mag.gz";
-		p0_mag_gz_log<<tmpfilefolder<<"/"<<PeakIndex<<"_p0.mag.gz.log";
-		p1_mag<<tmpfilefolder<<"/"<<PeakIndex<<"_p1.mag";
-		p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex<<"_p1.mag.log";
-
+		stringstream p1_mag,p1_mag_log,sstemp;
+		p1_mag<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag";
+		p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
 		string cmdstring;
-
-		cmdstring="gzip -c "+ss1.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btNf "+raw_tmp.str()+" - > "+raw_fmd.str()+" 2> "+raw_fmd_log.str();
-		system(cmdstring.c_str());
-		cmdstring="gzip -c "+ss1.str()+" | "+fermi_location+" correct -t 1 "+raw_fmd.str()+" - 2> "+ec_fq_gz_log.str()+" | gzip -1 > "+ec_fq_gz.str();
-		system(cmdstring.c_str());
-
-		//gzFile fp = gzopen(ec_fq_gz.str().c_str(), "r");
-		//if(fp==NULL) {cout<<"skip assembly"<<endl; return;}
-
-		cmdstring=fermi_location+" fltuniq "+ec_fq_gz.str()+" - 2> "+fltuniq_log.str()+" | "+fermi_location+" ropebwt -a bcr -v3 -btf "+ec_tmp.str()+" - > "+ec_fmd.str()+" 2> "+ec_fmd_log.str();
-		system(cmdstring.c_str());
-		cmdstring=fermi_location+" unitig -t 1 -l 18 "+ec_fmd.str()+" 2> "+p0_mag_gz_log.str()+" | gzip -1 > "+p0_mag_gz.str();
-		system(cmdstring.c_str());
-		cmdstring=fermi_location+" clean "+p0_mag_gz.str()+" 2> "+p1_mag_log.str()+" | cat > "+p1_mag.str();
+		sstemp<<Fermi_overlap_par;
+		cmdstring=fermi_location+" -ce -l "+sstemp.str()+" "+ss1.str()+" >"+p1_mag.str()+" 2>"+p1_mag_log.str();
 		system(cmdstring.c_str());
 
 		//read contig
