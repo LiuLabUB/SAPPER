@@ -68,66 +68,15 @@ int main(int argc, char *argv[])
 	liftrlimit();
 	if (argc == 1) {
 		fprintf(stderr, "\n");
-		fprintf(stderr, "Program: fermi (FERragina-Manzini Index for DNA sequences)\n");
-		fprintf(stderr, "Version: %s\n", FERMI_VERSION);
-		fprintf(stderr, "Contact: <http://hengli.uservoice.com>\n\n");
-		fprintf(stderr, "Usage:   fermi <command> [arguments]\n\n");
-		fprintf(stderr, "Command: build     Generate FM-Index\n");
-		fprintf(stderr, "         ropebwt   Alternative algorithms for constructing FM-index\n");
-		fprintf(stderr, "         chkbwt    Validate the FM-Index\n");
-		fprintf(stderr, "         merge     Merge multiple FM-Indices\n");
-		fprintf(stderr, "         unpack    Retrieve DNA sequences\n");
-		fprintf(stderr, "         exact     Find exact matches\n");
-		fprintf(stderr, "         correct   Error correction\n");
-		fprintf(stderr, "         seqrank   Compute the rank of sequences\n");
-		fprintf(stderr, "         unitig    Construct unitigs\n");
-		fprintf(stderr, "         clean     Clean the graph\n");
-		fprintf(stderr, "         remap     Compute the coverage and PE coverage\n");
-		fprintf(stderr, "         scaf      Generate scaftigs\n");
-		fprintf(stderr, "         contrast  Compare two FMD-indices\n");
-		fprintf(stderr, "         bitand    Compute the intersection of bit arrays\n");
-		fprintf(stderr, "         sub       Extract sub-index with a bit array\n");
-		fprintf(stderr, "         recode    Recode FM-Index\n");
-		fprintf(stderr, "\n");
-		fprintf(stderr, "         splitfa   Split a FASTA/Q file\n");
-		fprintf(stderr, "         trimseq   Trim a FASTA/Q file\n");
-		fprintf(stderr, "         fltuniq   Filter out reads containing unique mer\n");
-		fprintf(stderr, "         pe2cofq   Convert split pefq to collate fastq\n");
-		fprintf(stderr, "         cg2cofq   Convert cgfq to collate fastq (deprecated)\n");
-		fprintf(stderr, "\n");
-		fprintf(stderr, "         example   Light-weight assembly using fermi high-level APIs\n");
+		fprintf(stderr, "Program: SNVAS_fermi\n");
+		fprintf(stderr, "Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n\n");
+		fprintf(stderr, "Command: SNVAS_fermi [-ceU] [-k ecKmer] [-l utgKmer] <in.fq>\n\n");
 		fprintf(stderr, "\n");
 		return 1;
 	}
-	if (strcmp(argv[1], "build") == 0) ret = main_build(argc-1, argv+1);
-	else if (strcmp(argv[1], "chkbwt") == 0) ret = main_chkbwt(argc-1, argv+1);
-	else if (strcmp(argv[1], "unpack") == 0) ret = main_unpack(argc-1, argv+1);
-	else if (strcmp(argv[1], "exact") == 0) ret = main_exact(argc-1, argv+1);
-	else if (strcmp(argv[1], "merge") == 0) ret = main_merge(argc-1, argv+1);
-	else if (strcmp(argv[1], "sub") == 0) ret = main_sub(argc-1, argv+1);
-	else if (strcmp(argv[1], "cnt2qual") == 0) ret = main_cnt2qual(argc-1, argv+1);
-	else if (strcmp(argv[1], "seqsort") == 0) ret = main_seqsort(argc-1, argv+1);
-	else if (strcmp(argv[1], "seqrank") == 0) ret = main_seqsort(argc-1, argv+1); // an alias of seqsort
-	else if (strcmp(argv[1], "unitig") == 0) ret = main_unitig(argc-1, argv+1);
-	else if (strcmp(argv[1], "remap") == 0) ret = main_remap(argc-1, argv+1);
-	else if (strcmp(argv[1], "scaf") == 0) ret = main_scaf(argc-1, argv+1);
-	else if (strcmp(argv[1], "correct") == 0) ret = main_correct(argc-1, argv+1);
-	else if (strcmp(argv[1], "clean") == 0) ret = main_clean(argc-1, argv+1);
-	else if (strcmp(argv[1], "recode") == 0) ret = main_recode(argc-1, argv+1);
-	else if (strcmp(argv[1], "splitfa") == 0) ret = main_splitfa(argc-1, argv+1);
-	else if (strcmp(argv[1], "fltuniq") == 0) ret = main_fltuniq(argc-1, argv+1);
-	else if (strcmp(argv[1], "trimseq") == 0) ret = main_trimseq(argc-1, argv+1);
-	else if (strcmp(argv[1], "pe2cofq") == 0) ret = main_pe2cofq(argc-1, argv+1);
-	else if (strcmp(argv[1], "cg2cofq") == 0) ret = main_cg2cofq(argc-1, argv+1);
-	else if (strcmp(argv[1], "example") == 0) ret = main_example(argc-1, argv+1);
-	else if (strcmp(argv[1], "contrast") == 0) ret = main_contrast(argc-1, argv+1);
-	else if (strcmp(argv[1], "bitand") == 0) ret = main_bitand(argc-1, argv+1);
-	else if (strcmp(argv[1], "ropebwt") == 0) ret = main_ropebwt(argc-1, argv+1);
-//	else if (strcmp(argv[1], "test") == 0) ret = main_test(argc-1, argv+1);
-	else {
-		fprintf(stderr, "[E::%s] unrecognized command.\n", __func__);
-		return -1;
-	}
+
+	ret = main_example(argc, argv);
+
 	/*if (ret == 0 && fm_verbose >= 3) {
 		fprintf(stderr, "[M::%s] Version: %s\n", __func__, FERMI_VERSION);
 		fprintf(stderr, "[M::%s] CMD:", __func__);
@@ -137,4 +86,3 @@ int main(int argc, char *argv[])
 	}*/
 	return ret;
 }
-
