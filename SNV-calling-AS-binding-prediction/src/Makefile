@@ -8,7 +8,7 @@ OBJS = main.o io.o analysis.o swalign.o math.o
 
 all: bin SNVAS SNVAS_filter
 	cd fermi && ${MAKE}
-	mv fermi/fermi bin/SNVAS_fermi #we renamed the name `fermi` because we modifed the codes.
+	mv fermi/SNVAS_fermi bin/ #we renamed the name `SNVAS_fermi` because we modifed the codes.
 	mv SNVAS SNVAS_filter bin/
 
 bin:
@@ -38,6 +38,6 @@ SNVAS_filter : SNVAS_filter.cpp
 clean :
 	cd fermi && ${MAKE} clean
 	-rm -f $(OBJS)
-	-rm -f bin/fermi bin/SNVAS bin/SNVAS_filter
+	-rm -f bin/SNVAS_fermi bin/SNVAS bin/SNVAS_filter
 	-rmdir bin
 
