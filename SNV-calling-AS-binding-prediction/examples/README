@@ -4,7 +4,7 @@ Running example
 1 Paired-end ChIP-seq dataset
 
 cd PE_demo
-SNVAS PEsample_peaks_sorted.bed PEsample_peaks_sorted.bam PEcontrol_peaks_sorted.bam PE PEsample.vcf
+SNVAS PEsample_peaks_sorted.bed PEsample_peaks_sorted.bam PEcontrol_peaks_sorted.bam PEsample.vcf
 
 Filtering process:
 SNVAS_filter PEsample.vcf 20 homo 10 PEsample_homo.vcf
@@ -15,7 +15,7 @@ SNVAS_filter PEsample.vcf 20 hetero_nonAS 100 PEsample_heterNonAS.vcf
 2 Single-end ChIP-seq dataset
 
 cd SE_demo
-SNVAS SEsample_peaks_sorted.bed SEsample_peaks_sorted.bam SEcontrol_peaks_sorted.bam SE SEsample.vcf
+SNVAS SEsample_peaks_sorted.bed SEsample_peaks_sorted.bam SEcontrol_peaks_sorted.bam SEsample.vcf
 
 Filtering process:
 SNVAS_filter SEsample.vcf 20 homo 10 SEsample_homo.vcf
