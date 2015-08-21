@@ -648,7 +648,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 	}
 }
 
-void ReadBamfile(const string PEorSE,const int ReadLength,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile)
+void ReadBamfile(const int ReadLength,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile)
 {
 	//
 	const int PeakNo=peakbedregion_set.size();
@@ -789,9 +789,9 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 			if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
 			else if(readstart>peakend)
 			{//cout<<peakstart<<" "<<peakend<<" "<<readstart<<endl;
-				AssembleAndSNVAS(PEorSE,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+				AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 				PeakBamInfor.clear();
-				cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
+				//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
 				PeakIndex++;
 				if(PeakIndex%100==0)
@@ -799,6 +799,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 					//cout<<"read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 					string stemp="rm -f "+tmpfilefolder+"/*";
 					system(stemp.c_str());
+					cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 				}
 				peakchr=peakbedregion_set[PeakIndex].chr;
 				peakstart=peakbedregion_set[PeakIndex].start;
@@ -811,9 +812,9 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 		}
 		else
 		{
-			AssembleAndSNVAS(PEorSE,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+			AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 			PeakBamInfor.clear();
-			cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
+			//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
 			PeakIndex++;
 			if(PeakIndex%100==0)
@@ -821,6 +822,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 				//cout<<"read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 				string stemp="rm -f "+tmpfilefolder+"/*";
 				system(stemp.c_str());
+				cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 			}
 			peakchr=peakbedregion_set[PeakIndex].chr;
 			peakstart=peakbedregion_set[PeakIndex].start;
@@ -836,9 +838,9 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 
 	if(!PeakBamInfor.empty())
 	{
-		AssembleAndSNVAS(PEorSE,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+		AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 		PeakBamInfor.clear();
-		cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
+		//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
 		string stemp="rm -f "+tmpfilefolder+"/*";
 		system(stemp.c_str());
@@ -861,7 +863,7 @@ void GetReverseComplementary(const string &input,string &output)
 	}
 }
 
-void AssembleAndSNVAS(const string PEorSE,const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
+void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
 {
 	if(PeakBamInfor.size()==0) return;
 
@@ -870,823 +872,399 @@ void AssembleAndSNVAS(const string PEorSE,const int ReadLength,const string ferm
 	int i,j;
 	string sbuf;
 
-	if(PEorSE=="PE")
+	//get seq and bq, and ref seq in the extended peak region
+	stringstream ss1;
+	ss1<<tmpfilefolder<<"/"<<PeakIndex+1<<".fastq";
+
+	ofstream os1(ss1.str().c_str());
+	if(!os1) {cout<<"can not open tmp output file: "<<ss1.str()<<endl;exit(0);}
+
+	//
+	string extendrefseq=PeakBamInfor[0].refseq;
+	int extendref_start=PeakBamInfor[0].start;//sam format
+	int extendref_end=PeakBamInfor[0].end;//sam format
+	int index_old=0;
+
+	for(i=0;i<PeakBamInfor.size();i++)
 	{
-		//get seq and bq, and ref seq in the extended peak region
-		stringstream ss1;
-		ss1<<tmpfilefolder<<"/"<<PeakIndex+1<<".fastq";
-
-		ofstream os1(ss1.str().c_str());
-		if(!os1) {cout<<"can not open tmp output file: "<<ss1.str()<<endl;exit(0);}
+		BamInfor mybaminfor=PeakBamInfor[i];
 
 		//
-		string extendrefseq=PeakBamInfor[0].refseq;
-		int extendref_start=PeakBamInfor[0].start;//sam format
-		int extendref_end=PeakBamInfor[0].end;//sam format
-		int index_old=0;
-
-		for(i=0;i<PeakBamInfor.size();i++)
+		if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
+//cout<<"ChIP "<<i<<" "<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<endl;
+		if(i>0)
 		{
-			BamInfor mybaminfor=PeakBamInfor[i];
-
-			//
-			if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
-	//cout<<"ChIP "<<i<<" "<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<endl;
-			if(i>0)
+			int ia=mybaminfor.end-PeakBamInfor[index_old].end;
+			int ib=mybaminfor.start-PeakBamInfor[index_old].end-1;
+			if(ia>0)
 			{
-				int ia=mybaminfor.end-PeakBamInfor[index_old].end;
-				int ib=mybaminfor.start-PeakBamInfor[index_old].end-1;
-				if(ia>0)
+//cout<<extendrefseq<<endl;
+				if(ib>=1)//there is gap between two reads
 				{
-	//cout<<extendrefseq<<endl;
-					if(ib>=1)//there is gap between two reads
-					{
-						string stemp;
-						for(j=0;j<ib;j++) stemp.push_back('N');
-						extendrefseq=extendrefseq+stemp+mybaminfor.refseq;
-					}
-					else extendrefseq=extendrefseq+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
-
-	//cout<<index_old<<"\t"<<PeakBamInfor[index_old].start<<"-"<<PeakBamInfor[index_old].end<<"\t"<<PeakBamInfor[index_old].refseq<<endl;
-	//cout<<i<<"\t"<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<"\t"<<PeakBamInfor[i].refseq<<endl;
-	//cout<<extendrefseq<<endl<<endl;
-					index_old=i;
-
-					extendref_end=mybaminfor.end;
+					string stemp;
+					for(j=0;j<ib;j++) stemp.push_back('N');
+					extendrefseq=extendrefseq+stemp+mybaminfor.refseq;
 				}
-			}
+				else extendrefseq=extendrefseq+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
 
-			//
-			if(mybaminfor.firstsegment==1)
-			{
-				os1<<"@"<<mybaminfor.readname<<"/1"<<endl;
-				os1<<mybaminfor.seq<<endl;
-				os1<<"+"<<endl;
-				os1<<mybaminfor.bq<<endl;
+//cout<<index_old<<"\t"<<PeakBamInfor[index_old].start<<"-"<<PeakBamInfor[index_old].end<<"\t"<<PeakBamInfor[index_old].refseq<<endl;
+//cout<<i<<"\t"<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<"\t"<<PeakBamInfor[i].refseq<<endl;
+//cout<<extendrefseq<<endl<<endl;
+				index_old=i;
+
+				extendref_end=mybaminfor.end;
 			}
-			else if(mybaminfor.firstsegment==2)
-			{
-				os1<<"@"<<mybaminfor.readname<<"/2"<<endl;
-				os1<<mybaminfor.seq<<endl;
-				os1<<"+"<<endl;
-				os1<<mybaminfor.bq<<endl;
-			}
-			else {cout<<"wrong segment: "<<mybaminfor.firstsegment<<endl;exit(0);}
 		}
-	//cout<<"ChIPextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
 
 		//
-		string extendrefseq_input;
-		int extendref_input_start=0;
-		int extendref_input_end=0;//sam format
-		index_old=0;
-		if(PeakInputBamInfor.size()>0)
-		{
-			extendrefseq_input=PeakInputBamInfor[0].refseq;
-			extendref_input_start=PeakInputBamInfor[0].start;//sam format
-			extendref_input_end=PeakInputBamInfor[0].end;
-		}
+		os1<<"@"<<mybaminfor.readname<<endl;
+		os1<<mybaminfor.seq<<endl;
+		os1<<"+"<<endl;
+		os1<<mybaminfor.bq<<endl;
 
-		for(i=0;i<PeakInputBamInfor.size();i++)
-		{
-			BamInfor mybaminfor=PeakInputBamInfor[i];
+	}
+//cout<<"ChIPextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
 
-			//
-			if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
-	//cout<<"Input "<<i<<" "<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<endl;
-			if(i>0)
-			{
-				int ia=mybaminfor.end-PeakInputBamInfor[index_old].end;
-				int ib=mybaminfor.start-PeakInputBamInfor[index_old].end-1;
-				if(ia>0)
-				{
-	//cout<<extendrefseq_input<<endl;
-					if(ib>=1)//there is gap between two reads
-					{
-						string stemp;
-						for(j=0;j<ib;j++) stemp.push_back('N');
-						extendrefseq_input=extendrefseq_input+stemp+mybaminfor.refseq;
-					}
-					else extendrefseq_input=extendrefseq_input+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
+	//
+	string extendrefseq_input;
+	int extendref_input_start=0;
+	int extendref_input_end=0;//sam format
+	index_old=0;
+	if(PeakInputBamInfor.size()>0)
+	{
+		extendrefseq_input=PeakInputBamInfor[0].refseq;
+		extendref_input_start=PeakInputBamInfor[0].start;//sam format
+		extendref_input_end=PeakInputBamInfor[0].end;
+	}
 
-	//cout<<index_old<<"\t"<<PeakInputBamInfor[index_old].start<<"-"<<PeakInputBamInfor[index_old].end<<"\t"<<PeakInputBamInfor[index_old].refseq<<endl;
-	//cout<<i<<"\t"<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<"\t"<<PeakInputBamInfor[i].refseq<<endl;
-	//cout<<extendrefseq_input<<endl<<endl;
-					index_old=i;
-
-					extendref_input_end=mybaminfor.end;
-				}
-			}
-
-			//
-			if(mybaminfor.firstsegment==1)
-			{
-				os1<<"@"<<mybaminfor.readname<<"/1"<<endl;
-				os1<<mybaminfor.seq<<endl;
-				os1<<"+"<<endl;
-				os1<<mybaminfor.bq<<endl;
-			}
-			else if(mybaminfor.firstsegment==2)
-			{
-				os1<<"@"<<mybaminfor.readname<<"/2"<<endl;
-				os1<<mybaminfor.seq<<endl;
-				os1<<"+"<<endl;
-				os1<<mybaminfor.bq<<endl;
-			}
-			else {cout<<"wrong segment: "<<mybaminfor.firstsegment<<endl;exit(0);}
-		}
-	//cout<<"Inputextend_infor:\t"<<extendref_input_start<<"-"<<extendref_input_end<<endl<<extendrefseq_input<<endl;
-		os1.close();
+	for(i=0;i<PeakInputBamInfor.size();i++)
+	{
+		BamInfor mybaminfor=PeakInputBamInfor[i];
 
 		//
-		if(extendref_end-extendref_start+1 != extendrefseq.size()) {cout<<"wrong ref seq for ChIP: "<<endl;exit(0);}
-		if(extendrefseq_input.size()>0) {if(extendref_input_end-extendref_input_start+1 != extendrefseq_input.size()) {cout<<"wrong ref seq for input: "<<endl;exit(0);}}
-
-		map<int,char> pos2ref;
-		for(i=0;i<extendrefseq.size();i++)
+		if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
+//cout<<"Input "<<i<<" "<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<endl;
+		if(i>0)
 		{
-			pos2ref[extendref_start++]=extendrefseq[i];
-		}
-		for(i=0;i<extendrefseq_input.size();i++)
-		{
-			if(extendrefseq_input[i]!='N') pos2ref[extendref_input_start++]=extendrefseq_input[i];
-			else extendref_input_start++;
-		}
-		extendrefseq.clear();
-		map<int,char>::iterator pos;
-		int itian;
-		for(pos=pos2ref.begin();pos!=pos2ref.end();++pos)
-		{
-			if(pos!=pos2ref.begin())
+			int ia=mybaminfor.end-PeakInputBamInfor[index_old].end;
+			int ib=mybaminfor.start-PeakInputBamInfor[index_old].end-1;
+			if(ia>0)
 			{
-				if(pos->first != itian+1)
+//cout<<extendrefseq_input<<endl;
+				if(ib>=1)//there is gap between two reads
 				{
-					int itemp=pos->first - itian-1;
-					if(itemp<0) {cout<<"map index wrong: "<<pos->first<<" "<<itian<<endl;exit(0);}
-					for(i=0;i<itemp;i++) extendrefseq.push_back('N');
+					string stemp;
+					for(j=0;j<ib;j++) stemp.push_back('N');
+					extendrefseq_input=extendrefseq_input+stemp+mybaminfor.refseq;
 				}
+				else extendrefseq_input=extendrefseq_input+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
 
-				extendrefseq.push_back(pos->second);
-			}
-			else extendrefseq.push_back(pos->second);
+//cout<<index_old<<"\t"<<PeakInputBamInfor[index_old].start<<"-"<<PeakInputBamInfor[index_old].end<<"\t"<<PeakInputBamInfor[index_old].refseq<<endl;
+//cout<<i<<"\t"<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<"\t"<<PeakInputBamInfor[i].refseq<<endl;
+//cout<<extendrefseq_input<<endl<<endl;
+				index_old=i;
 
-			itian=pos->first;
-		}
-		pos=pos2ref.begin();
-		extendref_start=pos->first;
-		pos=pos2ref.end();
-		--pos;
-		extendref_end=pos->first;
-		if(extendref_end-extendref_start+1!=extendrefseq.size()) {cout<<"wrong extend ref: "<<extendref_end<<" "<<extendref_start<<" "<<extendrefseq.size()<<endl;exit(0);}
-	//cout<<"Finalextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
-
-
-		//fermi
-		stringstream p1_mag,p1_mag_log,sstemp;
-		p1_mag<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag";
-		p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
-		string cmdstring;
-		sstemp<<Fermi_overlap_par;
-		cmdstring=fermi_location+" -ce -l "+sstemp.str()+" "+ss1.str()+" >"+p1_mag.str()+" 2>"+p1_mag_log.str();
-		system(cmdstring.c_str());
-
-		//read contig
-		vector<string> contigname_set;
-		vector<string> contigseq_set;
-
-		ifstream is(p1_mag.str().c_str());
-		if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;return;}
-		do
-		{
-			sbuf.clear();
-			is>>sbuf;
-			if(sbuf.empty()) break;
-			contigname_set.push_back(sbuf);
-
-			getline(is,sbuf);
-			getline(is,sbuf);contigseq_set.push_back(sbuf);
-			getline(is,sbuf);getline(is,sbuf);
-
-		}while(1);
-		is.close();
-
-		//local alignment
-		vector<string> contigseq,refseq;//maybe has '-'
-		vector<int> refstart,refend;//for each alignment, sam format
-		vector<vector<int> > contigcoor;//if there is insertion, the coor is -1;
-
-		bool btemp=false;
-		for(i=0;i<contigseq_set.size();i++)
-		{
-			seq_pair problem1,problem2;
-			seq_pair result1,result2;
-
-			//
-			problem1.a=contigseq_set[i];
-			problem1.b=extendrefseq;
-			smith_waterman(problem1, btemp, result1);
-
-			//
-			string reversecomplementary;
-			GetReverseComplementary(contigseq_set[i],reversecomplementary);
-
-			problem2.a=reversecomplementary;
-			problem2.b=extendrefseq;
-			smith_waterman(problem2, btemp, result2);
-	//cout<<i+1<<endl<<problem1.a<<endl<<problem2.a<<endl;
-			//
-			string mycontigseq,myrefseq;//maybe has '-'
-			double myscore;
-			if(result1.score >= result2.score) {mycontigseq=result1.a;myrefseq=result1.b;myscore=result1.score;}
-			else {mycontigseq=result2.a;myrefseq=result2.b;myscore=result2.score;}
-
-			//
-			string myrefseq_noinsert;
-			for(j=0;j<myrefseq.size();j++)
-			{
-				if(myrefseq[j]!='-') myrefseq_noinsert.push_back(myrefseq[j]);
-			}
-			int ia=0;
-			int ib=0;
-
-			if(myrefseq_noinsert!=extendrefseq)
-			{
-				string::size_type position=extendrefseq.find(myrefseq_noinsert);
-				if(position==extendrefseq.npos) {cout<<"error!"<<endl;exit(0);}
-
-				ia=(int)position;
-				ib=extendrefseq.size()-ia-myrefseq_noinsert.size();
-			}
-
-			//
-			int itemp1=0;
-			int itemp2=0;
-			for(j=0;j<mycontigseq.size();j++)
-			{
-				if(mycontigseq[j]!='-') break;
-				itemp1++;
-			}
-			for(j=mycontigseq.size()-1;j>=0;j--)
-			{
-				if(mycontigseq[j]!='-') break;
-				itemp2++;
-			}
-
-			refstart.push_back(extendref_start+itemp1+ia);
-			refend.push_back(extendref_end-itemp2-ib);
-			contigseq.push_back(mycontigseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
-			refseq.push_back(myrefseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
-		}
-	//cout<<contigseq.size()<<endl;
-		for(i=0;i<contigseq.size();i++)
-		{
-			vector<int> mycontigcoor;
-
-			int ia=refstart[i]-1;
-			for(j=0;j<refseq[i].size();j++)
-			{
-				if(refseq[i][j]=='-') mycontigcoor.push_back(-1);
-				else {++ia;mycontigcoor.push_back(ia);}
-			}
-	//cout<<i+1<<endl<<refseq[i]<<endl<<contigseq[i]<<endl<<refstart[i]<<"-"<<refend[i]<<endl;
-			if(ia!=refend[i]) {cout<<"contig coor unconsistent: "<<ia<<" "<<refstart[i]<<" "<<refend[i]<<endl;exit(0);}
-
-			contigcoor.push_back(mycontigcoor);
-		}
-
-		//define snv from contig mapping result
-		map<int,char> snvpos2refallele;
-		map<int,vector<char> > snvpos2contigNTs;//maybe there is redundant NTs
-
-		for(i=0;i<refstart.size();i++)
-		{
-			int pos=refstart[i];
-
-			for(j=0;j<refseq[i].size();j++)
-			{
-				if(refseq[i][j]=='-') continue;
-				if(refseq[i][j]=='N') {pos++;continue;}
-
-				if(contigseq[i][j]=='-' || contigseq[i][j]=='N') {pos++;continue;}
-
-				//
-				if(refseq[i][j]!=contigseq[i][j])
-				{
-					if(snvpos2refallele.find(pos)==snvpos2refallele.end()) snvpos2refallele[pos]=refseq[i][j];
-				}
-
-				//
-				if(snvpos2contigNTs.find(pos)==snvpos2contigNTs.end())
-				{
-					vector<char> vchtemp;
-					vchtemp.push_back(contigseq[i][j]);
-					snvpos2contigNTs[pos]=vchtemp;
-				}
-				else snvpos2contigNTs[pos].push_back(contigseq[i][j]);
-
-				//
-				if(j==refseq[i].size()-1)
-				{
-					if(pos!=refend[i]) {cout<<"wrong start end for contig: "<<contigseq[i]<<endl;exit(0);}
-				}
-
-				pos++;
+				extendref_input_end=mybaminfor.end;
 			}
 		}
 
-		//Fill snv infor: ref and fermiNTs, and initialize
-		map<int,PosReadsInfor> pos2Readsinfo;
+		//
+		os1<<"@"<<mybaminfor.readname<<endl;
+		os1<<mybaminfor.seq<<endl;
+		os1<<"+"<<endl;
+		os1<<mybaminfor.bq<<endl;
 
-		map<int,char>::iterator posmich;
+	}
+//cout<<"Inputextend_infor:\t"<<extendref_input_start<<"-"<<extendref_input_end<<endl<<extendrefseq_input<<endl;
+	os1.close();
+
+	//
+	if(extendref_end-extendref_start+1 != extendrefseq.size()) {cout<<"wrong ref seq for ChIP: "<<endl;exit(0);}
+	if(extendrefseq_input.size()>0) {if(extendref_input_end-extendref_input_start+1 != extendrefseq_input.size()) {cout<<"wrong ref seq for input: "<<endl;exit(0);}}
+
+	map<int,char> pos2ref;
+	for(i=0;i<extendrefseq.size();i++)
+	{
+		pos2ref[extendref_start++]=extendrefseq[i];
+	}
+	for(i=0;i<extendrefseq_input.size();i++)
+	{
+		if(extendrefseq_input[i]!='N') pos2ref[extendref_input_start++]=extendrefseq_input[i];
+		else extendref_input_start++;
+	}
+	extendrefseq.clear();
+	map<int,char>::iterator pos;
+	int itian;
+	for(pos=pos2ref.begin();pos!=pos2ref.end();++pos)
+	{
+		if(pos!=pos2ref.begin())
+		{
+			if(pos->first != itian+1)
+			{
+				int itemp=pos->first - itian-1;
+				if(itemp<0) {cout<<"map index wrong: "<<pos->first<<" "<<itian<<endl;exit(0);}
+				for(i=0;i<itemp;i++) extendrefseq.push_back('N');
+			}
+
+			extendrefseq.push_back(pos->second);
+		}
+		else extendrefseq.push_back(pos->second);
+
+		itian=pos->first;
+	}
+	pos=pos2ref.begin();
+	extendref_start=pos->first;
+	pos=pos2ref.end();
+	--pos;
+	extendref_end=pos->first;
+	if(extendref_end-extendref_start+1!=extendrefseq.size()) {cout<<"wrong extend ref: "<<extendref_end<<" "<<extendref_start<<" "<<extendrefseq.size()<<endl;exit(0);}
+//cout<<"Finalextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
+
+
+	//fermi
+	stringstream p1_mag,p1_mag_log,sstemp;
+	p1_mag<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag";
+	p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
+	string cmdstring;
+	sstemp<<Fermi_overlap_par;
+	cmdstring=fermi_location+" -ce -l "+sstemp.str()+" "+ss1.str()+" >"+p1_mag.str()+" 2>"+p1_mag_log.str();
+	system(cmdstring.c_str());
+
+	//read contig
+	vector<string> contigname_set;
+	vector<string> contigseq_set;
+
+	ifstream is(p1_mag.str().c_str());
+	if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;return;}
+	do
+	{
+		sbuf.clear();
+		is>>sbuf;
+		if(sbuf.empty()) break;
+		contigname_set.push_back(sbuf);
+
+		getline(is,sbuf);
+		getline(is,sbuf);contigseq_set.push_back(sbuf);
+		getline(is,sbuf);getline(is,sbuf);
+
+	}while(1);
+	is.close();
+
+	//local alignment
+	vector<string> contigseq,refseq;//maybe has '-'
+	vector<int> refstart,refend;//for each alignment, sam format
+	vector<vector<int> > contigcoor;//if there is insertion, the coor is -1;
+
+	bool btemp=false;
+	for(i=0;i<contigseq_set.size();i++)
+	{
+		seq_pair problem1,problem2;
+		seq_pair result1,result2;
+
+		//
+		problem1.a=contigseq_set[i];
+		problem1.b=extendrefseq;
+		smith_waterman(problem1, btemp, result1);
+
+		//
+		string reversecomplementary;
+		GetReverseComplementary(contigseq_set[i],reversecomplementary);
+
+		problem2.a=reversecomplementary;
+		problem2.b=extendrefseq;
+		smith_waterman(problem2, btemp, result2);
+//cout<<i+1<<endl<<problem1.a<<endl<<problem2.a<<endl;
+		//
+		string mycontigseq,myrefseq;//maybe has '-'
+		double myscore;
+		if(result1.score >= result2.score) {mycontigseq=result1.a;myrefseq=result1.b;myscore=result1.score;}
+		else {mycontigseq=result2.a;myrefseq=result2.b;myscore=result2.score;}
+
+		//
+		string myrefseq_noinsert;
+		for(j=0;j<myrefseq.size();j++)
+		{
+			if(myrefseq[j]!='-') myrefseq_noinsert.push_back(myrefseq[j]);
+		}
+		int ia=0;
+		int ib=0;
+
+		if(myrefseq_noinsert!=extendrefseq)
+		{
+			string::size_type position=extendrefseq.find(myrefseq_noinsert);
+			if(position==extendrefseq.npos) {cout<<"error!"<<endl;exit(0);}
+
+			ia=(int)position;
+			ib=extendrefseq.size()-ia-myrefseq_noinsert.size();
+		}
+
+		//
+		int itemp1=0;
+		int itemp2=0;
+		for(j=0;j<mycontigseq.size();j++)
+		{
+			if(mycontigseq[j]!='-') break;
+			itemp1++;
+		}
+		for(j=mycontigseq.size()-1;j>=0;j--)
+		{
+			if(mycontigseq[j]!='-') break;
+			itemp2++;
+		}
+
+		refstart.push_back(extendref_start+itemp1+ia);
+		refend.push_back(extendref_end-itemp2-ib);
+		contigseq.push_back(mycontigseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
+		refseq.push_back(myrefseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
+	}
+//cout<<contigseq.size()<<endl;
+	for(i=0;i<contigseq.size();i++)
+	{
+		vector<int> mycontigcoor;
+
+		int ia=refstart[i]-1;
+		for(j=0;j<refseq[i].size();j++)
+		{
+			if(refseq[i][j]=='-') mycontigcoor.push_back(-1);
+			else {++ia;mycontigcoor.push_back(ia);}
+		}
+//cout<<i+1<<endl<<refseq[i]<<endl<<contigseq[i]<<endl<<refstart[i]<<"-"<<refend[i]<<endl;
+		if(ia!=refend[i]) {cout<<"contig coor unconsistent: "<<ia<<" "<<refstart[i]<<" "<<refend[i]<<endl;exit(0);}
+
+		contigcoor.push_back(mycontigcoor);
+	}
+
+	//define snv from contig mapping result
+	map<int,char> snvpos2refallele;
+	map<int,vector<char> > snvpos2contigNTs;//maybe there is redundant NTs
+
+	for(i=0;i<refstart.size();i++)
+	{
+		int pos=refstart[i];
+
+		for(j=0;j<refseq[i].size();j++)
+		{
+			if(refseq[i][j]=='-') continue;
+			if(refseq[i][j]=='N') {pos++;continue;}
+
+			if(contigseq[i][j]=='-' || contigseq[i][j]=='N') {pos++;continue;}
+
+			//
+			if(refseq[i][j]!=contigseq[i][j])
+			{
+				if(snvpos2refallele.find(pos)==snvpos2refallele.end()) snvpos2refallele[pos]=refseq[i][j];
+			}
+
+			//
+			if(snvpos2contigNTs.find(pos)==snvpos2contigNTs.end())
+			{
+				vector<char> vchtemp;
+				vchtemp.push_back(contigseq[i][j]);
+				snvpos2contigNTs[pos]=vchtemp;
+			}
+			else snvpos2contigNTs[pos].push_back(contigseq[i][j]);
+
+			//
+			if(j==refseq[i].size()-1)
+			{
+				if(pos!=refend[i]) {cout<<"wrong start end for contig: "<<contigseq[i]<<endl;exit(0);}
+			}
+
+			pos++;
+		}
+	}
+
+	//Fill snv infor: ref and fermiNTs, and initialize
+	map<int,PosReadsInfor> pos2Readsinfo;
+
+	map<int,char>::iterator posmich;
+	for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
+	{
+		FillContigInfor(posmich->first,posmich->second,snvpos2contigNTs[posmich->first],pos2Readsinfo);
+	}
+
+	//reads mapping result
+	vector<string> readsseq,readsbq,inputreadsseq,inputreadsbq;
+	vector<vector<int> > readscoor,inputreadscoor;//only select reads overlapped with snvs, and coor seq are the same as contig
+
+	for(i=0;i<PeakBamInfor.size();i++)
+	{
+		if(PeakBamInfor[i].mapq<30) continue;
+
+		string revisedseq,revisedbq;
+		vector<int> revisedcoor;
+		GetReadSeqCoor(PeakBamInfor[i].seq,PeakBamInfor[i].bq,PeakBamInfor[i].start,PeakBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
+		readsseq.push_back(revisedseq);
+		readsbq.push_back(revisedbq);
+		readscoor.push_back(revisedcoor);
+	}
+
+	for(i=0;i<PeakInputBamInfor.size();i++)
+	{
+		if(PeakInputBamInfor[i].mapq<30) continue;
+
+		string revisedseq,revisedbq;
+		vector<int> revisedcoor;
+		GetReadSeqCoor(PeakInputBamInfor[i].seq,PeakInputBamInfor[i].bq,PeakInputBamInfor[i].start,PeakInputBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
+		inputreadscoor.push_back(revisedcoor);
+		inputreadsseq.push_back(revisedseq);
+		inputreadsbq.push_back(revisedbq);
+	}
+
+	//Fill snv infor: ChIP reads infor
+	vector<int>::iterator it;
+	btemp=false;
+	for(i=0;i<readscoor.size();i++)
+	{
 		for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
 		{
-			FillContigInfor(posmich->first,posmich->second,snvpos2contigNTs[posmich->first],pos2Readsinfo);
-		}
+			it=lower_bound(readscoor[i].begin(),readscoor[i].end(),posmich->first);
 
-		//reads mapping result
-		vector<string> readsseq,readsbq,inputreadsseq,inputreadsbq;
-		vector<vector<int> > readscoor,inputreadscoor;//only select reads overlapped with snvs, and coor seq are the same as contig
-
-		for(i=0;i<PeakBamInfor.size();i++)
-		{
-			if(PeakBamInfor[i].mapq<30) continue;
-
-			string revisedseq,revisedbq;
-			vector<int> revisedcoor;
-			GetReadSeqCoor(PeakBamInfor[i].seq,PeakBamInfor[i].bq,PeakBamInfor[i].start,PeakBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
-			readsseq.push_back(revisedseq);
-			readsbq.push_back(revisedbq);
-			readscoor.push_back(revisedcoor);
-		}
-
-		for(i=0;i<PeakInputBamInfor.size();i++)
-		{
-			if(PeakInputBamInfor[i].mapq<30) continue;
-
-			string revisedseq,revisedbq;
-			vector<int> revisedcoor;
-			GetReadSeqCoor(PeakInputBamInfor[i].seq,PeakInputBamInfor[i].bq,PeakInputBamInfor[i].start,PeakInputBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
-			inputreadscoor.push_back(revisedcoor);
-			inputreadsseq.push_back(revisedseq);
-			inputreadsbq.push_back(revisedbq);
-		}
-
-		//Fill snv infor: ChIP reads infor
-		vector<int>::iterator it;
-		btemp=false;
-		for(i=0;i<readscoor.size();i++)
-		{
-			for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
+			if(it==readscoor[i].end() || *it!=posmich->first)//not found
 			{
-				it=lower_bound(readscoor[i].begin(),readscoor[i].end(),posmich->first);
+				continue;
+			}
+			else//found
+			{
+				int index=(int)(it-readscoor[i].begin());
 
-				if(it==readscoor[i].end() || *it!=posmich->first)//not found
-				{
-					continue;
-				}
-				else//found
-				{
-					int index=(int)(it-readscoor[i].begin());
+				FillChIPraw(posmich->first,readsseq[i][index],pos2Readsinfo);
 
-					FillChIPraw(posmich->first,readsseq[i][index],pos2Readsinfo);
-
-					btemp=ConsistentWithContig(readscoor[i],readsseq[i],contigcoor,contigseq);
-					if(btemp) FillChIPQualInfor(posmich->first,readsseq[i][index],readsbq[i][index],pos2Readsinfo);
-				}
+				btemp=ConsistentWithContig(readscoor[i],readsseq[i],contigcoor,contigseq);
+				if(btemp) FillChIPQualInfor(posmich->first,readsseq[i][index],readsbq[i][index],pos2Readsinfo);
 			}
 		}
-
-		//Fill snv infor: Input reads infor
-		btemp=false;
-		for(i=0;i<inputreadscoor.size();i++)
-		{
-			for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
-			{
-				it=lower_bound(inputreadscoor[i].begin(),inputreadscoor[i].end(),posmich->first);
-
-				if(it==inputreadscoor[i].end() || *it!=posmich->first)//not found
-				{
-					continue;
-				}
-				else//found
-				{
-					int index=(int)(it-inputreadscoor[i].begin());
-
-					FillControlraw(posmich->first,inputreadsseq[i][index],pos2Readsinfo);
-
-					btemp=ConsistentWithContig(inputreadscoor[i],inputreadsseq[i],contigcoor,contigseq);
-					if(btemp) FillControlQualInfor(posmich->first,inputreadsseq[i][index],inputreadsbq[i][index],pos2Readsinfo);
-				}
-			}
-		}
-
-		//
-		CalSNVAS(pos2Readsinfo);
-
-		//
-		OutputVcfResultHasInput(OutputVcffile,regionchr,pos2Readsinfo);
 	}
-	else
+
+	//Fill snv infor: Input reads infor
+	btemp=false;
+	for(i=0;i<inputreadscoor.size();i++)
 	{
-		//get seq and bq, and ref seq in the extended peak region
-		stringstream ss1;
-		ss1<<tmpfilefolder<<"/"<<PeakIndex<<".fastq";
-
-		ofstream os1(ss1.str().c_str());
-		if(!os1) {cout<<"can not open tmp output file: "<<ss1.str()<<endl;exit(0);}
-		//
-		string extendrefseq=PeakBamInfor[0].refseq;
-		int extendref_start=PeakBamInfor[0].start;//sam format
-		int extendref_end=PeakBamInfor[0].end;//sam format
-		int index_old=0;
-
-		for(i=0;i<PeakBamInfor.size();i++)
-		{
-			BamInfor mybaminfor=PeakBamInfor[i];
-
-			//
-			if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
-	//cout<<"ChIP "<<i<<" "<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<endl;
-			if(i>0)
-			{
-				int ia=mybaminfor.end-PeakBamInfor[index_old].end;
-				int ib=mybaminfor.start-PeakBamInfor[index_old].end-1;
-				if(ia>0)
-				{
-	//cout<<extendrefseq<<endl;
-					if(ib>=1)//there is gap between two reads
-					{
-						string stemp;
-						for(j=0;j<ib;j++) stemp.push_back('N');
-						extendrefseq=extendrefseq+stemp+mybaminfor.refseq;
-					}
-					else extendrefseq=extendrefseq+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
-
-	//cout<<index_old<<"\t"<<PeakBamInfor[index_old].start<<"-"<<PeakBamInfor[index_old].end<<"\t"<<PeakBamInfor[index_old].refseq<<endl;
-	//cout<<i<<"\t"<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<"\t"<<PeakBamInfor[i].refseq<<endl;
-	//cout<<extendrefseq<<endl<<endl;
-					index_old=i;
-
-					extendref_end=mybaminfor.end;
-				}
-			}
-
-			//
-			if(mybaminfor.firstsegment==0)
-			{
-				os1<<"@"<<mybaminfor.readname<<endl;
-				os1<<mybaminfor.seq<<endl;
-				os1<<"+"<<endl;
-				os1<<mybaminfor.bq<<endl;
-			}
-			else {cout<<"wrong segment: "<<mybaminfor.firstsegment<<endl;exit(0);}
-		}
-	//cout<<"ChIPextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
-
-		//
-		string extendrefseq_input;
-		int extendref_input_start=0;
-		int extendref_input_end=0;//sam format
-		index_old=0;
-		if(PeakInputBamInfor.size()>0)
-		{
-			extendrefseq_input=PeakInputBamInfor[0].refseq;
-			extendref_input_start=PeakInputBamInfor[0].start;//sam format
-			extendref_input_end=PeakInputBamInfor[0].end;
-		}
-
-		for(i=0;i<PeakInputBamInfor.size();i++)
-		{
-			BamInfor mybaminfor=PeakInputBamInfor[i];
-
-			//
-			if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
-	//cout<<"Input "<<i<<" "<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<endl;
-			if(i>0)
-			{
-				int ia=mybaminfor.end-PeakInputBamInfor[index_old].end;
-				int ib=mybaminfor.start-PeakInputBamInfor[index_old].end-1;
-				if(ia>0)
-				{
-	//cout<<extendrefseq_input<<endl;
-					if(ib>=1)//there is gap between two reads
-					{
-						string stemp;
-						for(j=0;j<ib;j++) stemp.push_back('N');
-						extendrefseq_input=extendrefseq_input+stemp+mybaminfor.refseq;
-					}
-					else extendrefseq_input=extendrefseq_input+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
-
-	//cout<<index_old<<"\t"<<PeakInputBamInfor[index_old].start<<"-"<<PeakInputBamInfor[index_old].end<<"\t"<<PeakInputBamInfor[index_old].refseq<<endl;
-	//cout<<i<<"\t"<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<"\t"<<PeakInputBamInfor[i].refseq<<endl;
-	//cout<<extendrefseq_input<<endl<<endl;
-					index_old=i;
-
-					extendref_input_end=mybaminfor.end;
-				}
-			}
-
-			//
-			if(mybaminfor.firstsegment==0)
-			{
-				os1<<"@"<<mybaminfor.readname<<endl;
-				os1<<mybaminfor.seq<<endl;
-				os1<<"+"<<endl;
-				os1<<mybaminfor.bq<<endl;
-			}
-			else {cout<<"wrong segment: "<<mybaminfor.firstsegment<<endl;exit(0);}
-		}
-	//cout<<"Inputextend_infor:\t"<<extendref_input_start<<"-"<<extendref_input_end<<endl<<extendrefseq_input<<endl;
-		os1.close();
-
-		//
-		if(extendref_end-extendref_start+1 != extendrefseq.size()) {cout<<"wrong ref seq for ChIP: "<<endl;exit(0);}
-		if(extendrefseq_input.size()>0) {if(extendref_input_end-extendref_input_start+1 != extendrefseq_input.size()) {cout<<"wrong ref seq for input: "<<endl;exit(0);}}
-
-		map<int,char> pos2ref;
-		for(i=0;i<extendrefseq.size();i++)
-		{
-			pos2ref[extendref_start++]=extendrefseq[i];
-		}
-		for(i=0;i<extendrefseq_input.size();i++)
-		{
-			if(extendrefseq_input[i]!='N') pos2ref[extendref_input_start++]=extendrefseq_input[i];
-			else extendref_input_start++;
-		}
-		extendrefseq.clear();
-		map<int,char>::iterator pos;
-		int itian;
-		for(pos=pos2ref.begin();pos!=pos2ref.end();++pos)
-		{
-			if(pos!=pos2ref.begin())
-			{
-				if(pos->first != itian+1)
-				{
-					int itemp=pos->first - itian-1;
-					if(itemp<0) {cout<<"map index wrong: "<<pos->first<<" "<<itian<<endl;exit(0);}
-					for(i=0;i<itemp;i++) extendrefseq.push_back('N');
-				}
-
-				extendrefseq.push_back(pos->second);
-			}
-			else extendrefseq.push_back(pos->second);
-
-			itian=pos->first;
-		}
-		pos=pos2ref.begin();
-		extendref_start=pos->first;
-		pos=pos2ref.end();
-		--pos;
-		extendref_end=pos->first;
-		if(extendref_end-extendref_start+1!=extendrefseq.size()) {cout<<"wrong extend ref: "<<extendref_end<<" "<<extendref_start<<" "<<extendrefseq.size()<<endl;exit(0);}
-	//cout<<"Finalextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
-
-
-		//fermi
-		stringstream p1_mag,p1_mag_log,sstemp;
-		p1_mag<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag";
-		p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
-		string cmdstring;
-		sstemp<<Fermi_overlap_par;
-		cmdstring=fermi_location+" -ce -l "+sstemp.str()+" "+ss1.str()+" >"+p1_mag.str()+" 2>"+p1_mag_log.str();
-		system(cmdstring.c_str());
-
-		//read contig
-		vector<string> contigname_set;
-		vector<string> contigseq_set;
-
-		ifstream is(p1_mag.str().c_str());
-		if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;return;}
-		do
-		{
-			sbuf.clear();
-			is>>sbuf;
-			if(sbuf.empty()) break;
-			contigname_set.push_back(sbuf);
-
-			getline(is,sbuf);
-			getline(is,sbuf);contigseq_set.push_back(sbuf);
-			getline(is,sbuf);getline(is,sbuf);
-
-		}while(1);
-		is.close();
-
-		//local alignment
-		vector<string> contigseq,refseq;//maybe has '-'
-		vector<int> refstart,refend;//for each alignment, sam format
-		vector<vector<int> > contigcoor;//if there is insertion, the coor is -1;
-
-		bool btemp=false;
-		for(i=0;i<contigseq_set.size();i++)
-		{
-			seq_pair problem1,problem2;
-			seq_pair result1,result2;
-
-			//
-			problem1.a=contigseq_set[i];
-			problem1.b=extendrefseq;
-			smith_waterman(problem1, btemp, result1);
-
-			//
-			string reversecomplementary;
-			GetReverseComplementary(contigseq_set[i],reversecomplementary);
-
-			problem2.a=reversecomplementary;
-			problem2.b=extendrefseq;
-			smith_waterman(problem2, btemp, result2);
-	//cout<<i+1<<endl<<problem1.a<<endl<<problem2.a<<endl;
-			//
-			string mycontigseq,myrefseq;//maybe has '-'
-			double myscore;
-			if(result1.score >= result2.score) {mycontigseq=result1.a;myrefseq=result1.b;myscore=result1.score;}
-			else {mycontigseq=result2.a;myrefseq=result2.b;myscore=result2.score;}
-
-			//
-			string myrefseq_noinsert;
-			for(j=0;j<myrefseq.size();j++)
-			{
-				if(myrefseq[j]!='-') myrefseq_noinsert.push_back(myrefseq[j]);
-			}
-			int ia=0;
-			int ib=0;
-
-			if(myrefseq_noinsert!=extendrefseq)
-			{
-				string::size_type position=extendrefseq.find(myrefseq_noinsert);
-				if(position==extendrefseq.npos) {cout<<"error!"<<endl;exit(0);}
-
-				ia=(int)position;
-				ib=extendrefseq.size()-ia-myrefseq_noinsert.size();
-			}
-
-			//
-			int itemp1=0;
-			int itemp2=0;
-			for(j=0;j<mycontigseq.size();j++)
-			{
-				if(mycontigseq[j]!='-') break;
-				itemp1++;
-			}
-			for(j=mycontigseq.size()-1;j>=0;j--)
-			{
-				if(mycontigseq[j]!='-') break;
-				itemp2++;
-			}
-
-			refstart.push_back(extendref_start+itemp1+ia);
-			refend.push_back(extendref_end-itemp2-ib);
-			contigseq.push_back(mycontigseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
-			refseq.push_back(myrefseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
-		}
-	//cout<<contigseq.size()<<endl;
-		for(i=0;i<contigseq.size();i++)
-		{
-			vector<int> mycontigcoor;
-
-			int ia=refstart[i]-1;
-			for(j=0;j<refseq[i].size();j++)
-			{
-				if(refseq[i][j]=='-') mycontigcoor.push_back(-1);
-				else {++ia;mycontigcoor.push_back(ia);}
-			}
-	//cout<<i+1<<endl<<refseq[i]<<endl<<contigseq[i]<<endl<<refstart[i]<<"-"<<refend[i]<<endl;
-			if(ia!=refend[i]) {cout<<"contig coor unconsistent: "<<ia<<" "<<refstart[i]<<" "<<refend[i]<<endl;exit(0);}
-
-			contigcoor.push_back(mycontigcoor);
-		}
-
-		//define snv from contig mapping result
-		map<int,char> snvpos2refallele;
-		map<int,vector<char> > snvpos2contigNTs;//maybe there is redundant NTs
-
-		for(i=0;i<refstart.size();i++)
-		{
-			int pos=refstart[i];
-
-			for(j=0;j<refseq[i].size();j++)
-			{
-				if(refseq[i][j]=='-') continue;
-				if(refseq[i][j]=='N') {pos++;continue;}
-
-				if(contigseq[i][j]=='-' || contigseq[i][j]=='N') {pos++;continue;}
-
-				//
-				if(refseq[i][j]!=contigseq[i][j])
-				{
-					if(snvpos2refallele.find(pos)==snvpos2refallele.end()) snvpos2refallele[pos]=refseq[i][j];
-				}
-
-				//
-				if(snvpos2contigNTs.find(pos)==snvpos2contigNTs.end())
-				{
-					vector<char> vchtemp;
-					vchtemp.push_back(contigseq[i][j]);
-					snvpos2contigNTs[pos]=vchtemp;
-				}
-				else snvpos2contigNTs[pos].push_back(contigseq[i][j]);
-
-				//
-				if(j==refseq[i].size()-1)
-				{
-					if(pos!=refend[i]) {cout<<"wrong start end for contig: "<<contigseq[i]<<endl;exit(0);}
-				}
-
-				pos++;
-			}
-		}
-
-		//Fill snv infor: ref and fermiNTs, and initialize
-		map<int,PosReadsInfor> pos2Readsinfo;
-
-		map<int,char>::iterator posmich;
 		for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
 		{
-			FillContigInfor(posmich->first,posmich->second,snvpos2contigNTs[posmich->first],pos2Readsinfo);
-		}
+			it=lower_bound(inputreadscoor[i].begin(),inputreadscoor[i].end(),posmich->first);
 
-		//reads mapping result
-		vector<string> readsseq,readsbq,inputreadsseq,inputreadsbq;
-		vector<vector<int> > readscoor,inputreadscoor;//only select reads overlapped with snvs, and coor seq are the same as contig
-
-		for(i=0;i<PeakBamInfor.size();i++)
-		{
-			if(PeakBamInfor[i].mapq<30) continue;
-
-			string revisedseq,revisedbq;
-			vector<int> revisedcoor;
-			GetReadSeqCoor(PeakBamInfor[i].seq,PeakBamInfor[i].bq,PeakBamInfor[i].start,PeakBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
-			readsseq.push_back(revisedseq);
-			readsbq.push_back(revisedbq);
-			readscoor.push_back(revisedcoor);
-		}
-
-		for(i=0;i<PeakInputBamInfor.size();i++)
-		{
-			if(PeakInputBamInfor[i].mapq<30) continue;
-
-			string revisedseq,revisedbq;
-			vector<int> revisedcoor;
-			GetReadSeqCoor(PeakInputBamInfor[i].seq,PeakInputBamInfor[i].bq,PeakInputBamInfor[i].start,PeakInputBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
-			inputreadscoor.push_back(revisedcoor);
-			inputreadsseq.push_back(revisedseq);
-			inputreadsbq.push_back(revisedbq);
-		}
-
-		//Fill snv infor: ChIP reads infor
-		vector<int>::iterator it;
-		btemp=false;
-		for(i=0;i<readscoor.size();i++)
-		{
-			for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
+			if(it==inputreadscoor[i].end() || *it!=posmich->first)//not found
 			{
-				it=lower_bound(readscoor[i].begin(),readscoor[i].end(),posmich->first);
+				continue;
+			}
+			else//found
+			{
+				int index=(int)(it-inputreadscoor[i].begin());
 
-				if(it==readscoor[i].end() || *it!=posmich->first)//not found
-				{
-					continue;
-				}
-				else//found
-				{
-					int index=(int)(it-readscoor[i].begin());
+				FillControlraw(posmich->first,inputreadsseq[i][index],pos2Readsinfo);
 
-					FillChIPraw(posmich->first,readsseq[i][index],pos2Readsinfo);
-
-					btemp=ConsistentWithContig(readscoor[i],readsseq[i],contigcoor,contigseq);
-					if(btemp) FillChIPQualInfor(posmich->first,readsseq[i][index],readsbq[i][index],pos2Readsinfo);
-				}
+				btemp=ConsistentWithContig(inputreadscoor[i],inputreadsseq[i],contigcoor,contigseq);
+				if(btemp) FillControlQualInfor(posmich->first,inputreadsseq[i][index],inputreadsbq[i][index],pos2Readsinfo);
 			}
 		}
-
-		//Fill snv infor: Input reads infor
-		btemp=false;
-		for(i=0;i<inputreadscoor.size();i++)
-		{
-			for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
-			{
-				it=lower_bound(inputreadscoor[i].begin(),inputreadscoor[i].end(),posmich->first);
-
-				if(it==inputreadscoor[i].end() || *it!=posmich->first)//not found
-				{
-					continue;
-				}
-				else//found
-				{
-					int index=(int)(it-inputreadscoor[i].begin());
-
-					FillControlraw(posmich->first,inputreadsseq[i][index],pos2Readsinfo);
-
-					btemp=ConsistentWithContig(inputreadscoor[i],inputreadsseq[i],contigcoor,contigseq);
-					if(btemp) FillControlQualInfor(posmich->first,inputreadsseq[i][index],inputreadsbq[i][index],pos2Readsinfo);
-				}
-			}
-		}
-
-		//
-		CalSNVAS(pos2Readsinfo);
-
-		//
-		OutputVcfResultHasInput(OutputVcffile,regionchr,pos2Readsinfo);
 	}
+
+	//
+	CalSNVAS(pos2Readsinfo);
+
+	//
+	OutputVcfResultHasInput(OutputVcffile,regionchr,pos2Readsinfo);
 }
 
 void GetReadSeqCoor(const string seq,const string bq,const int startpos,const string cigar,string &revisedseq,string &revisedbq,vector<int> &revisedcoor)
@@ -1958,14 +1536,17 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 
 		if(myReadsInfor.filterout || !myReadsInfor.hasfermiinfor) continue;
 
+		int raw_depth_ChIP=myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4];
+		int raw_depth_input=myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4];
+		int DP_ChIP=myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size();
+		int DP_input=myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size();
+
 		if(myReadsInfor.type=="homo")
 		{
 			os<<regionchr<<"\t"<<miPtmp->first<<"\t.\t"<<myReadsInfor.ref;
 			os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<"\t.\t.";
-			os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
-			  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
-			  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
-			  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
+			os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
+			  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
 			for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 //cout<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
 	//<<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)<<endl;
@@ -1976,7 +1557,7 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
 			  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
 			  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
-			os<<"\tGT\t1|1"<<endl;
+			os<<"\tGT:DP:GQ\t1|1:"<<DP_ChIP+DP_input<<":"<<myReadsInfor.GQ_homo_majar<<endl;
 		}
 		else if(myReadsInfor.type=="heter_noAS" || myReadsInfor.type=="heter_AS")
 		{
@@ -1986,10 +1567,8 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			if(NTindex2char(myReadsInfor.top1ntindex)==myReadsInfor.ref)
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top2ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
-				  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
-				  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
-				  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
+				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
+				  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
 				  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -1998,15 +1577,15 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 				  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
 				  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
 				  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
-				os<<"\tGT\t0|1"<<endl;
+				os<<"\tGT:DP:GQ\t0|1:"<<DP_ChIP+DP_input<<":";
+				if(myReadsInfor.type=="heter_noAS") os<<myReadsInfor.GQ_heter_noAS<<endl;
+				else os<<myReadsInfor.GQ_heter_AS<<endl;
 			}
 			else if(NTindex2char(myReadsInfor.top2ntindex)==myReadsInfor.ref)
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
-				  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
-				  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
-				  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
+				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
+				  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
 				  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -2015,15 +1594,15 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 				  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
 				  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
 				  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
-				os<<"\tGT\t1|0"<<endl;
+				os<<"\tGT:DP:GQ\t1|0:"<<DP_ChIP+DP_input<<":";
+				if(myReadsInfor.type=="heter_noAS") os<<myReadsInfor.GQ_heter_noAS<<endl;
+				else os<<myReadsInfor.GQ_heter_AS<<endl;
 			}
 			else
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<","<<NTindex2char(myReadsInfor.top2ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<myReadsInfor.ChIP_rawNo[0]+myReadsInfor.ChIP_rawNo[1]+myReadsInfor.ChIP_rawNo[2]+myReadsInfor.ChIP_rawNo[3]+myReadsInfor.ChIP_rawNo[4]
-				  <<";raw_depth_input:"<<myReadsInfor.Input_rawNo[0]+myReadsInfor.Input_rawNo[1]+myReadsInfor.Input_rawNo[2]+myReadsInfor.Input_rawNo[3]+myReadsInfor.Input_rawNo[4]
-				  <<";DP_ChIP:"<<myReadsInfor.Qual_set[0].size()+myReadsInfor.Qual_set[1].size()+myReadsInfor.Qual_set[2].size()+myReadsInfor.Qual_set[3].size()+myReadsInfor.Qual_set[4].size()
-				  <<";DP_input:"<<myReadsInfor.InputQual_set[0].size()+myReadsInfor.InputQual_set[1].size()+myReadsInfor.InputQual_set[2].size()+myReadsInfor.InputQual_set[3].size()+myReadsInfor.InputQual_set[4].size()<<";fermiNTs:";
+				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
+				  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
 				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
 				  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
@@ -2032,7 +1611,9 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 				  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
 				  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
 				  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
-				os<<"\tGT\t1|2"<<endl;
+				os<<"\tGT:DP:GQ\t1|2:"<<DP_ChIP+DP_input<<":";
+				if(myReadsInfor.type=="heter_noAS") os<<myReadsInfor.GQ_heter_noAS<<endl;
+				else os<<myReadsInfor.GQ_heter_AS<<endl;
 			}
 		}
 	}
@@ -2050,7 +1631,7 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##fileformat=VCFv4.1"<<endl;
 	os<<"##fileDate="<<(now->tm_year + 1900)<<(now->tm_mon + 1)<<now->tm_mday<<endl;
 	os<<"##source=SNVAS_V0.1"<<endl;
-	os<<"##Program_Args: "<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<" "<<argv[5]<<endl;
+	os<<"##Program_Args: "<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<endl;
 	os<<"##INFO=<ID=MinBIC_model,Number=.,Type=String,Description=\"Model with minimum BIC value\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_ChIP,Number=1,Type=Integer,Description=\"Raw read depth in ChIP-seq data\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_input,Number=1,Type=Integer,Description=\"Raw read depth in input data\">"<<endl;
@@ -2080,5 +1661,7 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##INFO=<ID=Allele_ratio_heter_AS,Number=1,Type=Float,Description=\"Estimated allele ratio of heterozygous with allele-specific model\">"<<endl;
 	//os<<"##reference=GRch37/hg19"<<endl;
 	os<<"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"<<endl;
+	os<<"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"read depth after filtering\">"<<endl;
+	os<<"##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality score\">"<<endl;
 	os<<"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE"<<endl;
 }
