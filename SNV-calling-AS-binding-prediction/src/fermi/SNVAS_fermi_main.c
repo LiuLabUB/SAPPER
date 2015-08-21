@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (optind == argc) {
-		fprintf(stderr, "Usage: fermi example [-ceU] [-k ecKmer] [-l utgKmer] <in.fq>\n");
+		fprintf(stderr, "Local assembler for small peak regions. Output cleaned unitigs.\nUsage: SNVAS_fermi [-ceU] [-k ecKmer] [-l utgKmer] <in.fq>\n");
 		return 1;
 	}
 	l = fm6_api_readseq(argv[optind], &seq, &qual);
