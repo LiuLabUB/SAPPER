@@ -47,16 +47,15 @@ string lookupFermi()
 
 int main(int argc,char *argv[])
 {
-  if ( argc < 6 )
+  if ( argc < 5 )
     {
       cout<<"Program: SNVAS (call SNV and allele-specific events from ChIP-seq data)\n";
       cout<<"Version: 0.1\n";
       cout<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-      cout<<"Usage: SNVAS <peaks.bed> <peaks.bam> <controlpeaks.bam> {PE,SE} <output.vcf>\n\n";
+      cout<<"Usage: SNVAS <peaks.bed> <peaks.bam> <controlpeaks.bam> <output.vcf>\n\n";
       cout<<"Options: <peaks.bed>            sorted bed file of peak regions\n";
       cout<<"         <peaks.bam>            sorted bam file of peak regions\n";
       cout<<"         <controlpeaks.bam>     sorted control bam file of peak regions\n";
-      cout<<"         {PE,SE}                format of bam file, PE (paired-end) or SE (single-end)\n";
       cout<<"         <output.vcf>           output vcf file\n\n";
       cout<<"Tips to prepare your input files from ChIP-Seq IP and CTRL BAM files:\n*Note: You need to modify the following sample command lines.*\n\n";
       cout<<"1. Clean the BAM files:\n";
@@ -73,15 +72,14 @@ int main(int argc,char *argv[])
       cout<<"    $ samtools view -b IP_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o IP_peaks.bam\n";
       cout<<"    $ samtools view -b CTRL_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o CTRL_peaks.bam\n\n";
       cout<<"To run SNVAS:\n\n";
-      cout<<"    $ SNVAS  MyFactor_peaks.sorted.bed IP_peaks.bam CTRL_peaks.bam PE MyFactor.vcf\n";
+      cout<<"    $ SNVAS  MyFactor_peaks.sorted.bed IP_peaks.bam CTRL_peaks.bam MyFactor.vcf\n";
       return(1);
     }
   
   const string Peakbedfile(argv[1]);
   const string Bamfile(argv[2]);
   const string InputBamfile(argv[3]);
-  const string PEorSE(argv[4]);
-  const string OutputVcffile(argv[5]);
+  const string OutputVcffile(argv[4]);
   const string fermi_location(lookupFermi());
 
   if (fermi_location == "")
@@ -92,9 +90,6 @@ int main(int argc,char *argv[])
   char * ctmpfilefolder = mkdtemp( ctemplate );
   const string tmpfilefolder( ctmpfilefolder );
 
-  // check PE/SE mode
-  if(PEorSE!="PE" && PEorSE!="SE") {cout<<"wrong mode! Choose from {PE,SE}"<<endl;exit(0);}
-      
   //read peak region bed file
   vector<BedRegion> peakbedregion_set;//sorted by bam header chr order
   ReadPeakBedFile(Peakbedfile,Bamfile,peakbedregion_set);
@@ -109,7 +104,7 @@ int main(int argc,char *argv[])
 
   //read bam file and calculate
   OutputVcfResultHasInput_header(OutputVcffile,argv);
-  ReadBamfile(PEorSE,ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
+  ReadBamfile(ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
   cout<<"finish all"<<endl;
 
   // remove temp dir
