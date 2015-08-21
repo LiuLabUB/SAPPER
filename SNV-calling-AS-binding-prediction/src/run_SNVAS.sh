@@ -85,7 +85,7 @@ samtools view -b ${CTRLBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_extended_pe
 wait;
 
 # step 6 run SNVAS
-SNVAS ${FACTORNAME}_extended_peaks.bed ${FACTORNAME}_CHIP_peaks.bam ${FACTORNAME}_CTRL_peaks.bam ${MODE} ${FACTORNAME}_SNVAS.vcf &
+SNVAS ${FACTORNAME}_extended_peaks.bed ${FACTORNAME}_CHIP_peaks.bam ${FACTORNAME}_CTRL_peaks.bam ${FACTORNAME}_SNVAS.vcf &
 
 wait;
 
