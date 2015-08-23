@@ -1545,18 +1545,16 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 		{
 			os<<regionchr<<"\t"<<miPtmp->first<<"\t.\t"<<myReadsInfor.ref;
 			os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<"\t.\t.";
-			os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
-			  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
+			os<<"\tMinBIC_model="<<myReadsInfor.type<<";raw_depth_ChIP="<<raw_depth_ChIP<<";raw_depth_input="<<raw_depth_input
+			  <<";DP_ChIP="<<DP_ChIP<<";DP_input="<<DP_input<<";fermiNTs=";
 			for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
-//cout<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-	//<<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)<<endl;
-			os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)
-			  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)
-			  <<";top1raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)
-			  <<";top1inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)
-			  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
-			  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
-			  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
+			os<<";top1="<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)
+			  <<";top1input="<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)
+			  <<";top1raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)
+			  <<";top1inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)
+			  <<";lnL_homo_major="<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor="<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS="<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS="<<myReadsInfor.lnL_heter_AS
+			  <<";BIC_homo_major="<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor="<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS="<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS="<<myReadsInfor.BIC_heter_AS
+			  <<";GQ_homo="<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS="<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS="<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig="<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS="<<myReadsInfor.heter_AS_alleleratio;
 			os<<"\tGT:DP:GQ\t1|1:"<<DP_ChIP+DP_input<<":"<<myReadsInfor.GQ_homo_majar<<endl;
 		}
 		else if(myReadsInfor.type=="heter_noAS" || myReadsInfor.type=="heter_AS")
@@ -1567,16 +1565,16 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			if(NTindex2char(myReadsInfor.top1ntindex)==myReadsInfor.ref)
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top2ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
-				  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
+				os<<"\tMinBIC_model="<<myReadsInfor.type<<";raw_depth_ChIP="<<raw_depth_ChIP<<";raw_depth_input="<<raw_depth_input
+				  <<";DP_ChIP="<<DP_ChIP<<";DP_input="<<DP_input<<";fermiNTs=";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
-				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
-				  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
-				  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
+				os<<";top1="<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2="<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1input="<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input="<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";lnL_homo_major="<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor="<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS="<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS="<<myReadsInfor.lnL_heter_AS
+				  <<";BIC_homo_major="<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor="<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS="<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS="<<myReadsInfor.BIC_heter_AS
+				  <<";GQ_homo="<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS="<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS="<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig="<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS="<<myReadsInfor.heter_AS_alleleratio;
 				os<<"\tGT:DP:GQ\t0|1:"<<DP_ChIP+DP_input<<":";
 				if(myReadsInfor.type=="heter_noAS") os<<myReadsInfor.GQ_heter_noAS<<endl;
 				else os<<myReadsInfor.GQ_heter_AS<<endl;
@@ -1584,16 +1582,16 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			else if(NTindex2char(myReadsInfor.top2ntindex)==myReadsInfor.ref)
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
-				  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
+				os<<"\tMinBIC_model="<<myReadsInfor.type<<";raw_depth_ChIP="<<raw_depth_ChIP<<";raw_depth_input="<<raw_depth_input
+				  <<";DP_ChIP="<<DP_ChIP<<";DP_input="<<DP_input<<";fermiNTs=";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
-				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
-				  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
-				  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
+				os<<";top1="<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2="<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1input="<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input="<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";lnL_homo_major="<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor="<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS="<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS="<<myReadsInfor.lnL_heter_AS
+				  <<";BIC_homo_major="<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor="<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS="<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS="<<myReadsInfor.BIC_heter_AS
+				  <<";GQ_homo="<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS="<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS="<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig="<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS="<<myReadsInfor.heter_AS_alleleratio;
 				os<<"\tGT:DP:GQ\t1|0:"<<DP_ChIP+DP_input<<":";
 				if(myReadsInfor.type=="heter_noAS") os<<myReadsInfor.GQ_heter_noAS<<endl;
 				else os<<myReadsInfor.GQ_heter_AS<<endl;
@@ -1601,16 +1599,16 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 			else
 			{
 				os<<"\t"<<NTindex2char(myReadsInfor.top1ntindex)<<","<<NTindex2char(myReadsInfor.top2ntindex)<<"\t.\t.";
-				os<<"\tMinBIC_model:"<<myReadsInfor.type<<";raw_depth_ChIP:"<<raw_depth_ChIP<<";raw_depth_input:"<<raw_depth_input
-				  <<";DP_ChIP:"<<DP_ChIP<<";DP_input:"<<DP_input<<";fermiNTs:";
+				os<<"\tMinBIC_model="<<myReadsInfor.type<<";raw_depth_ChIP="<<raw_depth_ChIP<<";raw_depth_input="<<raw_depth_input
+				  <<";DP_ChIP="<<DP_ChIP<<";DP_input="<<DP_input<<";fermiNTs=";
 				for(i=0;i<myReadsInfor.fermiNTs.size();i++) os<<myReadsInfor.fermiNTs[i];
-				os<<";top1:"<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2:"<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1input:"<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input:"<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2raw:"<<myReadsInfor.ChIP_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";top1inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2inputraw:"<<myReadsInfor.Input_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
-				  <<";lnL_homo_major:"<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor:"<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS:"<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS:"<<myReadsInfor.lnL_heter_AS
-				  <<";BIC_homo_major:"<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor:"<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS:"<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS:"<<myReadsInfor.BIC_heter_AS
-				  <<";GQ_homo:"<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS:"<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS:"<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig:"<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS:"<<myReadsInfor.heter_AS_alleleratio;
+				os<<";top1="<<myReadsInfor.Qual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2="<<myReadsInfor.Qual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1input="<<myReadsInfor.InputQual_set[myReadsInfor.top1ntindex].size()<<NTindex2char(myReadsInfor.top1ntindex)<<";top2input="<<myReadsInfor.InputQual_set[myReadsInfor.top2ntindex].size()<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2raw="<<myReadsInfor.ChIP_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";top1inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top1ntindex]<<NTindex2char(myReadsInfor.top1ntindex)<<";top2inputraw="<<myReadsInfor.Input_rawNo[myReadsInfor.top2ntindex]<<NTindex2char(myReadsInfor.top2ntindex)
+				  <<";lnL_homo_major="<<myReadsInfor.lnL_homo_majar<<";lnL_homo_minor="<<myReadsInfor.lnL_homo_minor<<";lnL_heter_noAS="<<myReadsInfor.lnL_heter_noAS<<";lnL_heter_AS="<<myReadsInfor.lnL_heter_AS
+				  <<";BIC_homo_major="<<myReadsInfor.BIC_homo_majar<<";BIC_homo_minor="<<myReadsInfor.BIC_homo_minor<<";BIC_heter_noAS="<<myReadsInfor.BIC_heter_noAS<<";BIC_heter_AS="<<myReadsInfor.BIC_heter_AS
+				  <<";GQ_homo="<<myReadsInfor.GQ_homo_majar<<";GQ_heter_noAS="<<myReadsInfor.GQ_heter_noAS<<";GQ_heter_AS="<<myReadsInfor.GQ_heter_AS<<";GQ_heter_ASsig="<<myReadsInfor.GQ_heter_ASsig<<";Allele_ratio_heter_AS="<<myReadsInfor.heter_AS_alleleratio;
 				os<<"\tGT:DP:GQ\t1|2:"<<DP_ChIP+DP_input<<":";
 				if(myReadsInfor.type=="heter_noAS") os<<myReadsInfor.GQ_heter_noAS<<endl;
 				else os<<myReadsInfor.GQ_heter_AS<<endl;
@@ -1631,7 +1629,7 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##fileformat=VCFv4.1"<<endl;
 	os<<"##fileDate="<<(now->tm_year + 1900)<<(now->tm_mon + 1)<<now->tm_mday<<endl;
 	os<<"##source=SNVAS_V0.1"<<endl;
-	os<<"##Program_Args: "<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<endl;
+	os<<"##Program_Args=<"<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<">"<<endl;
 	os<<"##INFO=<ID=MinBIC_model,Number=.,Type=String,Description=\"Model with minimum BIC value\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_ChIP,Number=1,Type=Integer,Description=\"Raw read depth in ChIP-seq data\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_input,Number=1,Type=Integer,Description=\"Raw read depth in input data\">"<<endl;
