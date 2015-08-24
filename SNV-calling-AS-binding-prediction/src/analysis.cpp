@@ -303,7 +303,7 @@ double CallnFunction(const int m,const int n,const int tn,const vector<double> &
 	return da;
 }
 
-double CalGQscore(const double lnL1,const double lnL2,const double lnL3)
+int CalGQscore(const double lnL1,const double lnL2,const double lnL3)
 {
 	long double L1=powl(2.7182818,lnL1-lnL1);
 	long double L2=powl(2.7182818,lnL2-lnL1);
@@ -325,7 +325,7 @@ double CalGQscore(const double lnL1,const double lnL2,const double lnL3)
 	return GQ_score;
 }
 
-double CalGQ_heterASsig_score(const double lnL1,const double lnL2)
+int CalGQ_heterASsig_score(const double lnL1,const double lnL2)
 {
 	long double L1=powl(2.7182818,lnL1-lnL1);
 	long double L2=powl(2.7182818,lnL2-lnL1);
