@@ -1652,10 +1652,10 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##INFO=<ID=BIC_homo_minor,Number=1,Type=Float,Description=\"BIC value of homozygous with minor allele model\">"<<endl;
 	os<<"##INFO=<ID=BIC_heter_noAS,Number=1,Type=Float,Description=\"BIC value of heterozygous with no allele-specific model\">"<<endl;
 	os<<"##INFO=<ID=BIC_heter_AS,Number=1,Type=Float,Description=\"BIC value of heterozygous with allele-specific model\">"<<endl;
-	os<<"##INFO=<ID=GQ_homo,Number=1,Type=Float,Description=\"Genotype quality of homozygous with major allele model\">"<<endl;
-	os<<"##INFO=<ID=GQ_heter_noAS,Number=1,Type=Float,Description=\"Genotype quality of heterozygous with no allele-specific model\">"<<endl;
-	os<<"##INFO=<ID=GQ_heter_AS,Number=1,Type=Float,Description=\"Genotype quality of heterozygous with allele-specific model\">"<<endl;
-	os<<"##INFO=<ID=GQ_heter_ASsig,Number=1,Type=Float,Description=\"Genotype quality of allele-specific significance compared with no allele-specific model\">"<<endl;
+	os<<"##INFO=<ID=GQ_homo,Number=1,Type=Integer,Description=\"Genotype quality of homozygous with major allele model\">"<<endl;
+	os<<"##INFO=<ID=GQ_heter_noAS,Number=1,Type=Integer,Description=\"Genotype quality of heterozygous with no allele-specific model\">"<<endl;
+	os<<"##INFO=<ID=GQ_heter_AS,Number=1,Type=Integer,Description=\"Genotype quality of heterozygous with allele-specific model\">"<<endl;
+	os<<"##INFO=<ID=GQ_heter_ASsig,Number=1,Type=Integer,Description=\"Genotype quality of allele-specific significance compared with no allele-specific model\">"<<endl;
 	os<<"##INFO=<ID=Allele_ratio_heter_AS,Number=1,Type=Float,Description=\"Estimated allele ratio of heterozygous with allele-specific model\">"<<endl;
 	//os<<"##reference=GRch37/hg19"<<endl;
 	os<<"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"<<endl;
