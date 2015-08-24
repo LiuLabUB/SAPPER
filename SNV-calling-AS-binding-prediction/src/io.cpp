@@ -1027,7 +1027,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 	p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
 	string cmdstring;
 	sstemp<<Fermi_overlap_par;
-	cmdstring=fermi_location+" -ce -l "+sstemp.str()+" "+ss1.str()+" >"+p1_mag.str()+" 2>"+p1_mag_log.str();
+	cmdstring=fermi_location+" -l "+sstemp.str()+" "+ss1.str()+" "+p1_mag.str()+" 2>"+p1_mag_log.str();
 	system(cmdstring.c_str());
 
 	//read contig

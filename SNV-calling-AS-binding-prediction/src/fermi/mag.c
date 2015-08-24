@@ -187,6 +187,22 @@ void mag_g_print(const mag_t *g)
 	fflush(stdout);
 }
 
+void mag_g_fprint(const mag_t *g, FILE *fp)
+{
+	int i;
+	kstring_t out;
+	out.l = out.m = 0; out.s = 0;
+	for (i = 0; i < g->v.n; ++i) {
+		if (g->v.a[i].len < 0) continue;
+		mag_v_write(&g->v.a[i], &out);
+		//fwrite(out.s, 1, out.l, stdout);		
+		fwrite(out.s, 1, out.l, fp);
+	}
+	free(out.s);
+	//fflush(stdout);
+	fflush(fp);
+}
+
 mag_t *mag_g_read(const char *fn, const magopt_t *opt)
 {
 	gzFile fp;
