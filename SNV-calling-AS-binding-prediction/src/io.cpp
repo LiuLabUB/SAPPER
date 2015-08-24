@@ -1629,7 +1629,7 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##fileformat=VCFv4.1"<<endl;
 	os<<"##fileDate="<<(now->tm_year + 1900)<<(now->tm_mon + 1)<<now->tm_mday<<endl;
 	os<<"##source=SNVAS_V0.1"<<endl;
-	os<<"##Program_Args=<"<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<">"<<endl;
+	os<<"##Program_Args=\""<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<"\""<<endl;
 	os<<"##INFO=<ID=MinBIC_model,Number=.,Type=String,Description=\"Model with minimum BIC value\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_ChIP,Number=1,Type=Integer,Description=\"Raw read depth in ChIP-seq data\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_input,Number=1,Type=Integer,Description=\"Raw read depth in input data\">"<<endl;

@@ -83,13 +83,13 @@ int main(int argc,char *argv[])
 		cout<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
 		cout<<"Usage: SNVAS_filter <snvas.vcf> <depth_cutoff> <homo|hetero|hetero_AS|hetero_nonAS> <GQ_cutoff> <output.vcf>\n\n";
 		cout<<"Options: <snvas.vcf>                            The raw output vcf file of SNV calling from SNVAS\n";
-		cout<<"         <homo|hetero|hetero_AS|hetero_nonAS>   Actions can be chose from:\n"
-		    <<"         <depth_cutoff>                         only show the SNV with read depth >=depth_cutoff (recommand 20), \n"
-		    <<"                                                which is an integer >=0\n"
+		cout<<"         <depth_cutoff>                         only show the SNV with read depth >=depth_cutoff (recommand 20), \n"
+		    <<"         <homo|hetero|hetero_AS|hetero_nonAS>   Actions can be chose from:\n"
 		    <<"                                                homo: get homozygous SNVs above cutoff\n"
 		    <<"                                                hetero: get heterozygous SNVs above cutoff\n"
 		    <<"                                                hetero_AS: get heterozygous SNVs with allele-specific binding above cutoff\n"
 		    <<"                                                hetero_nonAS: get heterozygous SNV with non allele-specific binding above cutoff\n";
+		    <<"                                                which is an integer >=0\n"
 		cout<<"         <GQ_cutoff>                            Genotype quality cutoff. To decide a good cutoff, please refer to...\n"
 		    <<"                                                The cutoff should be integer more than 0\n";
 		cout<<"         <output.vcf>                           The output vcf file after filtering\n\n";
