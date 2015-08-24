@@ -6,10 +6,11 @@ OBJS = main.o io.o analysis.o swalign.o math.o
 
 .PHONY:all
 
-all: bin SNVAS SNVAS_filter
+all: bin SNVAS SNVAS_filter SNVAS_cutoff_statistics
 	cd fermi && ${MAKE}
 	mv fermi/SNVAS_fermi bin/ #we renamed the name `SNVAS_fermi` because we modifed the codes.
 	mv SNVAS SNVAS_filter bin/
+	mv SNVAS_cutoff_statistics bin/
 
 bin:
 	${MKDIR} bin	
@@ -34,10 +35,13 @@ main.o : main.cpp io.hpp
 
 SNVAS_filter : SNVAS_filter.cpp
 	$(CC) $(CFLAGS) -lz -o SNVAS_filter SNVAS_filter.cpp
+	
+SNVAS_cutoff_statistics : SNVAS_cutoff_statistics.cpp
+	$(CC) $(CFLAGS) -lz -o SNVAS_cutoff_statistics SNVAS_cutoff_statistics.cpp
 
 clean :
 	cd fermi && ${MAKE} clean
 	-rm -f $(OBJS)
-	-rm -f bin/SNVAS_fermi bin/SNVAS bin/SNVAS_filter
+	-rm -f bin/SNVAS_fermi bin/SNVAS bin/SNVAS_filter bin/SNVAS_cutoff_statistics
 	-rmdir bin
 
