@@ -33,8 +33,8 @@ struct PosReadsInfor
 	double heter_AS_alleleratio;
 
 	//
-	double GQ_homo_majar,GQ_heter_noAS,GQ_heter_AS;//phred scale of prob by standard formular
-	double GQ_heter_ASsig;//phred scale of prob, to measure the difference between AS and noAS
+	int GQ_homo_majar,GQ_heter_noAS,GQ_heter_AS;//phred scale of prob by standard formular
+	int GQ_heter_ASsig;//phred scale of prob, to measure the difference between AS and noAS
 
 	//
 	string type;
@@ -61,8 +61,8 @@ void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo);
 //Calculate GQscore
 void CalLikelihoodGTprob(PosReadsInfor &myReadInfor);
 
-double CalGQscore(const double lnL1,const double lnL2,const double lnL3);
-double CalGQ_heterASsig_score(const double lnL1,const double lnL2);
+int CalGQscore(const double lnL1,const double lnL2,const double lnL3);
+int CalGQ_heterASsig_score(const double lnL1,const double lnL2);
 
 
 //has input
