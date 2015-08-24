@@ -29,6 +29,17 @@ MACS2EXTPARAM="-g hs -q 0.05 --fe-cutoff 5";
 # 'narrow'. 
 MACS2MODE="narrow";
 
+# Filtering criteria
+
+# Minimum depth
+MINDEPTH=20
+
+# Minimum Genotype Quality Score cutoff for heterozygous loci
+MINHETEROGQ=50
+
+# Minimum Genotype Quality Score cutoff for homozygous loci
+MINHOMOGQ=10
+
 ###################DO NOT EDIT CODES BELOW################
 
 # check settings
@@ -89,5 +100,14 @@ SNVAS ${FACTORNAME}_extended_peaks.bed ${FACTORNAME}_CHIP_peaks.bam ${FACTORNAME
 
 wait;
 
-echo "Finished. Please check the file" ${FACTORNAME}_SNVAS.vcf
+# step 7 run SNVAS_filter
+
+SNVAS_filter  ${FACTORNAME}_SNVAS.vcf ${MINDEPTH} homo ${MINHOMOGQ} ${FACTORNAME}_SNVAS_homo.vcf
+SNVAS_filter  ${FACTORNAME}_SNVAS.vcf ${MINDEPTH} hetero ${MINHETEROGQ} ${FACTORNAME}_SNVAS_hetero.vcf
+
+echo "Finished! Please check:"
+echo " " ${FACTORNAME}_SNVAS.vcf "for all the predicted SNVs."
+echo " " ${FACTORNAME}_SNVAS_hetero.vcf "for the filtered heterozygous SNVs above cutoff."
+echo " " ${FACTORNAME}_SNVAS_homo.vcf "for the filtered homozygous SNVs above cutoff."
+
 echo "Please use SNVAS_filter script to further filter the results."
