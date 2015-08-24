@@ -152,7 +152,7 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
   for (i = 1; i <= problem.a.length(); i++) {
     for (j = 1; j <= problem.b.length(); j++) {
       int nw_score;
-      if(problem.a[i-1] == problem.b[j-1]) nw_score=(int)MATCH;
+      if((problem.a[i-1] == problem.b[j-1]) && (problem.a[i-1] != 'N')) nw_score=(int)MATCH;
       else nw_score=(int)MISMATCH;
 
       S.mat[i][j].score   = DBL_MIN;
