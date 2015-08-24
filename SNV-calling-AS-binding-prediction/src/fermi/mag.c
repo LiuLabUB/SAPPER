@@ -166,7 +166,7 @@ void mag_v_write(const magv_t *p, kstring_t *out)
 	kputc('\n', out);
 	ks_resize(out, out->l + 2 * p->len + 5);
 	for (j = 0; j < p->len; ++j)
-		out->s[out->l++] = "ACGT"[(int)p->seq[j] - 1];
+		out->s[out->l++] = "ACGTN"[(int)p->seq[j] - 1];
 	out->s[out->l] = 0;
 	kputsn("\n+\n", 3, out);
 	kputsn(p->cov, p->len, out);
