@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[])
 {
-	int c, do_ec = 0, skip_unitig = 0, ec_k = -1, unitig_k = -1, do_clean = 0;
+	int c, ec_k = -1, unitig_k = -1;
 	char *seq, *qual;
 	FILE *fp;
 	int64_t l;
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (optind + 1 >= argc) {
-		fprintf(stderr, "Local assembler for small peak regions. Output cleaned unitigs.\nUsage: SNVAS_fermi [-ceU] [-k ecKmer] [-l utgKmer] <in.fq> <out.fq>\n");
+		fprintf(stderr, "Local assembler for small peak regions. Output cleaned unitigs.\nUsage: SNVAS_fermi [-k ecKmer] [-l utgKmer] <in.fq> <out.fq>\n");
 		return 1;
 	}
 	l = fm6_api_readseq(argv[optind], &seq, &qual);
