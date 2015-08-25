@@ -96,14 +96,14 @@ samtools view -b ${CTRLBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_extended_pe
 wait;
 
 # step 6 run SNVAS
-SNVAS ${FACTORNAME}_extended_peaks.bed ${FACTORNAME}_CHIP_peaks.bam ${FACTORNAME}_CTRL_peaks.bam ${FACTORNAME}_SNVAS.vcf &
+SNVAS call -b ${FACTORNAME}_extended_peaks.bed -t ${FACTORNAME}_CHIP_peaks.bam -c ${FACTORNAME}_CTRL_peaks.bam -o ${FACTORNAME}_SNVAS.vcf &
 
 wait;
 
 # step 7 run SNVAS_filter
 
-SNVAS_filter  ${FACTORNAME}_SNVAS.vcf ${MINDEPTH} homo ${MINHOMOGQ} ${FACTORNAME}_SNVAS_homo.vcf
-SNVAS_filter  ${FACTORNAME}_SNVAS.vcf ${MINDEPTH} hetero ${MINHETEROGQ} ${FACTORNAME}_SNVAS_hetero.vcf
+SNVAS filter -i ${FACTORNAME}_SNVAS.vcf -d ${MINDEPTH} -t homo -q ${MINHOMOGQ} -o ${FACTORNAME}_SNVAS_homo.vcf
+SNVAS filter -i ${FACTORNAME}_SNVAS.vcf -d ${MINDEPTH} -t hetero -q ${MINHETEROGQ} -o ${FACTORNAME}_SNVAS_hetero.vcf
 
 echo "Finished! Please check:"
 echo " " ${FACTORNAME}_SNVAS.vcf "for all the predicted SNVs."

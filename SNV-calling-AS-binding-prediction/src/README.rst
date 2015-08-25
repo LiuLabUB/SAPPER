@@ -74,7 +74,7 @@ Running SNVAS
 
 1. Simply run::
 
-     $ SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam sample.vcf
+     $ SNVAS call -b sample_peaks_sorted.bed -t sample_peaks_sorted.bam -c control_peaks_sorted.bam -o sample.vcf
 
 And the sample.vcf is the output. SNVAS tool outputs all possible
 SNVs. We recommend to use the filter tool (see below) to get a
@@ -170,19 +170,19 @@ specific binding; 4) heterozygous SNVs with allele-specific binding:
 
 1. To get homozygous SNVs::
 
-      $ SNVAS_filter sample.vcf MINDEPTH homo MINCUTOFF sample_homo_afterfilter.vcf
+      $ SNVAS filter -i sample.vcf -d MINDEPTH -t homo -q MINCUTOFF -o sample_homo_afterfilter.vcf
 
 2. To get heterozygous SNVs::
 
-      $ SNVAS_filter sample.vcf MINDEPTH hetero MINCUTOFF sample_hete_afterfilter.vcf
+      $ SNVAS filter -i sample.vcf -d MINDEPTH -t hetero -q MINCUTOFF -o sample_hete_afterfilter.vcf
 
 3. To get allele-specific heterozygous SNVs::
 
-      $ SNVAS_filter sample.vcf MINDEPTH heter_AS MINCUTOFF sample_heterAS_afterfilter.vcf
+      $ SNVAS filter -i sample.vcf -d MINDEPTH -t heter_AS -q MINCUTOFF -o sample_heterAS_afterfilter.vcf
 
 4. To get non allele-specific heterozygous SNV::
 
-      $ SNVAS_filter sample.vcf MINDEPTH heter_noAS MINCUTOFF sample_heterNonAS_afterfilter.vcf
+      $ SNVAS filter -i sample.vcf -d MINDEPTH -t heter_noAS -q MINCUTOFF -o sample_heterNonAS_afterfilter.vcf
 
 The selection of minimum depth and minimum genotype quality score
 cutoffs is arbitrary. We recommand minimum depth of 10, and minimum GQ
