@@ -4,22 +4,29 @@ Running example
 1 Paired-end ChIP-seq dataset
 
 cd PE_demo
-SNVAS PEsample_peaks_sorted.bed PEsample_peaks_sorted.bam PEcontrol_peaks_sorted.bam PEsample.vcf
+SNVAS call -b PEsample_peaks_sorted.bed -t PEsample_peaks_sorted.bam -c PEcontrol_peaks_sorted.bam -o PEsample.vcf
+
+Summarize predicted snvs number per kb and ts/tv ratio for different GQ cutoff:
+SNVAS stat -i PEsample.vcf -b PEsample_peaks_sorted.bed -e hetero_stat.txt -o homo_stat.txt -d 20
 
 Filtering process:
-SNVAS_filter PEsample.vcf 20 homo 10 PEsample_homo.vcf
-SNVAS_filter PEsample.vcf 20 hetero 100 PEsample_heter.vcf
-SNVAS_filter PEsample.vcf 20 hetero_AS 100 PEsample_heterAS.vcf
-SNVAS_filter PEsample.vcf 20 hetero_nonAS 100 PEsample_heterNonAS.vcf
+SNVAS filter -i PEsample.vcf -o hetero.vcf -t hetero -d 20 -q 100
+SNVAS filter -i PEsample.vcf -o hetero_AS.vcf -t hetero_AS -d 20 -q 100
+SNVAS filter -i PEsample.vcf -o hetero_nonAS.vcf -t hetero_nonAS -d 20 -q 100
+SNVAS filter -i PEsample.vcf -o homo.vcf -t homo -d 20 -q 10
+
 
 2 Single-end ChIP-seq dataset
 
 cd SE_demo
-SNVAS SEsample_peaks_sorted.bed SEsample_peaks_sorted.bam SEcontrol_peaks_sorted.bam SEsample.vcf
+SNVAS call -b SEsample_peaks_sorted.bed -t SEsample_peaks_sorted.bam -c SEcontrol_peaks_sorted.bam -o SEsample.vcf
+
+Summarize predicted snvs number per kb and ts/tv ratio for different GQ cutoff:
+SNVAS stat -i SEsample.vcf -b SEsample_peaks_sorted.bed -e hetero_stat.txt -o homo_stat.txt -d 20
 
 Filtering process:
-SNVAS_filter SEsample.vcf 20 homo 10 SEsample_homo.vcf
-SNVAS_filter SEsample.vcf 20 hetero 100 SEsample_heter.vcf
-SNVAS_filter SEsample.vcf 20 hetero_AS 100 SEsample_heterAS.vcf
-SNVAS_filter SEsample.vcf 20 hetero_nonAS 100 SEsample_heterNonAS.vcf
+SNVAS filter -i SEsample.vcf -o hetero.vcf -t hetero -d 20 -q 100
+SNVAS filter -i SEsample.vcf -o hetero_AS.vcf -t hetero_AS -d 20 -q 100
+SNVAS filter -i SEsample.vcf -o hetero_nonAS.vcf -t hetero_nonAS -d 20 -q 100
+SNVAS filter -i SEsample.vcf -o homo.vcf -t homo -d 20 -q 10
 
