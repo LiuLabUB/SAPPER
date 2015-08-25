@@ -11,7 +11,7 @@ struct SNVASinfor
 	string chr;
 	int pos;
 	char ref;
-	int raw_ChIPseq_depth,raw_input_depth;
+	int ChIPseq_depth,input_depth;//after filtering
 	string top2NT;
 	vector<int> top2No;
 	string predicttype;
@@ -21,7 +21,7 @@ struct SNVASinfor
 	int top1plus,top2plus,top1minus,top2minus;
 };
 
-void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<int> &top2No,int &GQ,int &GQ_ASsig,int &top1plus,int &top2plus,int &top1minus,int &top2minus,double &heter_AS_alleleratio,int &raw_ChIPseq_depth,int &raw_input_depth)
+void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<int> &top2No,int &GQ,int &GQ_ASsig,int &top1plus,int &top2plus,int &top1minus,int &top2minus,double &heter_AS_alleleratio,int &ChIPseq_depth,int &input_depth)
 {
 	int i,start=0;
 
@@ -45,25 +45,25 @@ void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<in
 	int GQ_homo=0,GQ_heter_noAS=0,GQ_heter_AS=0;
 	for(i=0;i<vstemp.size();i++)
 	{
-		if(vstemp[i].substr(0,5)=="raw_d")
+		if(vstemp[i].substr(0,3)=="DP_")
 		{
-			if(vstemp[i].substr(0,15)=="raw_depth_ChIP:") raw_ChIPseq_depth=atoi(vstemp[i].substr(15).c_str());
-			else if(vstemp[i].substr(0,16)=="raw_depth_input:") raw_input_depth=atoi(vstemp[i].substr(16).c_str());
+			if(vstemp[i].substr(0,8)=="DP_ChIP=") ChIPseq_depth=atoi(vstemp[i].substr(8).c_str());
+			else if(vstemp[i].substr(0,9)=="DP_input=") input_depth=atoi(vstemp[i].substr(9).c_str());
 		}
-		else if(vstemp[i].substr(0,5)=="top1:") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
-		else if(vstemp[i].substr(0,5)=="top2:") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
+		else if(vstemp[i].substr(0,5)=="top1=") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
+		else if(vstemp[i].substr(0,5)=="top2=") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
 		else if(vstemp[i].substr(0,4)=="GQ_h")
 		{
 			if(vstemp[i].substr(0,7)=="GQ_homo") GQ_homo=atof(vstemp[i].substr(8).c_str());
 			else if(vstemp[i].size()>=11 && vstemp[i].substr(0,11)=="GQ_heter_no") GQ_heter_noAS=atoi(vstemp[i].substr(14).c_str());
-			else if(vstemp[i].size()>=12 && vstemp[i].substr(0,12)=="GQ_heter_AS:") GQ_heter_AS=atoi(vstemp[i].substr(12).c_str());
+			else if(vstemp[i].size()>=12 && vstemp[i].substr(0,12)=="GQ_heter_AS=") GQ_heter_AS=atoi(vstemp[i].substr(12).c_str());
 			else if(vstemp[i].size()>=14 && vstemp[i].substr(0,14)=="GQ_heter_ASsig") GQ_ASsig=atoi(vstemp[i].substr(15).c_str());
 		}
-		else if(vstemp[i].substr(0,9)=="top1plus:") top1plus=atoi(vstemp[i].substr(9).c_str());
-		else if(vstemp[i].substr(0,9)=="top2plus:") top2plus=atoi(vstemp[i].substr(9).c_str());
-		else if(vstemp[i].substr(0,10)=="top1minus:") top1minus=atoi(vstemp[i].substr(10).c_str());
-		else if(vstemp[i].substr(0,10)=="top2minus:") top2minus=atoi(vstemp[i].substr(10).c_str());
-		else if(vstemp[i].substr(0,22)=="Allele_ratio_heter_AS:") heter_AS_alleleratio=atof(vstemp[i].substr(22).c_str());
+		else if(vstemp[i].substr(0,9)=="top1plus=") top1plus=atoi(vstemp[i].substr(9).c_str());
+		else if(vstemp[i].substr(0,9)=="top2plus=") top2plus=atoi(vstemp[i].substr(9).c_str());
+		else if(vstemp[i].substr(0,10)=="top1minus=") top1minus=atoi(vstemp[i].substr(10).c_str());
+		else if(vstemp[i].substr(0,10)=="top2minus=") top2minus=atoi(vstemp[i].substr(10).c_str());
+		else if(vstemp[i].substr(0,22)=="Allele_ratio_heter_AS=") heter_AS_alleleratio=atof(vstemp[i].substr(22).c_str());
 	}
 
 
@@ -136,10 +136,10 @@ int main(int argc,char *argv[])
 		is>>s2>>s3>>s4>>s5>>s6>>s7>>INFO>>s8>>s9;
 
 		SNVASinfor snvastemp;
-		ExtractInfor(INFO,snvastemp.predicttype,snvastemp.top2NT,snvastemp.top2No,snvastemp.GQ,snvastemp.GQ_ASsig,snvastemp.top1plus,snvastemp.top2plus,snvastemp.top1minus,snvastemp.top2minus,snvastemp.heter_AS_alleleratio,snvastemp.raw_ChIPseq_depth,snvastemp.raw_input_depth);
+		ExtractInfor(INFO,snvastemp.predicttype,snvastemp.top2NT,snvastemp.top2No,snvastemp.GQ,snvastemp.GQ_ASsig,snvastemp.top1plus,snvastemp.top2plus,snvastemp.top1minus,snvastemp.top2minus,snvastemp.heter_AS_alleleratio,snvastemp.ChIPseq_depth,snvastemp.input_depth);
 
 		//cout<<s1<<":"<<s2<<"\t"<<snvastemp.raw_ChIPseq_depth<<" "<<snvastemp.raw_input_depth<<" "<<depthcutoff<<endl;
-		if(snvastemp.raw_ChIPseq_depth+snvastemp.raw_input_depth<depthcutoff) continue;
+		if(snvastemp.ChIPseq_depth+snvastemp.input_depth<depthcutoff) continue;
 
 		if(type=="homo")
 		{
