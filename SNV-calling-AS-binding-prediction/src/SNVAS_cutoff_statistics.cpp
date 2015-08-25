@@ -239,30 +239,34 @@ void Output(char *outputfile,const vector<double> &score_set,const vector<string
 
 	sort(vdtemp.begin(),vdtemp.end());
 	vdtemp.erase( unique( vdtemp.begin(), vdtemp.end() ), vdtemp.end() );
+//for(int k=0;k<vdtemp.size();k++) cout<<vdtemp[k]<<" ";cout<<endl;
+
+	const int interval=10;
+	int max=vdtemp[vdtemp.size()-1];
+	int min=vdtemp[0];
+	int max_cutoff=(max/10)*10;
+	int min_cutoff=(min/10)*10;
 
 	int i,j;
-	for(i=0;i<=vdtemp.size();i++)
+	for(i=min_cutoff;i<=max_cutoff;i=i+interval)
 	{
-		if(i!=vdtemp.size())
+		int cutoff=i;
+		int ts=0,tv=0,skip=0,all=0;
+
+		for(j=0;j<score_set.size();j++)
 		{
-			double cutoff=vdtemp[i];
-			int ts=0,tv=0,skip=0,all=0;
-
-			for(j=0;j<score_set.size();j++)
+			if(score_set[j]>cutoff-1e-8)
 			{
-				if(score_set[j]>cutoff-1e-8)
-				{
-					if(tsortv_set[j]=="ts") ts++;
-					else if(tsortv_set[j]=="tv") tv++;
-					else if(tsortv_set[j]=="skip") skip++;
-					else {cout<<"error!! tsortv "<<tsortv_set[j]<<endl;exit(0);}
+				if(tsortv_set[j]=="ts") ts++;
+				else if(tsortv_set[j]=="tv") tv++;
+				else if(tsortv_set[j]=="skip") skip++;
+				else {cout<<"error!! tsortv "<<tsortv_set[j]<<endl;exit(0);}
 
-					all++;
-				}
+				all++;
 			}
-
-			os<<cutoff<<"\t"<<(double)all*1000.0/peak_length<<"\t"<<(double)(ts+0.001)/(tv+0.001)<<endl;
 		}
+
+		os<<cutoff<<"\t"<<(double)all*1000.0/peak_length<<"\t"<<(double)(ts+0.001)/(tv+0.001)<<endl;
 	}
 }
 
