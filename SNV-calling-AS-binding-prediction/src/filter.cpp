@@ -57,10 +57,10 @@ int main_filter(int argc,char *argv[])
     cerr<<"Wrong GQCutoff, which must be an integer >=0>"<<endl;return(1);
   }
   
-  ifstream is(ifile);
+  ifstream is(ifile.c_str());
   if(!is) {cerr<<"Can not open "<<ifile<<endl;return 1;}
 
-  ofstream os(ofile);
+  ofstream os(ofile.c_str());
   if(!os) {cerr<<"Can not open "<<ofile<<endl;return 1;}
 
   do
