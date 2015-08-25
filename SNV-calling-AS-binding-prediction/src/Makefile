@@ -1,3 +1,4 @@
+MYNAME = SNVAS
 MAKE = make
 MKDIR = mkdir
 CC = g++ 
@@ -6,17 +7,17 @@ OBJS = main.o io.o analysis.o swalign.o math.o
 
 .PHONY:all
 
-all: bin SNVAS SNVAS_filter SNVAS_cutoff_statistics
+all: bin ${MYNAME} ${MYNAME}_filter ${MYNAME}_stat
 	cd fermi && ${MAKE}
-	mv fermi/SNVAS_fermi bin/ #we renamed the name `SNVAS_fermi` because we modifed the codes.
-	mv SNVAS SNVAS_filter bin/
-	mv SNVAS_cutoff_statistics bin/
+	mv fermi/${MYNAME}_fermi bin/ #we renamed the name `${MYNAME}_fermi` because we modifed the codes.
+	mv ${MYNAME} ${MYNAME}_filter bin/
+	mv ${MYNAME}_stat bin/
 
 bin:
 	${MKDIR} bin	
 
-SNVAS : $(OBJS)
-	$(CC) $(CFLAGS) -lz -o SNVAS $(OBJS)
+${MYNAME} : $(OBJS)
+	$(CC) $(CFLAGS) -lz -o ${MYNAME} $(OBJS)
 
 math.o : math.cpp math.hpp
 	$(CC) -c $(CFLAGS) math.cpp
@@ -33,15 +34,15 @@ io.o : io.cpp io.hpp swalign.hpp analysis.hpp
 main.o : main.cpp io.hpp
 	$(CC) -c $(CFLAGS) main.cpp
 
-SNVAS_filter : SNVAS_filter.cpp
-	$(CC) $(CFLAGS) -lz -o SNVAS_filter SNVAS_filter.cpp
-	
-SNVAS_cutoff_statistics : SNVAS_cutoff_statistics.cpp
-	$(CC) $(CFLAGS) -lz -o SNVAS_cutoff_statistics SNVAS_cutoff_statistics.cpp
+${MYNAME}_filter : ${MYNAME}_filter.cpp
+	$(CC) $(CFLAGS) -lz -o ${MYNAME}_filter SNVAS_filter.cpp
+
+${MYNAME}_stat : SNVAS_cutoff_statistics.cpp
+	$(CC) $(CFLAGS) -lz -o ${MYNAME}_stat SNVAS_cutoff_statistics.cpp
 
 clean :
 	cd fermi && ${MAKE} clean
 	-rm -f $(OBJS)
-	-rm -f bin/SNVAS_fermi bin/SNVAS bin/SNVAS_filter bin/SNVAS_cutoff_statistics
+	-rm -f bin/${MYNAME}_fermi bin/${MYNAME} bin/${MYNAME}_filter bin/${MYNAME}_cutoff_statistics
 	-rmdir bin
 

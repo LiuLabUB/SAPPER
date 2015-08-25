@@ -276,7 +276,7 @@ int main(int argc,char *argv[])
 		cout<<"Usage: SNVAS_cutoff_statistics <snvas.vcf> <depth_cutoff> <peaks.bed> <hetero_cutoff_statistics.txt> <homo_cutoff_statistics.txt>\n\n";
 		cout<<"Options: <snvas.vcf>                            The raw output vcf file of SNV calling from SNVAS\n";
 		cout<<"         <depth_cutoff>                         Only show SNVs with read depth >=depth_cutoff (recommend:20)\n";
-		cout<<"		<peaks.bed>                            The BED file for peak regions, which is used in SNV calling by SNVAS\n";
+		cout<<"         <peaks.bed>                            The BED file for peak regions, which is used in SNV calling by SNVAS\n";
 		cout<<"         <hetero_cutoff_statistics.txt>         The output cutoff statistics file for predicted heterozygous SNVs\n"
 		    <<"                                                the 1st column: genotype quality cutoff\n"
 		    <<"                                                the 2nd column: density of predicted heterozygous SNVs per kbp\n"
