@@ -275,17 +275,16 @@ int main(int argc,char *argv[])
 		cout<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
 		cout<<"Usage: SNVAS_cutoff_statistics <snvas.vcf> <depth_cutoff> <peaks.bed> <hetero_cutoff_statistics.txt> <homo_cutoff_statistics.txt>\n\n";
 		cout<<"Options: <snvas.vcf>                            The raw output vcf file of SNV calling from SNVAS\n";
-		cout<<"         <depth_cutoff>                         Only show the SNV with read depth >=depth_cutoff (recommend:20)\n";
-		cout<<"			<peaks.bed>                            bed file of peak regions (which is used in SNV calling by SNVAS)\n";
+		cout<<"         <depth_cutoff>                         Only show SNVs with read depth >=depth_cutoff (recommend:20)\n";
+		cout<<"		<peaks.bed>                            The BED file for peak regions, which is used in SNV calling by SNVAS\n";
 		cout<<"         <hetero_cutoff_statistics.txt>         The output cutoff statistics file for predicted heterozygous SNVs\n"
-			<<"                                                the 1st column: genotype quality cutoff\n"
-			<<"                                                the 2nd column: density of predicted heterozygous SNVs\n"
-			<<"                                                the 3rd column: ts/tv ratio of predicted heterozygous SNVs\n\n";
+		    <<"                                                the 1st column: genotype quality cutoff\n"
+		    <<"                                                the 2nd column: density of predicted heterozygous SNVs per kbp\n"
+		    <<"                                                the 3rd column: ts/tv ratio of predicted heterozygous SNVs\n\n";
 		cout<<"         <homo_cutoff_statistics.txt>           The output cutoff statistics file for predicted homozygous SNVs\n"
-			<<"                                                the 1st column: genotype quality cutoff\n"
-			<<"                                                the 2nd column: density of predicted homozygous SNVs\n"
-			<<"                                                the 3rd column: ts/tv ratio of predicted homozygous SNVs\n\n";
-
+		    <<"                                                the 1st column: genotype quality cutoff\n"
+		    <<"                                                the 2nd column: density of predicted homozygous SNVs per kbp\n"
+		    <<"                                                the 3rd column: ts/tv ratio of predicted homozygous SNVs\n\n";
 		return(1);
 	}
 
@@ -311,14 +310,14 @@ int main(int argc,char *argv[])
 	//
 	ofstream os_heter_statistics(argv[4]);
 	if(!os_heter_statistics) {cout<<"can not open "<<argv[4]<<endl;exit(0);}
-	os_heter_statistics<<"GQ_cutoff\theteroSNV_No/kbp\tts/tv"<<endl;
+	os_heter_statistics<<"GQCutoff\tSNVsPerKb\tTsTv"<<endl;
 
 	Output(argv[4],score01set,tsortv01set,peak_length);
 
 	//
 	ofstream os_homo_statistics(argv[5]);
 	if(!os_homo_statistics) {cout<<"can not open "<<argv[5]<<endl;exit(0);}
-	os_homo_statistics<<"GQ_cutoff\thomoSNV_No/kbp\tts/tv"<<endl;
+	os_homo_statistics<<"GQCutoff\tSNVsPerKb\tTsTv"<<endl;
 
 	Output(argv[5],score11set,tsortv11set,peak_length);
 }
