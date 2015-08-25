@@ -74,7 +74,7 @@ void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<in
 	else {cout<<"wrong predicted type: "<<predicttype<<endl;exit(0);}
 }
 
-int main(int argc,char *argv[])
+int main_filter(int argc,char *argv[])
 {
 	if ( argc < 6 )
 	{
