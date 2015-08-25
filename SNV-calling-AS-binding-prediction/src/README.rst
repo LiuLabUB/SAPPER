@@ -7,7 +7,7 @@ fermi (https://github.com/lh3/fermi/)::
  $ make
 
 You will have executable binary files 'SNVAS_fermi' (our modifed
-'fermi'), 'SNVAS' and 'SNVAS_filter' in the 'bin' subdirectory. Now
+'fermi'), and 'SNVAS' in the 'bin' subdirectory. Now
 copy/move them to one of your PATH such as /usr/loca/bin::
 
  $ mv bin/* /usr/local/bin
