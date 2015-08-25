@@ -10,9 +10,7 @@ You will have executable binary files 'SNVAS_fermi' (our modifed
 'fermi'), 'SNVAS' and 'SNVAS_filter' in the 'bin' subdirectory. Now
 copy/move them to one of your PATH such as /usr/loca/bin::
 
- $ mv SNVAS_fermi /usr/local/bin
- $ mv SNVAS /usr/local/bin
- $ mv SNVAS_filter /usr/local/bin
+ $ mv bin/* /usr/local/bin
 
 Usage
 =====
@@ -25,7 +23,7 @@ Before running SNVAS/Preprocessing
    fastq file should be changed to Phred+33 type. We recommand using the
    tool "seqtk" (https://github.com/lh3/seqtk).
 
-2. Map fastq file to reference genome, and get the BAM file. For
+2. Map fastq files to reference genome, and get the BAM files. For
    paired-end data, we recommend 'bwa mem', and for single-end, 'bwa
    aln'.
 
@@ -35,31 +33,29 @@ Before running SNVAS/Preprocessing
 
       $ samtools view -q 30 -F 4 -F 256 -F 2048 -bS sample.sam -o sample_filter.bam
 
-4. Sort the BAM file after filtering accroding to coordinate, using
+4. Sort the BAM file after filtering accroding to coordinates, using
    samtools or Picard::
 
       $ samtools sort  sample_filter.bam  sample_filter_sorted
 
-5. Peak calling. We recommand using the software "macs2"
-   (https://github.com/taoliu/MACS).
+5. Peak calling. We recommand using MACS2 (https://github.com/taoliu/MACS).
 
    Example for paired-end ChIP-seq::
 
       $ macs2 callpeak -f BAMPE -t CHIP_filtered_sorted.bam -c Ctrl_filtered_sorted.bam -n MyFactor -g hs
 
-
    And for single-end ChIP-seq::
 
       $ macs2 callpeak -f BAM -t CHIP_filtered_sorted.bam -c Ctrl_filtered_sorted.bam -n MyFactor -g hs
 
-   Then the peak region file 'MyFactor_peaks.narrowPeak' should be used
-   in downstream analysis. Then the peak regions should be sorted
-   according to coordinates::
+   Optionally, you can ask MACS2 to apply a fold-enrichment cutoff
+   (--fe-cutoff) so that only high quality peaks are kept in
+   downstream analysis.
+
+   The peak region file 'MyFactor_peaks.narrowPeak' should then be
+   sorted according to coordinates::
 
       $ sort -k1,1 -k2,2n MyFactor_peaks.narrowPeak > MyFactor_peaks.sorted.bed
-
-   Note, we really need high quality peaks to proceed, because if a
-   peak is weak 
 
 6. Extract reads in selected peak region with extension to each side
    (e.g. 300bps), and generate the subset BAM files from both ChIP-seq
@@ -76,24 +72,22 @@ to the peak region. All of them are sorted by genome coordinate.
 Running SNVAS
 ~~~~~~~~~~~~~
 
-1. To get a listing of all parameters, run ``SNVAS -h``.
+1. Simply run::
 
-2. For paired-end data, you can run::
+     $ SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam sample.vcf
 
-     $ SNVAS sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf
-
-   PE is the parameter shows the data is paired-end. sample.vcf is the
-   output vcf file
-
-3. For single-end data, you should change "PE" to "SE".
+And the sample.vcf is the output. SNVAS tool outputs all possible
+SNVs. We recommend to use the filter tool (see below) to get a
+reliable list of SNVs above certain cutoff values.
 
 Batch script
 ~~~~~~~~~~~~
 
 We provided a shell script ``run_SNVAS.sh`` to go through the above
-steps in a pipeline. Please open and edit the ``run_SNVAS.sh`` file,
-and put it in the working directory where your BAM files are
-located. Please check the description in the shell script.
+steps, and additional filtering in a pipeline. Please open and edit
+the ``run_SNVAS.sh`` file, and put it in the working directory where
+your BAM files are located. Please check the description in the shell
+script.
 
 Interpret Results
 =================
@@ -108,7 +102,7 @@ information of each term is defined in the header of the vcf file::
  ##fileformat=VCFv4.1
  ##fileDate=2015817
  ##source=SNVAS_V0.1
- ##Program Args: sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf
+ ##Program Args="sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf"
  ##INFO=<ID=MinBIC_model,Number=.,Type=String,Description="Model with minimum BIC value">
  ##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Approximate read depth in ChIP-seq data; some reads may have been filtered">
  ##INFO=<ID=DP_input,Number=1,Type=Integer,Description="Approximate read depth in input data; some reads may have been filtered">
@@ -149,10 +143,10 @@ Important information in the file:
 
 3. The term "MinBIC_model" defines the best model (with the smallest
    BIC -- Bayesian Information Criteria) that our method chooses from 1)
-   a heterozygous SNV "MinBIC_model:homo", 2) heterozygous SNV with
-   allele specific binding "MinBIC_model:heter_AS", or 3) heterozygous
+   a heterozygous SNV "MinBIC_model=homo", 2) heterozygous SNV with
+   allele specific binding "MinBIC_model=heter_AS", or 3) heterozygous
    SNV without allele specific binding from our model
-   "MinBIC_model:heter_noAS".
+   "MinBIC_model=heter_noAS".
 
 4. We use genotype quality score to measure the reliability of the
    predicted SNVs. For the homozygous SNV, see the term "GQ_homo"; for
@@ -174,27 +168,25 @@ the output VCF file. It can be used to get a list of 1) homozygous
 SNVs; 2) heterozygous SNVs; 3) heterozygous SNVs with non-allele
 specific binding; 4) heterozygous SNVs with allele-specific binding:
 
-1. To get a listing of all parameters, run ``SNVAS_filter -h``.
+1. To get homozygous SNVs::
 
-2. To get homozygous SNVs with quality score >=cutoff (integer), you
-   can run::
+      $ SNVAS_filter sample.vcf MINDEPTH homo MINCUTOFF sample_homo_afterfilter.vcf
 
-      $ SNVAS_filter sample.vcf homo cutoff sample_homo_afterfilter.vcf
+2. To get heterozygous SNVs::
 
-3. To get all heterozygous SNVs with quality score >=cutoff (integer),
-   you can run::
+      $ SNVAS_filter sample.vcf MINDEPTH hetero MINCUTOFF sample_hete_afterfilter.vcf
 
-      $ SNVAS_filter sample.vcf hete cutoff sample_hete_afterfilter.vcf
+3. To get allele-specific heterozygous SNVs::
 
-4. To get allele-specific heterozygous SNVs with quality score
-   >=cutoff (integer), you can run::
+      $ SNVAS_filter sample.vcf MINDEPTH heter_AS MINCUTOFF sample_heterAS_afterfilter.vcf
 
-      $ SNVAS_filter sample.vcf heter_AS cutoff sample_heterAS_afterfilter.vcf
+4. To get non allele-specific heterozygous SNV::
 
-5. To get non allele-specific heterozygous SNV with quality score
-   >=cutoff (integer), you can run::
+      $ SNVAS_filter sample.vcf MINDEPTH heter_noAS MINCUTOFF sample_heterNonAS_afterfilter.vcf
 
-      $ SNVAS_filter sample.vcf heter_noAS cutoff sample_heterNonAS_afterfilter.vcf
+The selection of minimum depth and minimum genotype quality score
+cutoffs is arbitrary. We recommand minimum depth of 10, and minimum GQ
+50 for heterozygous SNVs and 10 for homozygous SNVs.
 
 
 Release Notes
