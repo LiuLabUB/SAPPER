@@ -14,7 +14,7 @@ struct SNVASinfor
 	string chr;
 	int pos;
 	char ref;
-	int raw_ChIPseq_depth,raw_input_depth;
+	int ChIPseq_depth,input_depth;
 	string top2NT;
 	vector<int> top2No;
 	string predicttype;
@@ -24,7 +24,7 @@ struct SNVASinfor
 	int top1plus,top2plus,top1minus,top2minus;
 };
 
-void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<int> &top2No,int &GQ,int &GQ_ASsig,int &top1plus,int &top2plus,int &top1minus,int &top2minus,double &heter_AS_alleleratio,int &raw_ChIPseq_depth,int &raw_input_depth)
+void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<int> &top2No,int &GQ,int &GQ_ASsig,int &top1plus,int &top2plus,int &top1minus,int &top2minus,double &heter_AS_alleleratio,int &ChIPseq_depth,int &input_depth)
 {
 	int i,start=0;
 
@@ -48,10 +48,10 @@ void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<in
 	int GQ_homo=0,GQ_heter_noAS=0,GQ_heter_AS=0;
 	for(i=0;i<vstemp.size();i++)
 	{
-		if(vstemp[i].substr(0,5)=="raw_d")
+		if(vstemp[i].substr(0,3)=="DP_")
 		{
-			if(vstemp[i].substr(0,15)=="raw_depth_ChIP=") raw_ChIPseq_depth=atoi(vstemp[i].substr(15).c_str());
-			else if(vstemp[i].substr(0,16)=="raw_depth_input=") raw_input_depth=atoi(vstemp[i].substr(16).c_str());
+			if(vstemp[i].substr(0,8)=="DP_ChIP=") ChIPseq_depth=atoi(vstemp[i].substr(8).c_str());
+			else if(vstemp[i].substr(0,9)=="DP_input=") input_depth=atoi(vstemp[i].substr(9).c_str());
 		}
 		else if(vstemp[i].substr(0,5)=="top1=") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
 		else if(vstemp[i].substr(0,5)=="top2=") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
@@ -209,9 +209,9 @@ void ReadSNVAS_result(const string filename,const int depthcutoff,map<string,vec
 		ss<<snvastemp.chr<<":"<<snvastemp.pos;
 		position=ss.str();
 
-		ExtractInfor(INFO,snvastemp.predicttype,snvastemp.top2NT,snvastemp.top2No,snvastemp.GQ,snvastemp.GQ_ASsig,snvastemp.top1plus,snvastemp.top2plus,snvastemp.top1minus,snvastemp.top2minus,snvastemp.heter_AS_alleleratio,snvastemp.raw_ChIPseq_depth,snvastemp.raw_input_depth);
+		ExtractInfor(INFO,snvastemp.predicttype,snvastemp.top2NT,snvastemp.top2No,snvastemp.GQ,snvastemp.GQ_ASsig,snvastemp.top1plus,snvastemp.top2plus,snvastemp.top1minus,snvastemp.top2minus,snvastemp.heter_AS_alleleratio,snvastemp.ChIPseq_depth,snvastemp.input_depth);
 
-		if(snvastemp.raw_ChIPseq_depth+snvastemp.raw_input_depth<depthcutoff) continue;
+		if(snvastemp.ChIPseq_depth+snvastemp.input_depth<depthcutoff) continue;
 
 		if(snvastemp.predicttype=="homo")
 		{
@@ -261,7 +261,7 @@ void Output(char *outputfile,const vector<double> &score_set,const vector<string
 				}
 			}
 
-			if(tv>0) os<<cutoff<<"\t"<<(double)all*1000.0/peak_length<<"\t"<<(double)ts/tv<<endl;
+			os<<cutoff<<"\t"<<(double)all*1000.0/peak_length<<"\t"<<(double)(ts+0.001)/(tv+0.001)<<endl;
 		}
 	}
 }
