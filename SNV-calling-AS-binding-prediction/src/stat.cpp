@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdlib>
 #include <map>
+#include <algorithm>
 #include <unistd.h>
 #include "SNVAS_common.hpp"
 
@@ -164,7 +165,7 @@ void ReadSNVAS_result(const string filename,const int depthcutoff,map<string,vec
 int Write_stat(string outputfile,const vector<double> &score_set,const vector<string> &tsortv_set,const int peak_length)
 {
 
-  ofstream os(outputfile);
+  ofstream os(outputfile.c_str());
   if(!os) {cerr<<"Can not open "<<outputfile<<endl;return 1;}
   
   os<<"GQCutoff\tSNVsPerKb\tTsTv"<<endl;
