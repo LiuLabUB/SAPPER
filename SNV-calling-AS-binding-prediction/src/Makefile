@@ -11,7 +11,6 @@ all: bin ${MYNAME}
 	cd fermi && ${MAKE}
 	mv fermi/${MYNAME}_fermi bin/ #we renamed the name `${MYNAME}_fermi` because we modifed the codes.
 	mv ${MYNAME} bin/
-	#mv ${MYNAME}_stat bin/
 
 bin:
 	${MKDIR} bin	
@@ -46,6 +45,6 @@ SNVAS_common.o : SNVAS_common.cpp SNVAS_common.hpp
 clean :
 	cd fermi && ${MAKE} clean
 	-rm -f $(OBJS)
-	-rm -f bin/${MYNAME}_fermi bin/${MYNAME} bin/${MYNAME}_filter bin/${MYNAME}_cutoff_statistics
+	-rm -f bin/${MYNAME}_fermi bin/${MYNAME} bin/* 
 	-rmdir bin
 

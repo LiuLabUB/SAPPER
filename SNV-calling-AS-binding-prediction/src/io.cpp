@@ -155,7 +155,7 @@ void ReadPeakBedFile(const string Peakbedfile,const string Bamfile,vector<BedReg
 
 void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &cigar,string &MD_str,string &revisedseq,string &revisedbq,int &readend,string &refseq)
 {
-	int i,j,itemp,ia;
+	int i,itemp,ia;
 
 	for(i=0;i<l_seq;i++)
 	{
@@ -462,7 +462,7 @@ int GetReadLengthFromBamFile(const string Bamfile)
 void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string InputBamfile,vector<vector<BamInfor> > &AllPeakInputBamInfor)
 {
 	//
-	const int PeakNo=peakbedregion_set.size();
+        //const int PeakNo=peakbedregion_set.size();
 
 	int PeakIndex=0;
 	string peakchr=peakbedregion_set[0].chr;
@@ -1269,7 +1269,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 
 void GetReadSeqCoor(const string seq,const string bq,const int startpos,const string cigar,string &revisedseq,string &revisedbq,vector<int> &revisedcoor)
 {
-	int i,j,itemp,ia;
+	int i,j,itemp;
 
 	revisedseq=seq;
 	revisedbq=bq;
@@ -1619,7 +1619,6 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 
 void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 {
-	int i;
 	time_t t = time(0);   // get time now
 	struct tm * now = localtime( & t );
 

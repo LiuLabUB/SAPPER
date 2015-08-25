@@ -18,7 +18,7 @@ void CalModel_Homo(const vector<double> &top1qualprob,const vector<double> &inpu
 void CalModel_Heter_noAS(const vector<double> &top1qualprob,const vector<double> &inputtop1qualprob,const vector<double> &top2qualprob,const vector<double> &inputtop2qualprob,
 		double &lnL,double &BIC,int &kc,int &ki)
 {
-	int i;
+        //int i;
 
 	//for kc
 	int tnc=top1qualprob.size()+top2qualprob.size();
@@ -44,7 +44,7 @@ void CalModel_Heter_noAS(const vector<double> &top1qualprob,const vector<double>
 void CalModel_Heter_AS(const vector<double> &top1qualprob,const vector<double> &inputtop1qualprob,const vector<double> &top2qualprob,const vector<double> &inputtop2qualprob,
 		double &lnL,double &BIC,int &kc,int &ki,double &AS_alleleratio)
 {
-	int i;
+        //int i;
 
 	//for kc
 	int tnc=top1qualprob.size()+top2qualprob.size();
@@ -82,7 +82,7 @@ void CalModel_Homo(const vector<double> &top1qualprob,const vector<double> &top2
 void CalModel_Heter_noAS(const vector<double> &top1qualprob,const vector<double> &top2qualprob,
 		double &lnL,double &BIC,int &kc)
 {
-	int i;
+        //int i;
 
 	//for kc
 	int tnc=top1qualprob.size()+top2qualprob.size();
@@ -100,7 +100,7 @@ void CalModel_Heter_noAS(const vector<double> &top1qualprob,const vector<double>
 void CalModel_Heter_AS(const vector<double> &top1qualprob,const vector<double> &top2qualprob,
 		double &lnL,double &BIC,int &kc,double &AS_alleleratio)
 {
-	int i;
+        //int i;
 
 	//for kc
 	int tnc=top1qualprob.size()+top2qualprob.size();

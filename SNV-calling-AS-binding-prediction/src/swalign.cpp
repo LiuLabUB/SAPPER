@@ -127,9 +127,14 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
   int m = problem.a.length() + 1;
   int n = problem.b.length() + 1;
 
-  matrix S;
-  create_matrix(m, n, S);
   int i, j, k, l;
+  int val;
+  int itemp=0.0;
+  int nw_score;
+  matrix S;
+
+  create_matrix(m, n, S);
+
 
   S.mat[0][0].score   = 0;
   S.mat[0][0].prev[0] = 0;
@@ -148,10 +153,9 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
   }
 //cout<<problem.a<<endl<<problem.b<<endl;
 //cout<<problem.a.length()<<" "<<problem.b.length()<<endl;
-  int itemp=0.0;
+
   for (i = 1; i <= problem.a.length(); i++) {
     for (j = 1; j <= problem.b.length(); j++) {
-      int nw_score;
       if((problem.a[i-1] == problem.b[j-1]) && (problem.a[i-1] != 'N')) nw_score=(int)MATCH;
       else nw_score=(int)MISMATCH;
 
@@ -161,7 +165,6 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
 
       for (k = 0; k <= 1; k++) {
         for (l = 0; l <= 1; l++) {
-        	int val;
 
           if (k == 0 && l == 0) {
             continue;

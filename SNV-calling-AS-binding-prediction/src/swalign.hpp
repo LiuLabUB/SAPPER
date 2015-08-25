@@ -54,11 +54,11 @@ typedef struct {
   vector<vector<entry> > mat;
 } matrix;
 
-static void reverse(string &str);
+//static void reverse(string &str);
 
-static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result);
+//static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result);
 
-static void create_matrix(int m, int n, matrix &S);
+//static void create_matrix(int m, int n, matrix &S);
 
 void destroy_matrix(matrix &S);
 

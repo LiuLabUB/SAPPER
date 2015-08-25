@@ -103,5 +103,6 @@ int main_filter(int argc,char *argv[])
       
     } while(!is.eof());
   is.close();
+  return 0;
 }
 

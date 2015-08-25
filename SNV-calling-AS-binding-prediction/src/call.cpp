@@ -113,4 +113,5 @@ int main_call(int argc, char *argv[])
 
   // remove temp dir
   remove( ctmpfilefolder );
+  return 0;
 }
