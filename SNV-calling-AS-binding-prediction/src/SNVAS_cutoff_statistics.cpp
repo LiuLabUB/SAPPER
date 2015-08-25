@@ -311,14 +311,14 @@ int main(int argc,char *argv[])
 	//
 	ofstream os_heter_statistics(argv[4]);
 	if(!os_heter_statistics) {cout<<"can not open "<<argv[4]<<endl;exit(0);}
-	os_heter_statistics<<"GQ_cutoff\t#heteroSNV/kbp\tts/tv"<<endl;
+	os_heter_statistics<<"GQ_cutoff\theteroSNV_No/kbp\tts/tv"<<endl;
 
 	Output(argv[4],score01set,tsortv01set,peak_length);
 
 	//
 	ofstream os_homo_statistics(argv[5]);
 	if(!os_homo_statistics) {cout<<"can not open "<<argv[5]<<endl;exit(0);}
-	os_homo_statistics<<"GQ_cutoff\t#homoSNV/kbp\tts/tv"<<endl;
+	os_homo_statistics<<"GQ_cutoff\thomoSNV_No/kbp\tts/tv"<<endl;
 
 	Output(argv[5],score11set,tsortv11set,peak_length);
 }
