@@ -114,7 +114,7 @@ bool WhetherIn(const int pos,const string chr,map<string,vector<int> > &chr2star
   return btemp;
 }
 
-void ReadSNVAS_result(const string filename,const int depthcutoff,map<string,vector<int> > &chr2start,map<string,vector<int> > &chr2end,vector<string> &pred01set,vector<string> &pred11set,vector<double> &score01set,vector<double> &score11set,vector<string> &tsortv01set,vector<string> &tsortv11set)
+void ReadSNVAS_result(const string filename,const int depthcutoff,map<string,vector<int> > &chr2start,map<string,vector<int> > &chr2end,vector<string> &pred01set,vector<string> &pred11set,vector<double> &score01set,vector<double> &score11set,vector<string> &tsortv01set,vector<string> &tsortv11set,vector<bool> &pred01_whetherAS)
 {
   string sbuf,INFO;
   string position;
@@ -156,6 +156,9 @@ void ReadSNVAS_result(const string filename,const int depthcutoff,map<string,vec
 	  pred01set.push_back(position);
 	  score01set.push_back(snvastemp.GQ);
 	  tsortv01set.push_back(CalTsOrTv_heter(snvastemp.ref,snvastemp.top2NT[0],snvastemp.top2NT[1],position));
+
+	  if(snvastemp.predicttype=="heter_noAS") pred01_whetherAS.push_back(false);
+	  else pred01_whetherAS.push_back(true);
 	}
 
     }while(!is.eof());
@@ -212,39 +215,43 @@ int main_stat(int argc,char *argv[])
 {
   int c;
   int depthcutoff = 20;
-  string vcffile, heterofile, homofile, PeakRegionFile;
+  string vcffile, type, outputfile, PeakRegionFile;
 
-  while ((c = getopt(argc, argv, "i:b:e:o:d:")) >= 0) {
+  while ((c = getopt(argc, argv, "i:b:t:o:d:")) >= 0) {
     switch (c) {
     case 'i': vcffile.assign(optarg); break;
     case 'd': depthcutoff = atoi(optarg); break;
     case 'b': PeakRegionFile.assign(optarg); break;
-    case 'e': heterofile.assign(optarg); break;
-    case 'o': homofile.assign(optarg); break;
+    case 't': type.assign(optarg); break;
+    case 'o': outputfile.assign(optarg); break;
     }
   }
 
-  if ( vcffile=="" or PeakRegionFile=="" or heterofile=="" or homofile=="" ) {
+  if ( vcffile=="" or PeakRegionFile=="" or type=="" or outputfile=="" ) {
     cerr<<"Program: SNVAS stat -- Statistics of genotype quality cutoff from predicted SNVs by SNVAS\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-    cerr<<"Usage: SNVAS stat <-i SNVAS.vcf> <-b peaks.bed> <-e hetero_stat.txt> <-o homo_stat.txt >[-d depthCutoff]\n\n";
+    cerr<<"Usage: SNVAS stat <-i SNVAS.vcf> <-b peaks.bed> <-t genotype> <-o stat.txt >[-d depthCutoff]\n\n";
     cerr<<"Required arguments:\n"
 	<<"    <-i SNVAS.vcf>          The raw output VCF file of SNV calling from SNVAS\n"
 	<<"    <-b peaks.bed>          The BED/narrowPeak/BroadPeak file for peak regions, which is used in SNV calling by SNVAS\n"
-	<<"    <-e hetero_stat.txt>    The output cutoff statistics file for predicted heterozygous SNVs\n"
+	<<"    <-t homo|hetero|hetero_AS|hetero_nonAS>   Genotypes chosen from:\n"
+	<<"                              homo: homozygous SNVs\n"
+	<<"                              hetero: heterozygous SNVs\n"
+	<<"                              hetero_AS: heterozygous SNVs with allele-specific binding\n"
+	<<"                              hetero_nonAS: heterozygous SNV with non allele-specific binding\n"
+	<<"    <-o stat.txt>           The output cutoff statistics file for predicted SNVs of chosen genotype\n"
 	<<"                              the 1st column: genotype quality cutoff\n"
-	<<"                              the 2nd column: density of predicted heterozygous SNVs per kbp\n"
-	<<"                              the 3rd column: ts/tv ratio of predicted heterozygous SNVs\n"
-	<<"    <-o homo_stat.txt>      The output cutoff statistics file for predicted homozygous SNVs\n"
-	<<"                              the 1st column: genotype quality cutoff\n"
-	<<"                              the 2nd column: density of predicted heterozygous SNVs per kbp\n"
-	<<"                              the 3rd column: ts/tv ratio of predicted heterozygous SNVs\n\n"
+	<<"                              the 2nd column: density of predicted SNVs of chosen genotype per kbp\n"
+	<<"                              the 3rd column: ts/tv ratio of predicted SNVs of chosen genotype\n\n"
 	<<"Options:\n"
 	<<"    [-d depthCutoff]        Keep the SNVs with read depth >= depthCutoff (Default:20). Must be a positive integer\n";
     return 1;
   }
 
+  if(type!="homo" && type!="hetero" && type!="hetero_AS" && type!="hetero_nonAS") {
+    cerr<<"Wrong genotype! It should be either homo|hetero|hetero_AS|hetero_nonAS."<<endl;return(1);
+  }
   if(depthcutoff<0) {cerr<<"Wrong depthCutoff, which must be an integer >=0>"<<endl;return 1;}
 
   //read peak region bed file
@@ -255,16 +262,34 @@ int main_stat(int argc,char *argv[])
 
   //read my predicted vcf
   vector<string> pred01set,pred11set;//01 means heter, include 0/1 1/2 types
+  vector<bool> pred01_whetherAS;//true: AS, false: nonAS; size == pred11set.size()
   vector<double> score01set,score11set;
   vector<string> tsortv01set,tsortv11set;//ts,tv,skip
 
-  ReadSNVAS_result(vcffile,depthcutoff,chr2start,chr2end,pred01set,pred11set,score01set,score11set,tsortv01set,tsortv11set);
+  ReadSNVAS_result(vcffile,depthcutoff,chr2start,chr2end,pred01set,pred11set,score01set,score11set,tsortv01set,tsortv11set,pred01_whetherAS);
 
   //
-  Write_stat(heterofile,score01set,tsortv01set,peak_length);
+  vector<string> pred01_AS_set,pred01_nonAS_set;
+  vector<double> score01_AS_set,score01_nonAS_set;
+  vector<string> tsortv01_AS_set,tsortv01_nonAS_set;//ts,tv,skip
+
+  for(int i=0;i<pred01set.size();i++)
+  {
+	  if(pred01_whetherAS[i])
+	  {
+		  pred01_AS_set.push_back(pred01set[i]);score01_AS_set.push_back(score01set[i]);tsortv01_AS_set.push_back(tsortv01set[i]);
+	  }
+	  else
+	  {
+		  pred01_nonAS_set.push_back(pred01set[i]);score01_nonAS_set.push_back(score01set[i]);tsortv01_nonAS_set.push_back(tsortv01set[i]);
+	  }
+  }
 
   //
-  Write_stat(homofile,score11set,tsortv11set,peak_length);
+  if(type=="hetero") Write_stat(outputfile,score01set,tsortv01set,peak_length);
+  else if(type=="homo") Write_stat(outputfile,score11set,tsortv11set,peak_length);
+  else if(type=="hetero_AS") Write_stat(outputfile,score01_AS_set,tsortv01_AS_set,peak_length);
+  else if(type=="hetero_nonAS") Write_stat(outputfile,score01_nonAS_set,tsortv01_nonAS_set,peak_length);
 
   return 0;
 }
