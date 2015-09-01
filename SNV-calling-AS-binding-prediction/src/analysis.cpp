@@ -429,7 +429,7 @@ void CalLikelihoodGTprob(PosReadsInfor &myReadInfor)
 
 	CalModel_Heter_AS(top1qualprob,inputtop1qualprob,top2qualprob,inputtop2qualprob,
 			myReadInfor.lnL_heter_AS,myReadInfor.BIC_heter_AS,myReadInfor.heter_AS_kc,myReadInfor.heter_AS_ki,myReadInfor.heter_AS_alleleratio);
-//cout<<myReadInfor.ref<<":"<<NTindex2char(myReadInfor.top1ntindex)<<" "<<NTindex2char(myReadInfor.top2ntindex)<<" "<<myReadInfor.BIC_homo_majar<<" "<<myReadInfor.BIC_homo_minor<<" "<<myReadInfor.BIC_heter_noAS<<" "<<myReadInfor.BIC_heter_AS<<endl;
+
 	//
 	myReadInfor.GQ_homo_majar=0;
 	myReadInfor.GQ_heter_noAS=0;
@@ -461,7 +461,6 @@ void CalLikelihoodGTprob(PosReadsInfor &myReadInfor)
 
 	}
 	else myReadInfor.type="unsure";
-//cout<<myReadInfor.type<<" "<<endl;
 }
 
 void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo)
@@ -471,6 +470,5 @@ void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo)
 	for(miPtmp=pos2Readsinfo.begin();miPtmp!=pos2Readsinfo.end();++miPtmp)//for each position
 	{
 		CalLikelihoodGTprob(miPtmp->second);
-//cout<<mimergePtmp->first<<" "<<(miPtmp->second).filterout<<endl<<endl;
 	}
 }
