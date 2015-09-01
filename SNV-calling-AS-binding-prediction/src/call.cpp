@@ -107,7 +107,7 @@ int main_call(int argc, char *argv[])
   int ReadLength=GetReadLengthFromBamFile(Bamfile);
 
   //read bam file and calculate
-  OutputVcfResultHasInput_header(OutputVcffile,argv);
+  OutputVcfResultHasInput_header(OutputVcffile,argc,argv);
   ReadBamfile(ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
   cout<<"finish all"<<endl;
 
