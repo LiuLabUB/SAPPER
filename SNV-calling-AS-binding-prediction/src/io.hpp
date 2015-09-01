@@ -84,6 +84,6 @@ bool ConsistentWithContig(const vector<int> &readscoor,const string &readsseq,ve
 void GetReadSeqCoor(const string seq,const string bq,const int startpos,const string cigar,string &revisedseq,string &revisedbq,vector<int> &revisedcoor);
 
 void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<int,PosReadsInfor> &pos2Readsinfo);
-void OutputVcfResultHasInput_header(const string outputfile,char *argv[]);
+void OutputVcfResultHasInput_header(const string outputfile,const int argc,char *argv[]);
 
 #endif
