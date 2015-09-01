@@ -40,7 +40,7 @@ static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result
   string c,d;
   int t;
   for(t=0;t<S.m+S.n+1;t++) {c.push_back(' ');d.push_back(' ');}
-//cout<<"-1 "<<i<<" "<<j<<endl;
+
   if (local == true) {
     int l, m;
     double max = FLT_MIN;
@@ -54,7 +54,7 @@ static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result
       } 
     }
   }
-//cout<<"0"<<endl;
+
   if (S.mat[i][j].prev[0] != 0 && S.mat[i][j].prev[1] != 0) {
     while (i > 0 || j > 0) {
       //printf("%d %d %f\n", i, j, S.mat[i][j].score);
@@ -78,12 +78,11 @@ static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result
       j = new_j; 
     }
   }
-//cout<<"1"<<endl;
+
 
   reverse(c);
   reverse(d);
-//cout<<"2"<<endl;
-//cout<<k+1<<" "<<c.size()<<" "<<d.size()<<endl<<c<<endl<<d<<endl;
+
   for(t=0;t<c.size();t++)
   {
 	  if(c[t]!=' ') result.a.push_back(c[t]);
@@ -151,8 +150,6 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
     S.mat[0][j].prev[0] = 0;
     S.mat[0][j].prev[1] = j-1;
   }
-//cout<<problem.a<<endl<<problem.b<<endl;
-//cout<<problem.a.length()<<" "<<problem.b.length()<<endl;
 
   for (i = 1; i <= problem.a.length(); i++) {
     for (j = 1; j <= problem.b.length(); j++) {
@@ -189,14 +186,14 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
           }
         }
       }
-//cout<<i<<" "<<j<<" "<<S.mat[i][j].score<<endl;
+
       itemp=S.mat[i][j].score;
     }
   }
-//cout<<"A"<<endl;
+
   traceback(problem, S, local, result);
   result.score=itemp;
-//cout<<"B"<<endl;
+
   destroy_matrix(S);
 }
 
