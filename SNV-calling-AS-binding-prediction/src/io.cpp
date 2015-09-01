@@ -194,7 +194,7 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
 			ia=atoi(cigar.substr(itemp+1,cigar.length()-itemp-1).c_str());
 			revisedseq=revisedseq.substr(0,revisedseq.length()-ia);
 			revisedbq=revisedbq.substr(0,revisedbq.length()-ia);
-			cigar=cigar.substr(0,itemp+1);//cout<<cigar<<endl;
+			cigar=cigar.substr(0,itemp+1);
 		}
 
 		if(cigar[i]<'0' || cigar[i]>'9')
@@ -242,8 +242,6 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
 	MD_str=MD_str.substr(1);//delete the first 'Z'
 
 	refseq=revisedseq;
-//cout<<cigar<<" "<<MD_str<<endl;
-//cout<<"raw\n"<<revisedseq<<endl;
 
 	//for refseq, delete I part
 	start=0;
@@ -293,7 +291,6 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
 		for(i=0;i<vstemp.size();i++) refseq+=vstemp[i];
 		vstemp.clear();
 	}
-//cout<<"delI\n"<<refseq<<endl;
 
 	//add D part and change NT
 	start=0;
@@ -347,8 +344,6 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
 			}
 		}
 	}
-//cout<<"fina\n"<<refseq<<endl;
-//cout<<refseq.size()<<" "<<readend<<endl<<endl;
 }
 
 void MyFree(vector<BamInfor> &PeakBamInfor)
@@ -503,8 +498,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 	do
 	{
 		i++;
-		//if(i%1000000==0) cout<<"read input bam: "<<i/1000000<<"m"<<endl;
-//if(i/1000000==2) break;
+
 		//read a read
 		int32_t block_size,refID,readstart,l_seq,next_refID,next_pos,tlen,l_read_name,flag,n_cigar_op;
 		uint32_t bin_mq_nl,MAPQ,flag_nc;
@@ -522,7 +516,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 		gzread(fp, &bin_mq_nl, sizeof(uint32_t));
 		MAPQ=bin_mq_nl>>8&0xff;
 		l_read_name = bin_mq_nl&0xff;
-//cout<<"2"<<endl;
+
 		gzread(fp, &flag_nc, sizeof(uint32_t));
 		flag=flag_nc>>16;
 		if(flag&16) reversestrand=true;
@@ -538,7 +532,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 
 		char read_name[l_read_name];
 		gzread(fp, read_name, sizeof(char)*l_read_name);
-//cout<<"3 "<<read_name<<endl;
+
 		uint32_t cigar[n_cigar_op];
 		gzread(fp, (char *)&cigar, sizeof(uint32_t)*n_cigar_op);
 		stringstream cigar_ss;
@@ -546,7 +540,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 
 		uint8_t seq[(l_seq+1)>>1];
 		gzread(fp, (char *)&seq, sizeof(uint8_t)*((l_seq+1)>>1));
-//cout<<"4"<<endl;
+
 		char qual[l_seq];
 		gzread(fp, qual, sizeof(char)*l_seq);
 
@@ -554,25 +548,20 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 		uint8_t aux[aux_size];
 		gzread(fp, aux, sizeof(uint8_t)*aux_size);
 
-		//filter MAPQ
-		//if((int)MAPQ < 30) continue;
-
-//if(chrindex2name[refID]!="chr10") continue;
-
 		uint8_t *s=aux;
 		uint8_t *MD=bam_aux_get(s,aux,aux_size,"MD");
 		uint8_t *nm=bam_aux_get(s,aux,aux_size,"NM");
-		int32_t nm_i=bam_aux2i(nm);//cout<<"NM\t"<<nm_i<<endl;
+		int32_t nm_i=bam_aux2i(nm);
 		if(MD==(uint8_t)0) {cout<<"no MD falg: "<<read_name<<endl;exit(0);}//e.g. CTCF after GATK MONK:252:D1AB6ACXX:1:1202:4974:74864 no MD flag
 
-//cout<<"5"<<endl;
+
 		//get ref seq
 		string revisedseq,revisedbq;//compared to ref genome, if has deletion, use '--'; if has insertion, do not show the insertion seq;
 		string refseq;
 		int readend=readstart-1;
 		string cigar_new(cigar_ss.str());
 		string MD_str((char *)MD);
-//cout<<(char *)read_name<<" "<<readstart<<endl;
+
 		GetRefSeq(seq,l_seq,qual,cigar_new,MD_str,revisedseq,revisedbq,readend,refseq);
 
 		//
@@ -592,8 +581,6 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 		mybaminfor.refseq=refseq;
 		mybaminfor.readname=(char *)read_name;
 
-//cout<<"6"<<endl;
-//cout<<mybaminfor.chr<<" "<<mybaminfor.start<<" "<<mybaminfor.readname<<" "<<mybaminfor.start<<" "<<mybaminfor.end<<endl;
 		//
 		if(chrindex2name[refID]==peakchr)
 		{
@@ -654,7 +641,9 @@ void ReadBamfile(const int ReadLength,const vector<BedRegion> &peakbedregion_set
 	const int PeakNo=peakbedregion_set.size();
 
 	int PeakIndex=0;
-cout<<"All Peak No: "<<PeakNo<<endl;
+
+	cout<<"All Peak No: "<<PeakNo<<endl;
+
 	string peakchr=peakbedregion_set[0].chr;
 	int peakstart=peakbedregion_set[0].start;
 	int peakend=peakbedregion_set[0].end;
@@ -693,8 +682,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 	do
 	{
 		i++;
-		//if(i%1000000==0) cout<<"read bam: "<<i/1000000<<"m"<<endl;
-//if(i/1000000==2) break;
+
 		//read a read
 		int32_t block_size,refID,readstart,l_seq,next_refID,next_pos,tlen,l_read_name,flag,n_cigar_op;
 		uint32_t bin_mq_nl,MAPQ,flag_nc;
@@ -712,7 +700,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 		gzread(fp, &bin_mq_nl, sizeof(uint32_t));
 		MAPQ=bin_mq_nl>>8&0xff;
 		l_read_name = bin_mq_nl&0xff;
-//cout<<"2"<<endl;
+
 		gzread(fp, &flag_nc, sizeof(uint32_t));
 		flag=flag_nc>>16;
 		if(flag&16) reversestrand=true;
@@ -728,7 +716,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 
 		char read_name[l_read_name];
 		gzread(fp, read_name, sizeof(char)*l_read_name);
-//cout<<"3 "<<read_name<<endl;
+
 		uint32_t cigar[n_cigar_op];
 		gzread(fp, (char *)&cigar, sizeof(uint32_t)*n_cigar_op);
 		stringstream cigar_ss;
@@ -736,7 +724,7 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 
 		uint8_t seq[(l_seq+1)>>1];
 		gzread(fp, (char *)&seq, sizeof(uint8_t)*((l_seq+1)>>1));
-//cout<<"4"<<endl;
+
 		char qual[l_seq];
 		gzread(fp, qual, sizeof(char)*l_seq);
 
@@ -744,18 +732,12 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 		uint8_t aux[aux_size];
 		gzread(fp, aux, sizeof(uint8_t)*aux_size);
 
-		//filter MAPQ
-		//if((int)MAPQ < 30) continue;
-
-//if(chrindex2name[refID]!="chr10") continue;
-
 		uint8_t *s=aux;
 		uint8_t *MD=bam_aux_get(s,aux,aux_size,"MD");
 		uint8_t *nm=bam_aux_get(s,aux,aux_size,"NM");
-		int32_t nm_i=bam_aux2i(nm);//cout<<"NM\t"<<nm_i<<endl;
+		int32_t nm_i=bam_aux2i(nm);
 		if(MD==(uint8_t)0) {cout<<"no MD falg: "<<read_name<<endl;exit(0);}//e.g. CTCF after GATK MONK:252:D1AB6ACXX:1:1202:4974:74864 no MD flag
 
-//cout<<"5"<<endl;
 		//get ref seq
 		string revisedseq,revisedbq;//compared to ref genome, if has deletion, use '--'; if has insertion, do not show the insertion seq;
 		string refseq;
@@ -781,14 +763,12 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 		mybaminfor.refseq=refseq;
 		mybaminfor.readname=(char *)read_name;
 
-//cout<<"6"<<endl;
-
 		//
 		if(chrindex2name[refID]==peakchr)
 		{
 			if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
 			else if(readstart>peakend)
-			{//cout<<peakstart<<" "<<peakend<<" "<<readstart<<endl;
+			{
 				AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 				PeakBamInfor.clear();
 				//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
@@ -796,7 +776,6 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 				PeakIndex++;
 				if(PeakIndex%100==0)
 				{
-					//cout<<"read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 					string stemp="rm -f "+tmpfilefolder+"/*";
 					system(stemp.c_str());
 					cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
@@ -819,7 +798,6 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 			PeakIndex++;
 			if(PeakIndex%100==0)
 			{
-				//cout<<"read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 				string stemp="rm -f "+tmpfilefolder+"/*";
 				system(stemp.c_str());
 				cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
@@ -840,7 +818,6 @@ cout<<"All Peak No: "<<PeakNo<<endl;
 	{
 		AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 		PeakBamInfor.clear();
-		//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
 		string stemp="rm -f "+tmpfilefolder+"/*";
 		system(stemp.c_str());
@@ -891,14 +868,14 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 
 		//
 		if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
-//cout<<"ChIP "<<i<<" "<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<endl;
+
 		if(i>0)
 		{
 			int ia=mybaminfor.end-PeakBamInfor[index_old].end;
 			int ib=mybaminfor.start-PeakBamInfor[index_old].end-1;
 			if(ia>0)
 			{
-//cout<<extendrefseq<<endl;
+
 				if(ib>=1)//there is gap between two reads
 				{
 					string stemp;
@@ -907,11 +884,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 				}
 				else extendrefseq=extendrefseq+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
 
-//cout<<index_old<<"\t"<<PeakBamInfor[index_old].start<<"-"<<PeakBamInfor[index_old].end<<"\t"<<PeakBamInfor[index_old].refseq<<endl;
-//cout<<i<<"\t"<<PeakBamInfor[i].start<<"-"<<PeakBamInfor[i].end<<"\t"<<PeakBamInfor[i].refseq<<endl;
-//cout<<extendrefseq<<endl<<endl;
 				index_old=i;
-
 				extendref_end=mybaminfor.end;
 			}
 		}
@@ -923,7 +896,6 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 		os1<<mybaminfor.bq<<endl;
 
 	}
-//cout<<"ChIPextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
 
 	//
 	string extendrefseq_input;
@@ -943,14 +915,13 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 
 		//
 		if(mybaminfor.refseq.size()!=mybaminfor.end-mybaminfor.start+1) {cout<<"wrong read reference sequence"<<endl;exit(0);}
-//cout<<"Input "<<i<<" "<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<endl;
+
 		if(i>0)
 		{
 			int ia=mybaminfor.end-PeakInputBamInfor[index_old].end;
 			int ib=mybaminfor.start-PeakInputBamInfor[index_old].end-1;
 			if(ia>0)
 			{
-//cout<<extendrefseq_input<<endl;
 				if(ib>=1)//there is gap between two reads
 				{
 					string stemp;
@@ -959,11 +930,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 				}
 				else extendrefseq_input=extendrefseq_input+mybaminfor.refseq.substr(mybaminfor.refseq.size()-ia);
 
-//cout<<index_old<<"\t"<<PeakInputBamInfor[index_old].start<<"-"<<PeakInputBamInfor[index_old].end<<"\t"<<PeakInputBamInfor[index_old].refseq<<endl;
-//cout<<i<<"\t"<<PeakInputBamInfor[i].start<<"-"<<PeakInputBamInfor[i].end<<"\t"<<PeakInputBamInfor[i].refseq<<endl;
-//cout<<extendrefseq_input<<endl<<endl;
 				index_old=i;
-
 				extendref_input_end=mybaminfor.end;
 			}
 		}
@@ -975,7 +942,6 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 		os1<<mybaminfor.bq<<endl;
 
 	}
-//cout<<"Inputextend_infor:\t"<<extendref_input_start<<"-"<<extendref_input_end<<endl<<extendrefseq_input<<endl;
 	os1.close();
 
 	//
@@ -1018,8 +984,6 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 	--pos;
 	extendref_end=pos->first;
 	if(extendref_end-extendref_start+1!=extendrefseq.size()) {cout<<"wrong extend ref: "<<extendref_end<<" "<<extendref_start<<" "<<extendrefseq.size()<<endl;exit(0);}
-//cout<<"Finalextend_infor:\t"<<extendref_start<<"-"<<extendref_end<<endl<<extendrefseq<<endl;
-
 
 	//fermi
 	stringstream p1_mag,p1_mag_log,sstemp;
@@ -1073,7 +1037,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 		problem2.a=reversecomplementary;
 		problem2.b=extendrefseq;
 		smith_waterman(problem2, btemp, result2);
-//cout<<i+1<<endl<<problem1.a<<endl<<problem2.a<<endl;
+
 		//
 		string mycontigseq,myrefseq;//maybe has '-'
 		double myscore;
@@ -1117,7 +1081,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 		contigseq.push_back(mycontigseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
 		refseq.push_back(myrefseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
 	}
-//cout<<contigseq.size()<<endl;
+
 	for(i=0;i<contigseq.size();i++)
 	{
 		vector<int> mycontigcoor;
@@ -1128,7 +1092,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 			if(refseq[i][j]=='-') mycontigcoor.push_back(-1);
 			else {++ia;mycontigcoor.push_back(ia);}
 		}
-//cout<<i+1<<endl<<refseq[i]<<endl<<contigseq[i]<<endl<<refstart[i]<<"-"<<refend[i]<<endl;
+
 		if(ia!=refend[i]) {cout<<"contig coor unconsistent: "<<ia<<" "<<refstart[i]<<" "<<refend[i]<<endl;exit(0);}
 
 		contigcoor.push_back(mycontigcoor);
@@ -1189,8 +1153,6 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 
 	for(i=0;i<PeakBamInfor.size();i++)
 	{
-		if(PeakBamInfor[i].mapq<30) continue;
-
 		string revisedseq,revisedbq;
 		vector<int> revisedcoor;
 		GetReadSeqCoor(PeakBamInfor[i].seq,PeakBamInfor[i].bq,PeakBamInfor[i].start,PeakBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
@@ -1201,8 +1163,6 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 
 	for(i=0;i<PeakInputBamInfor.size();i++)
 	{
-		if(PeakInputBamInfor[i].mapq<30) continue;
-
 		string revisedseq,revisedbq;
 		vector<int> revisedcoor;
 		GetReadSeqCoor(PeakInputBamInfor[i].seq,PeakInputBamInfor[i].bq,PeakInputBamInfor[i].start,PeakInputBamInfor[i].cigar,revisedseq,revisedbq,revisedcoor);
@@ -1315,16 +1275,9 @@ void GetReadSeqCoor(const string seq,const string bq,const int startpos,const st
 					coor_index=coor_index+itemp;
 				}
 				else {cout<<"error:"<<cigar<<endl;exit(0);}
-
-				//cout<<cigar<<""\t<<i<<"\t"<<cigar_str[i]<<"\t"<<stemp<<"\t"<<seq_index+itemp<<"\t"<<start<<"\t"<<seq_index<<endl;
 			}
 		}
 	}
-
-	/*cout<<"read "<<startpos<<" "<<cigar<<endl<<seq<<endl<<bq<<endl<<endl;
-	cout<<revisedseq<<endl<<revisedbq<<endl;
-	for(i=0;i<revisedseq.size();i++) cout<<revisedseq[i]<<" "<<revisedbq[i]<<" "<<revisedcoor[i]<<endl;
-	cout<<endl;*/
 }
 
 double ChangeQualToProb(const char &qual)
@@ -1351,9 +1304,7 @@ void FillContigInfor(const int snvpos,const char snvref,const vector<char> conti
 		sort(vchtemp.begin(),vchtemp.end());
 		vchtemp.erase(unique(vchtemp.begin(),vchtemp.end()),vchtemp.end());
 		tmp_infor.fermiNTs=vchtemp;
-/*cout<<"snvas: "<<snvpos<<" "<<snvref<<endl;
-for(int i=0;i<contigNTs.size();i++) cout<<contigNTs[i];cout<<endl;
-for(int i=0;i<vchtemp.size();i++) cout<<vchtemp[i];cout<<endl;*/
+
 		pos2Readsinfo[snvpos]=tmp_infor;
 	}
 	else {cout<<"exist snvpos: "<<snvpos<<endl;exit(0);}
@@ -1496,8 +1447,7 @@ bool ConsistentWithContig(const vector<int> &readscoor,const string &readsseq,ve
 	for(i=0;i<contigcoor.size();i++)
 	{
 		it=lower_bound(contigcoor[i].begin(),contigcoor[i].end(),readscoor[0]);
-//cout<<"consistent: "<<i<<" "<<contigcoor[i][0]<<"-"<<contigcoor[i][contigcoor[i].size()-1]<<" "<<readscoor[0]<<endl;
-//cout<<contigseq[i]<<endl<<readsseq<<endl;
+
 		if(it==contigcoor[i].end() || *it!=readscoor[0])//not found
 		{
 			continue;
@@ -1505,13 +1455,13 @@ bool ConsistentWithContig(const vector<int> &readscoor,const string &readsseq,ve
 		else//found
 		{
 			int index=(int)(it-contigcoor[i].begin());
-//cout<<index<<endl;
+
 			bool b1=true;
 			for(j=0;j<readscoor.size();j++)
 			{
 				if(readscoor[j]!=contigcoor[i][index+j] || readsseq[j]!=contigseq[i][index+j]) {b1=false;break;}
 			}
-//cout<<b1<<endl;
+
 			if(b1) {btemp=true;break;}
 		}
 	}
@@ -1617,7 +1567,7 @@ void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<
 	}
 }
 
-void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
+void OutputVcfResultHasInput_header(const string outputfile,const int argc,char *argv[])
 {
 	time_t t = time(0);   // get time now
 	struct tm * now = localtime( & t );
@@ -1628,7 +1578,9 @@ void OutputVcfResultHasInput_header(const string outputfile,char *argv[])
 	os<<"##fileformat=VCFv4.1"<<endl;
 	os<<"##fileDate="<<(now->tm_year + 1900)<<(now->tm_mon + 1)<<now->tm_mday<<endl;
 	os<<"##source=SNVAS_V0.1"<<endl;
-	os<<"##Program_Args=\""<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<"\""<<endl;
+	os<<"##Program_Args=\"";
+	for(int i=1;i<argc-1;i++) os<<argv[i]<<" ";
+	os<<argv[argc-1]<<"\""<<endl;
 	os<<"##INFO=<ID=MinBIC_model,Number=.,Type=String,Description=\"Model with minimum BIC value\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_ChIP,Number=1,Type=Integer,Description=\"Raw read depth in ChIP-seq data\">"<<endl;
 	os<<"##INFO=<ID=raw_depth_input,Number=1,Type=Integer,Description=\"Raw read depth in input data\">"<<endl;
