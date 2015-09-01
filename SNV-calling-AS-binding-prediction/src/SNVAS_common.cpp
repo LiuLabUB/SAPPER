@@ -21,8 +21,6 @@ void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<in
 	}
 	vstemp.push_back(INFO.substr(start,INFO.size()-start));
 
-	//for(i=0;i<vstemp.size();i++) cout<<vstemp[i]<<endl;
-
 	//
 	if(vstemp[0].substr(0,12)!="MinBIC_model") {cout<<"wrong INFO begin: "<<vstemp[0]<<endl;exit(0);}
 	predicttype=vstemp[0].substr(13);
