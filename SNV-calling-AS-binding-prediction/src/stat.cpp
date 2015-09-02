@@ -231,7 +231,7 @@ int main_stat(int argc,char *argv[])
     cerr<<"Program: SNVAS stat -- Statistics of genotype quality cutoff from predicted SNVs by SNVAS\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-    cerr<<"Usage: SNVAS stat <-i SNVAS.vcf> <-b peaks.bed> <-t genotype> <-o stat.txt >[-d depthCutoff]\n\n";
+    cerr<<"Usage: SNVAS stat <-i SNVAS.vcf> <-b peaks.bed> <-t genotype> <-o stat.txt > [-d depthCutoff]\n\n";
     cerr<<"Required arguments:\n"
 	<<"    <-i SNVAS.vcf>          The raw output VCF file of SNV calling from SNVAS\n"
 	<<"    <-b peaks.bed>          The BED/narrowPeak/BroadPeak file for peak regions, which is used in SNV calling by SNVAS\n"
