@@ -252,7 +252,7 @@ int main_stat(int argc,char *argv[])
   if(type!="homo" && type!="hetero" && type!="hetero_AS" && type!="hetero_nonAS") {
     cerr<<"Wrong genotype! It should be either homo|hetero|hetero_AS|hetero_nonAS."<<endl;return(1);
   }
-  if(depthcutoff<0) {cerr<<"Wrong depthCutoff, which must be an integer >=0>"<<endl;return 1;}
+  if(depthcutoff<0) {cerr<<"Wrong depthCutoff, which must be an integer >=0"<<endl;return 1;}
 
   //read peak region bed file
   map<string,vector<int> > chr2start;
