@@ -56,10 +56,10 @@ inline char NTindex2char(const int ntindex)
 }
 
 
-void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo);
+void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo,const double top2nt_minpercent);
 
 //Calculate GQscore
-void CalLikelihoodGTprob(PosReadsInfor &myReadInfor);
+void CalLikelihoodGTprob(PosReadsInfor &myReadInfor,const double top2nt_minpercent);
 
 int CalGQscore(const double lnL1,const double lnL2,const double lnL3);
 int CalGQ_heterASsig_score(const double lnL1,const double lnL2);

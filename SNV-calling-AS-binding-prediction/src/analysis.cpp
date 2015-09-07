@@ -378,14 +378,14 @@ void CalTop2NT(const vector<vector<double> > &Qual_set,int &top1ntindex,int &top
 }
 
 
-void CalLikelihoodGTprob(PosReadsInfor &myReadInfor)
+void CalLikelihoodGTprob(PosReadsInfor &myReadInfor,const double top2nt_minpercent)
 {
 	double prob_top1top2;
 
 	CalTop2NT(myReadInfor.Qual_set,myReadInfor.InputQual_set,myReadInfor.top1ntindex,myReadInfor.top2ntindex,prob_top1top2);
 
 	if(myReadInfor.Qual_set[myReadInfor.top1ntindex].size()+myReadInfor.InputQual_set[myReadInfor.top1ntindex].size()==0) {myReadInfor.filterout=true;return;}
-	if(prob_top1top2<0.8 || NTindex2char(myReadInfor.top1ntindex)=='N') {myReadInfor.filterout=true;return;}
+	if(prob_top1top2<top2nt_minpercent || NTindex2char(myReadInfor.top1ntindex)=='N') {myReadInfor.filterout=true;return;}
 	if(find(myReadInfor.fermiNTs.begin(),myReadInfor.fermiNTs.end(),NTindex2char(myReadInfor.top1ntindex))==myReadInfor.fermiNTs.end() && find(myReadInfor.fermiNTs.begin(),myReadInfor.fermiNTs.end(),NTindex2char(myReadInfor.top2ntindex))==myReadInfor.fermiNTs.end()) {myReadInfor.hasfermiinfor=false;return;}
 
 	myReadInfor.hasfermiinfor=true;
@@ -463,12 +463,12 @@ void CalLikelihoodGTprob(PosReadsInfor &myReadInfor)
 	else myReadInfor.type="unsure";
 }
 
-void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo)
+void CalSNVAS(map<int,PosReadsInfor> &pos2Readsinfo,const double top2nt_minpercent)
 {
 	//calculate likelihood function and probability of different genotype
 	map<int,PosReadsInfor>::iterator miPtmp;
 	for(miPtmp=pos2Readsinfo.begin();miPtmp!=pos2Readsinfo.end();++miPtmp)//for each position
 	{
-		CalLikelihoodGTprob(miPtmp->second);
+		CalLikelihoodGTprob(miPtmp->second,top2nt_minpercent);
 	}
 }

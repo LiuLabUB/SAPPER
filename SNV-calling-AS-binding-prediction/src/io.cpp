@@ -635,7 +635,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
 	}
 }
 
-void ReadBamfile(const int ReadLength,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile)
+void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpercent,const int ReadLength,const vector<BedRegion> &peakbedregion_set,const string Bamfile,const vector<vector<BamInfor> > &AllPeakInputBamInfor,const string fermi_location,const string tmpfilefolder,const string OutputVcffile)
 {
 	//
 	const int PeakNo=peakbedregion_set.size();
@@ -769,7 +769,7 @@ void ReadBamfile(const int ReadLength,const vector<BedRegion> &peakbedregion_set
 			if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
 			else if(readstart>peakend)
 			{
-				AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+				AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 				PeakBamInfor.clear();
 				//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
@@ -791,7 +791,7 @@ void ReadBamfile(const int ReadLength,const vector<BedRegion> &peakbedregion_set
 		}
 		else
 		{
-			AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+			AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 			PeakBamInfor.clear();
 			//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
@@ -816,7 +816,7 @@ void ReadBamfile(const int ReadLength,const vector<BedRegion> &peakbedregion_set
 
 	if(!PeakBamInfor.empty())
 	{
-		AssembleAndSNVAS(ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+		AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 		PeakBamInfor.clear();
 
 		string stemp="rm -f "+tmpfilefolder+"/*";
@@ -840,11 +840,11 @@ void GetReverseComplementary(const string &input,string &output)
 	}
 }
 
-void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
+void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_minpercent,const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
 {
 	if(PeakBamInfor.size()==0) return;
 
-	const int Fermi_overlap_par=ReadLength/2;
+	const int Fermi_overlap_par=(int)(ReadLength*Fermi_overlap_minpercent);
 
 	int i,j;
 	string sbuf;
@@ -1221,7 +1221,7 @@ void AssembleAndSNVAS(const int ReadLength,const string fermi_location,const str
 	}
 
 	//
-	CalSNVAS(pos2Readsinfo);
+	CalSNVAS(pos2Readsinfo,top2nt_minpercent);
 
 	//
 	OutputVcfResultHasInput(OutputVcffile,regionchr,pos2Readsinfo);

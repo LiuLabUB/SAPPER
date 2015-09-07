@@ -46,24 +46,34 @@ int main_call(int argc, char *argv[])
 {
   int c;
   string Peakbedfile, Bamfile, InputBamfile, OutputVcffile, fermi_location;
+  double Fermi_overlap_minpercent=0.5;//fermi min match should be >= read_length*Fermi_overlap_percent
+  double top2nt_minpercent=0.8;//after contig filtering (only keep the reads consistent with any contig), top1nt_readsNo+top2nt_readsNo should be >= all_readsNo*top2nt_min_percent
 
-  while ((c = getopt(argc, argv, "b:t:c:o:")) >= 0) {
+  while ((c = getopt(argc, argv, "b:t:c:o:p:q:")) >= 0) {
     switch (c) {
     case 'b': Peakbedfile.assign(optarg); break;
     case 't': Bamfile.assign(optarg); break;
     case 'c': InputBamfile.assign(optarg); break;
     case 'o': OutputVcffile.assign(optarg); break;
+    case 'p': Fermi_overlap_minpercent=atof(optarg); break;
+    case 'q': top2nt_minpercent=atof(optarg); break;
     }
   }
   if ( Peakbedfile=="" or Bamfile=="" or InputBamfile=="" or OutputVcffile=="" ) {
     cerr<<"Program: SNVAS call -- Call all possible SNVs from ChIP-Seq\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-    cerr<<"Usage: SNVAS call <-b peaks.bed> <-t peaksChIP.bam> <-c peaksControl.bam> <-o output.vcf>\n\n";
-    cerr<<"Required arguments: <-b peaks.bed>            sorted bed file of peak regions\n";
-    cerr<<"                    <-t peaksChIP.bam>            sorted bam file of peak regions\n";
-    cerr<<"                    <-c peaksControl.bam>     sorted control bam file of peak regions\n";
-    cerr<<"                    <-o output.vcf>           output vcf file\n\n";
+    cerr<<"Usage: SNVAS call <-b peaks.bed> <-t peaksChIP.bam> <-c peaksControl.bam> <-o output.vcf> [-p FermiOverlapMinPercent] [-q top2ntMinPercent]\n\n";
+    cerr<<"Required arguments: <-b peaks.bed>                  sorted bed file of peak regions\n";
+    cerr<<"                    <-t peaksChIP.bam>              sorted bam file of peak regions\n";
+    cerr<<"                    <-c peaksControl.bam>           sorted control bam file of peak regions\n";
+    cerr<<"                    <-o output.vcf>                 output vcf file\n\n";
+    cerr<<"Options:\n"
+    	<<"                    [-p FermiOverlapMinPercent]     minimal percentage of fermi match length compared to the read length (Default:0.5).\n"
+    	<<"                                                    must be a float between 0 and 1\n"
+    	<<"                    [-q top2ntMinPercent]           minimal percentage of reads number of top 2 nucleotides compared to the total reads number (Default:0.8).\n"
+    	<<"                                                    the purpose is to exclude the positions with more than 2 nucleotides\n"
+    	<<"                                                    must be a float between 0.5 and 1\n\n";
     cerr<<"Tips to prepare your input files from ChIP-Seq IP and CTRL BAM files:\n*Note: You need to modify the following sample command lines.*\n\n";
     cerr<<"1. Clean the BAM files:\n";
     cerr<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -b IP.bam -o IP_clean.bam\n";
@@ -89,6 +99,9 @@ int main_call(int argc, char *argv[])
     return 1;
   }
 
+  if(Fermi_overlap_minpercent<0 || Fermi_overlap_minpercent>1) {cerr<<"Wrong FermiOverlapMinPercent, which must be must be an float between 0 and 1"<<endl;return 1;}
+  if(top2nt_minpercent<0.5 || top2nt_minpercent>1) {cerr<<"Wrong top2ntMinPercent, which must be must be an float between 0.5 and 1"<<endl;return 1;}
+
   // make temp dir 
   char ctemplate[] = "SNVAS.XXXXXX";
   char * ctmpfilefolder = mkdtemp( ctemplate );
@@ -108,7 +121,7 @@ int main_call(int argc, char *argv[])
 
   //read bam file and calculate
   OutputVcfResultHasInput_header(OutputVcffile,argc,argv);
-  ReadBamfile(ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
+  ReadBamfile(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
   cout<<"finish all"<<endl;
 
   // remove temp dir
