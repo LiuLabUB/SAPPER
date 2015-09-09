@@ -95,19 +95,19 @@ samtools view -b ${CTRLBAM/.bam/_clean_sorted.bam}  -L ${FACTORNAME}_extended_pe
 
 wait;
 
-# step 6 run SNVAS
-SNVAS call -b ${FACTORNAME}_extended_peaks.bed -t ${FACTORNAME}_CHIP_peaks.bam -c ${FACTORNAME}_CTRL_peaks.bam -o ${FACTORNAME}_SNVAS.vcf &
+# step 6 run SAPPER
+SAPPER call -b ${FACTORNAME}_extended_peaks.bed -t ${FACTORNAME}_CHIP_peaks.bam -c ${FACTORNAME}_CTRL_peaks.bam -o ${FACTORNAME}_SAPPER.vcf &
 
 wait;
 
-# step 7 run SNVAS_filter
+# step 7 run SAPPER_filter
 
-SNVAS filter -i ${FACTORNAME}_SNVAS.vcf -d ${MINDEPTH} -t homo -q ${MINHOMOGQ} -o ${FACTORNAME}_SNVAS_homo.vcf
-SNVAS filter -i ${FACTORNAME}_SNVAS.vcf -d ${MINDEPTH} -t hetero -q ${MINHETEROGQ} -o ${FACTORNAME}_SNVAS_hetero.vcf
+SAPPER filter -i ${FACTORNAME}_SAPPER.vcf -d ${MINDEPTH} -t homo -q ${MINHOMOGQ} -o ${FACTORNAME}_SAPPER_homo.vcf
+SAPPER filter -i ${FACTORNAME}_SAPPER.vcf -d ${MINDEPTH} -t hetero -q ${MINHETEROGQ} -o ${FACTORNAME}_SAPPER_hetero.vcf
 
 echo "Finished! Please check:"
-echo " " ${FACTORNAME}_SNVAS.vcf "for all the predicted SNVs."
-echo " " ${FACTORNAME}_SNVAS_hetero.vcf "for the filtered heterozygous SNVs above cutoff."
-echo " " ${FACTORNAME}_SNVAS_homo.vcf "for the filtered homozygous SNVs above cutoff."
+echo " " ${FACTORNAME}_SAPPER.vcf "for all the predicted SNVs."
+echo " " ${FACTORNAME}_SAPPER_hetero.vcf "for the filtered heterozygous SNVs above cutoff."
+echo " " ${FACTORNAME}_SAPPER_homo.vcf "for the filtered homozygous SNVs above cutoff."
 
-echo "Please use SNVAS_filter script to further filter the results."
+echo "Please use SAPPER_filter script to further filter the results."

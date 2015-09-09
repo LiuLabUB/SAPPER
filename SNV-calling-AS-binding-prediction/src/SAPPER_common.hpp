@@ -1,5 +1,5 @@
-#ifndef SNVAS_COMMON_HPP
-#define SNVAS_COMMON_HPP
+#ifndef SAPPER_COMMON_HPP
+#define SAPPER_COMMON_HPP
 
 #include <string>
 #include <vector>

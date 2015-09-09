@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (optind + 1 >= argc) {
-		fprintf(stderr, "Local assembler for small peak regions. Output cleaned unitigs.\nUsage: SNVAS_fermi [-k ecKmer] [-l utgKmer] <in.fq> <out.fq>\n");
+		fprintf(stderr, "Local assembler for small peak regions. Output cleaned unitigs.\nUsage: SAPPER_fermi [-k ecKmer] [-l utgKmer] <in.fq> <out.fq>\n");
 		return 1;
 	}
 	l = fm6_api_readseq(argv[optind], &seq, &qual);

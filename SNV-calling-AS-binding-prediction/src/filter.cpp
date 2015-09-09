@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdlib>
 #include <unistd.h>
-#include "SNVAS_common.hpp"
+#include "SAPPER_common.hpp"
 
 using namespace std;
 
@@ -26,12 +26,12 @@ int main_filter(int argc,char *argv[])
   }
 
   if ( ifile=="" or ofile=="" or type=="" ) {
-    cerr<<"Program: SNVAS filter -- apply cutoff to filter VCF file from SNVAS call\n";
+    cerr<<"Program: SAPPER filter -- apply cutoff to filter VCF file from SAPPER call\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-    cerr<<"Usage: SNVAS filter <-i SNVAS.vcf> <-o output.vcf> <-t genotype> [-d depthCutoff] [-q GQCutoff]\n\n";
+    cerr<<"Usage: SAPPER filter <-i SAPPER.vcf> <-o output.vcf> <-t genotype> [-d depthCutoff] [-q GQCutoff]\n\n";
     cerr<<"Required arguments:\n"
-	<<"    <-i SNVAS.vcf>          The raw output VCF file of SNV calling from SNVAS\n"
+	<<"    <-i SAPPER.vcf>         The raw output VCF file of SNV calling from SAPPER\n"
 	<<"    <-o output.vcf>         The VCF file containing SNVs after filtering\n"
 	<<"    <-t homo|hetero|hetero_AS|hetero_nonAS>   Genotypes chosen from:\n"
 	<<"                                    homo: homozygous SNVs\n"

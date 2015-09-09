@@ -1,4 +1,4 @@
-SNVAS - Call SNV and allele-specific binding events from a single ChIP-seq dataset
+SAPPER - Call SNV and allele-specific binding events from a single ChIP-seq dataset
 ==================================================================================
 
 Source codes in [src] directory

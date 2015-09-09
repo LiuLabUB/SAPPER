@@ -1,13 +1,13 @@
 Install
 =======
 
-Simply go to SNVAS source code dir then compile SNVAS and the modified
+Simply go to SAPPER source code dir then compile SAPPER and the modified
 fermi (https://github.com/lh3/fermi/)::
 
  $ make
 
-You will have executable binary files 'SNVAS_fermi' (our modifed
-'fermi'), and 'SNVAS' in the 'bin' subdirectory. Now
+You will have executable binary files 'SAPPER_fermi' (our modifed
+'fermi'), and 'SAPPER' in the 'bin' subdirectory. Now
 copy/move them to one of your PATH such as /usr/loca/bin::
 
  $ mv bin/* /usr/local/bin
@@ -15,10 +15,10 @@ copy/move them to one of your PATH such as /usr/loca/bin::
 Usage
 =====
 
-Before running SNVAS/Preprocessing
+Before running SAPPER/Preprocessing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. SNVAS only accepts base quality scores with Illumina 1.8+
+1. SAPPER only accepts base quality scores with Illumina 1.8+
    (Phred+33) coding. For Illumina 1.3+ or 1.5+ (Phred+64) coding, the
    fastq file should be changed to Phred+33 type. We recommand using the
    tool "seqtk" (https://github.com/lh3/seqtk).
@@ -65,27 +65,27 @@ Before running SNVAS/Preprocessing
       $ samtools view -b sample_filter_sorted.bam -L MyFactor_extended_peaks.bed -o reads_in_extended_peaks.bam
 
 Finally, there are 3 files which should be prepared before running
-SNVAS: a bed file for peak regions; a BAM file of ChIP-seq reads
+SAPPER: a bed file for peak regions; a BAM file of ChIP-seq reads
 mapped to the peak regions; and a BAM file of control reads mapped 
 to the peak region. All of them are sorted by genome coordinate.
 
-Running SNVAS
+Running SAPPER
 ~~~~~~~~~~~~~
 
 1. Simply run::
 
-     $ SNVAS call -b sample_peaks_sorted.bed -t sample_peaks_sorted.bam -c control_peaks_sorted.bam -o sample.vcf
+     $ SAPPER call -b sample_peaks_sorted.bed -t sample_peaks_sorted.bam -c control_peaks_sorted.bam -o sample.vcf
 
-And the sample.vcf is the output. SNVAS tool outputs all possible
+And the sample.vcf is the output. SAPPER tool outputs all possible
 SNVs. We recommend to use the filter tool (see below) to get a
 reliable list of SNVs above certain cutoff values.
 
 Batch script
 ~~~~~~~~~~~~
 
-We provided a shell script ``run_SNVAS.sh`` to go through the above
+We provided a shell script ``run_SAPPER.sh`` to go through the above
 steps, and additional filtering in a pipeline. Please open and edit
-the ``run_SNVAS.sh`` file, and put it in the working directory where
+the ``run_SAPPER.sh`` file, and put it in the working directory where
 your BAM files are located. Please check the description in the shell
 script.
 
@@ -101,7 +101,7 @@ information of each term is defined in the header of the vcf file::
 
  ##fileformat=VCFv4.1
  ##fileDate=2015817
- ##source=SNVAS_V0.1
+ ##source=SAPPER_V0.1
  ##Program Args="sample_peaks_sorted.bed sample_peaks_sorted.bam control_peaks_sorted.bam PE sample.vcf"
  ##INFO=<ID=MinBIC_model,Number=.,Type=String,Description="Model with minimum BIC value">
  ##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Approximate read depth in ChIP-seq data; some reads may have been filtered">
@@ -158,31 +158,31 @@ Important information in the file:
 Note, there is no cutoff applied in the VCF file. The only rule is the
 BIC, so that the reported genotype/allele-specific status has the
 smallest BIC among all the other models. We provide downstream
-analysis tool 'SNVAS_filter' to further filter the results in VCF
+analysis tool 'SAPPER_filter' to further filter the results in VCF
 files.
 
-Filtering results using SNVAS_filter
+Filtering results using SAPPER_filter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-We provided a postprocessing tool ``SNVAS_filter`` to further filter
+We provided a postprocessing tool ``SAPPER_filter`` to further filter
 the output VCF file. It can be used to get a list of 1) homozygous
 SNVs; 2) heterozygous SNVs; 3) heterozygous SNVs with non-allele
 specific binding; 4) heterozygous SNVs with allele-specific binding:
 
 1. To get homozygous SNVs::
 
-      $ SNVAS filter -i sample.vcf -d MINDEPTH -t homo -q MINCUTOFF -o sample_homo_afterfilter.vcf
+      $ SAPPER filter -i sample.vcf -d MINDEPTH -t homo -q MINCUTOFF -o sample_homo_afterfilter.vcf
 
 2. To get heterozygous SNVs::
 
-      $ SNVAS filter -i sample.vcf -d MINDEPTH -t hetero -q MINCUTOFF -o sample_hete_afterfilter.vcf
+      $ SAPPER filter -i sample.vcf -d MINDEPTH -t hetero -q MINCUTOFF -o sample_hete_afterfilter.vcf
 
 3. To get allele-specific heterozygous SNVs::
 
-      $ SNVAS filter -i sample.vcf -d MINDEPTH -t heter_AS -q MINCUTOFF -o sample_heterAS_afterfilter.vcf
+      $ SAPPER filter -i sample.vcf -d MINDEPTH -t heter_AS -q MINCUTOFF -o sample_heterAS_afterfilter.vcf
 
 4. To get non allele-specific heterozygous SNV::
 
-      $ SNVAS filter -i sample.vcf -d MINDEPTH -t heter_noAS -q MINCUTOFF -o sample_heterNonAS_afterfilter.vcf
+      $ SAPPER filter -i sample.vcf -d MINDEPTH -t heter_noAS -q MINCUTOFF -o sample_heterNonAS_afterfilter.vcf
 
 The selection of minimum depth and minimum genotype quality score
 cutoffs is arbitrary. We recommand minimum depth of 10, and minimum GQ
@@ -192,4 +192,4 @@ cutoffs is arbitrary. We recommand minimum depth of 10, and minimum GQ
 Release Notes
 =============
 Release 0.1 (2015-08-14)
-This is the first public release of SNVAS.
+This is the first public release of SAPPER.

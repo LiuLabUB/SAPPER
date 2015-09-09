@@ -1,9 +1,9 @@
-MYNAME = SNVAS
+MYNAME = SAPPER
 MAKE = make
 MKDIR = mkdir
 CC = g++ 
 CFLAGS = -g -Wall -O3
-OBJS = io.o analysis.o swalign.o math.o call.o filter.o stat.o SNVAS_common.o
+OBJS = io.o analysis.o swalign.o math.o call.o filter.o stat.o SAPPER_common.o
 
 .PHONY:all
 
@@ -33,14 +33,14 @@ io.o : io.cpp io.hpp swalign.hpp analysis.hpp
 call.o : call.cpp io.hpp
 	$(CC) -c $(CFLAGS) call.cpp
 
-filter.o : filter.cpp SNVAS_common.hpp
+filter.o : filter.cpp SAPPER_common.hpp
 	$(CC) -c $(CFLAGS) filter.cpp
 
-stat.o : stat.cpp SNVAS_common.hpp
+stat.o : stat.cpp SAPPER_common.hpp
 	$(CC) -c $(CFLAGS) stat.cpp
 
-SNVAS_common.o : SNVAS_common.cpp SNVAS_common.hpp
-	$(CC) -c $(CFLAGS) SNVAS_common.cpp
+SAPPER_common.o : SAPPER_common.cpp SAPPER_common.hpp
+	$(CC) -c $(CFLAGS) SAPPER_common.cpp
 
 clean :
 	cd fermi && ${MAKE} clean

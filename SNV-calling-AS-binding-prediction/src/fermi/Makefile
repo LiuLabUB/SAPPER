@@ -6,7 +6,7 @@ DFLAGS=		#-D_USE_RLE6 #-DNDEBUG
 OBJS=		utils.o seq.o ksa.o ksa64.o rld.o exact.o merge.o sub.o correct.o \
 			build.o smem.o unitig.o seqsort.o cmp.o\
 			ksw.o mag.o bubble.o scaf.o bcr.o bprope6.o ropebwt.o
-PROG=		SNVAS_fermi
+PROG=		SAPPER_fermi
 INCLUDES=	
 LIBS=		-lpthread -lm -lz
 
@@ -17,8 +17,8 @@ LIBS=		-lpthread -lm -lz
 
 all:$(PROG)
 
-SNVAS_fermi:$(OBJS) SNVAS_fermi_main.c
-		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) SNVAS_fermi_main.c -o $@ $(LIBS)
+SAPPER_fermi:$(OBJS) SAPPER_fermi_main.c
+		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) SAPPER_fermi_main.c -o $@ $(LIBS)
 
 ksa64.o:ksa.c
 		$(CC) -c $(CFLAGS) -D_KSA64 $(DFLAGS) ksa.c -o $@

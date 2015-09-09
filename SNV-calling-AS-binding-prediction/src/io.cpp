@@ -1577,7 +1577,7 @@ void OutputVcfResultHasInput_header(const string outputfile,const int argc,char 
 	if(!os) {cout<<"error open output file: "<<endl;exit(0);}
 	os<<"##fileformat=VCFv4.1"<<endl;
 	os<<"##fileDate="<<(now->tm_year + 1900)<<(now->tm_mon + 1)<<now->tm_mday<<endl;
-	os<<"##source=SNVAS_V0.1"<<endl;
+	os<<"##source=SAPPER_V0.1"<<endl;
 	os<<"##Program_Args=\"";
 	for(int i=1;i<argc-1;i++) os<<argv[i]<<" ";
 	os<<argv[argc-1]<<"\""<<endl;

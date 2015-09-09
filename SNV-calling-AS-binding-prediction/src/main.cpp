@@ -19,10 +19,10 @@ int main(int argc,char *argv[])
   int ret=0;
   
   if (argc == 1) {
-    cerr<<"Program: SNVAS (call SNV and allele-specific events from ChIP-seq data)\n";
+    cerr<<"Program: SAPPER (call SNV and allele-specific events from ChIP-seq data)\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n\n";
-    cerr<<"Usage:   SNVAS <command> [arguments]\n\n";
+    cerr<<"Usage:   SAPPER <command> [arguments]\n\n";
     cerr<<"Command: call     Call all possible SNVs\n";
     cerr<<"         filter   Filter the VCF file from 'call' command with cutoffs\n";
     cerr<<"         stat     Calculate SNV density and Ts/Tv for different GQ cutoffs\n";

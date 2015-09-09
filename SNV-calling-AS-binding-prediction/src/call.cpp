@@ -28,7 +28,7 @@ string lookupFermi()
     {
       string temp = path_array[i];
 
-      temp = temp + "/" + "SNVAS_fermi";
+      temp = temp + "/" + "SAPPER_fermi";
       // let execv determine if it is executable
       // or you can do that here if required
       if ( access(temp.c_str(), F_OK) == 0)
@@ -60,10 +60,10 @@ int main_call(int argc, char *argv[])
     }
   }
   if ( Peakbedfile=="" or Bamfile=="" or InputBamfile=="" or OutputVcffile=="" ) {
-    cerr<<"Program: SNVAS call -- Call all possible SNVs from ChIP-Seq\n";
+    cerr<<"Program: SAPPER call -- Call all possible SNVs from ChIP-Seq\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-    cerr<<"Usage: SNVAS call <-b peaks.bed> <-t peaksChIP.bam> <-c peaksControl.bam> <-o output.vcf> [-p FermiOverlapMinPercent] [-q top2ntMinPercent]\n\n";
+    cerr<<"Usage: SAPPER call <-b peaks.bed> <-t peaksChIP.bam> <-c peaksControl.bam> <-o output.vcf> [-p FermiOverlapMinPercent] [-q top2ntMinPercent]\n\n";
     cerr<<"Required arguments: <-b peaks.bed>                  sorted bed file of peak regions\n";
     cerr<<"                    <-t peaksChIP.bam>              sorted bam file of peak regions\n";
     cerr<<"                    <-c peaksControl.bam>           sorted control bam file of peak regions\n";
@@ -88,14 +88,14 @@ int main_call(int argc, char *argv[])
     cerr<<"5. Extract reads in peak regions:\n";
     cerr<<"    $ samtools view -b IP_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o IP_peaks.bam\n";
     cerr<<"    $ samtools view -b CTRL_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o CTRL_peaks.bam\n\n";
-    cerr<<"To run SNVAS:\n\n";
-    cerr<<"    $ SNVAS call -b MyFactor_peaks.sorted.bed -t IP_peaks.bam -c CTRL_peaks.bam -o MyFactor.vcf\n";
+    cerr<<"To run SAPPER:\n\n";
+    cerr<<"    $ SAPPER call -b MyFactor_peaks.sorted.bed -t IP_peaks.bam -c CTRL_peaks.bam -o MyFactor.vcf\n";
     return 1;
   }
   
   fermi_location = lookupFermi();
   if ( fermi_location == "" ) {
-    cerr<<"The modified fermi 'SNVAS_fermi' can't be found in the system.\n";
+    cerr<<"The modified fermi 'SAPPER_fermi' can't be found in the system.\n";
     return 1;
   }
 
@@ -103,7 +103,7 @@ int main_call(int argc, char *argv[])
   if(top2nt_minpercent<0.5 || top2nt_minpercent>1) {cerr<<"Wrong top2ntMinPercent, which must be must be an float between 0.5 and 1"<<endl;return 1;}
 
   // make temp dir 
-  char ctemplate[] = "SNVAS.XXXXXX";
+  char ctemplate[] = "SAPPER.XXXXXX";
   char * ctmpfilefolder = mkdtemp( ctemplate );
   const string tmpfilefolder( ctmpfilefolder );
 
