@@ -64,16 +64,17 @@ int main_call(int argc, char *argv[])
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
     cerr<<"Usage: SAPPER call <-b peaks.bed> <-t peaksChIP.bam> <-c peaksControl.bam> <-o output.vcf> [-p FermiOverlapMinPercent] [-q top2ntMinPercent]\n\n";
-    cerr<<"Required arguments: <-b peaks.bed>                  sorted bed file of peak regions\n";
-    cerr<<"                    <-t peaksChIP.bam>              sorted bam file of peak regions\n";
-    cerr<<"                    <-c peaksControl.bam>           sorted control bam file of peak regions\n";
+    cerr<<"Required arguments: <-b peaks.bed>                  sorted bed file for peak regions\n";
+    cerr<<"                    <-t peaksChIP.bam>              sorted bam file for peak regions\n";
+    cerr<<"                    <-c peaksControl.bam>           sorted control bam file for peak regions\n";
     cerr<<"                    <-o output.vcf>                 output vcf file\n\n";
     cerr<<"Options:\n"
-    	<<"                    [-p FermiOverlapMinPercent]     minimal percentage of fermi match length compared to the read length (Default:0.5).\n"
-    	<<"                                                    must be a float between 0 and 1\n"
-    	<<"                    [-q top2ntMinPercent]           minimal percentage of reads number of top 2 nucleotides compared to the total reads number (Default:0.8).\n"
-    	<<"                                                    the purpose is to exclude the positions with more than 2 nucleotides\n"
-    	<<"                                                    must be a float between 0.5 and 1\n\n";
+    	<<"                    [-p FermiOverlapMinRatio]       The minimal ratio of a read to be overlapped during local assembly.\n"
+    	<<"                                                    (Default:0.5 which means half of the read). Must be a float between 0 and 1\n"
+    	<<"                    [-q top2ntMinRatio]             The reads for the top 2 most frequent nucleotides at a loci shouldn't be too\n"
+	<<"                                                    few comparing to total reads mapped there. The minimum ratio is set here.\n"
+	<<"                                                    (Default:0.8 which means at least 80% of reads contain the top 2 nucleostides).\n"
+    	<<"                                                    Must be a float between 0.5 and 1\n\n";
     cerr<<"Tips to prepare your input files from ChIP-Seq IP and CTRL BAM files:\n*Note: You need to modify the following sample command lines.*\n\n";
     cerr<<"1. Clean the BAM files:\n";
     cerr<<"    $ samtools view -q 30 -F 4 -F 256 -F 2048 -b IP.bam -o IP_clean.bam\n";

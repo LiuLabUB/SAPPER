@@ -29,9 +29,9 @@ MACS2EXTPARAM="-g hs -q 0.05 --fe-cutoff 5";
 # 'narrow'. 
 MACS2MODE="narrow";
 
-# Filtering criteria
+# Filtering criteria for SAPPER
 
-# Minimum depth
+# Minimum depth for SAPPER
 MINDEPTH=20
 
 # Minimum Genotype Quality Score cutoff for heterozygous loci

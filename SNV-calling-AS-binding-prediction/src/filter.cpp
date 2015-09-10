@@ -29,11 +29,11 @@ int main_filter(int argc,char *argv[])
     cerr<<"Program: SAPPER filter -- apply cutoff to filter VCF file from SAPPER call\n";
     cerr<<"Version: 0.1\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n";
-    cerr<<"Usage: SAPPER filter <-i SAPPER.vcf> <-o output.vcf> <-t genotype> [-d depthCutoff] [-q GQCutoff]\n\n";
+    cerr<<"Usage: SAPPER filter <-i SAPPER.vcf> <-o output.vcf> <-t type> [-d depthCutoff] [-q GQCutoff]\n\n";
     cerr<<"Required arguments:\n"
 	<<"    <-i SAPPER.vcf>         The raw output VCF file of SNV calling from SAPPER\n"
 	<<"    <-o output.vcf>         The VCF file containing SNVs after filtering\n"
-	<<"    <-t homo|hetero|hetero_AS|hetero_nonAS>   Genotypes chosen from:\n"
+	<<"    <-t homo|hetero|hetero_AS|hetero_nonAS>   Genotypes or epigenotypes chosen from:\n"
 	<<"                                    homo: homozygous SNVs\n"
 	<<"                                    hetero: heterozygous SNVs\n"
 	<<"                                    hetero_AS: heterozygous SNVs with allele-specific binding\n"

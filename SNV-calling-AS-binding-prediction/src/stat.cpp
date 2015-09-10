@@ -235,7 +235,7 @@ int main_stat(int argc,char *argv[])
     cerr<<"Required arguments:\n"
 	<<"    <-i SAPPER.vcf>          The raw output VCF file of SNV calling from SAPPER\n"
 	<<"    <-b peaks.bed>          The BED/narrowPeak/BroadPeak file for peak regions, which is used in SNV calling by SAPPER\n"
-	<<"    <-t homo|hetero|hetero_AS|hetero_nonAS>   Genotypes chosen from:\n"
+	<<"    <-t homo|hetero|hetero_AS|hetero_nonAS>   Genotypes or epigenotypes chosen from:\n"
 	<<"                              homo: homozygous SNVs\n"
 	<<"                              hetero: heterozygous SNVs\n"
 	<<"                              hetero_AS: heterozygous SNVs with allele-specific binding\n"
