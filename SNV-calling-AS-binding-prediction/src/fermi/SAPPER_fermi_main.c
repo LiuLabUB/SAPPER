@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Local assembler for small peak regions. Output cleaned unitigs.\nUsage: SAPPER_fermi [-k ecKmer] [-l utgKmer] <in.fq> <out.fq>\n");
 		return 1;
 	}
+	fp = fopen( argv[optind+1], "wb");
 	l = fm6_api_readseq(argv[optind], &seq, &qual);
-	fp = fopen( argv[optind+1], "w");
 	fm6_api_correct(ec_k, l, seq, qual);
 	mag_t *g;
 	free(qual);
