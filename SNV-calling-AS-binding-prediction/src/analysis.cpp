@@ -312,15 +312,15 @@ int CalGQscore(const double lnL1,const double lnL2,const double lnL3)
 	if(L1>1) L1=1;
 	if(L2>1) L2=1;
 	if(L3>1) L3=1;
-	if(L1<1e-110) L1=1e-110;
-	if(L2<1e-110) L2=1e-110;
-	if(L3<1e-110) L3=1e-110;
+	if(L1<1e-323) L1=1e-323;
+	if(L2<1e-323) L2=1e-323;
+	if(L3<1e-323) L3=1e-323;
 
 	long double sum=L1+L2+L3;
 	long double tmp=(L2+L3)/sum;
 	int GQ_score;
-	if(tmp>1e-110) GQ_score=(int)(-4.34294*logl(tmp));
-	else GQ_score=255;
+	if(tmp>1e-323) GQ_score=(int)(-4.34294*logl(tmp));
+	else GQ_score=(int)(-4.34294*logl(1e-323));
 
 	return GQ_score;
 }
@@ -332,14 +332,14 @@ int CalGQ_heterASsig_score(const double lnL1,const double lnL2)
 
 	if(L1>1) L1=1;
 	if(L2>1) L2=1;
-	if(L1<1e-110) L1=1e-110;
-	if(L2<1e-110) L2=1e-110;
+	if(L1<1e-323) L1=1e-323;
+	if(L2<1e-323) L2=1e-323;
 
 	long double sum=L1+L2;
 	long double tmp=L2/sum;
 	int ASsig_score;
-	if(tmp>1e-110) ASsig_score=(int)(-4.34294*logl(tmp));
-	else ASsig_score=255;
+	if(tmp>1e-323) ASsig_score=(int)(-4.34294*logl(tmp));
+	else ASsig_score=(int)(-4.34294*logl(1e-323));
 
 	return ASsig_score;
 }
