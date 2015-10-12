@@ -773,6 +773,34 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 				PeakBamInfor.clear();
 				//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
 
+				do
+				{
+					PeakIndex++;
+					if(PeakIndex%100==0)
+					{
+						string stemp="rm -f "+tmpfilefolder+"/*";
+						system(stemp.c_str());
+						cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
+					}
+					peakchr=peakbedregion_set[PeakIndex].chr;
+					peakstart=peakbedregion_set[PeakIndex].start;
+					peakend=peakbedregion_set[PeakIndex].end;
+
+					if(readend>=peakstart && readstart<=peakend) {PeakBamInfor.push_back(mybaminfor);break;}
+					else if(readstart<peakstart) {cout<<"error read is not in next region!!"<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
+
+				}while(1);
+			}
+			else {cout<<"error not ordered by coordinates: "<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
+		}
+		else
+		{
+			AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+			PeakBamInfor.clear();
+			//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
+
+			do
+			{
 				PeakIndex++;
 				if(PeakIndex%100==0)
 				{
@@ -784,32 +812,12 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 				peakstart=peakbedregion_set[PeakIndex].start;
 				peakend=peakbedregion_set[PeakIndex].end;
 
-				if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
-				else {cout<<"error read is not in next region"<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
-			}
-			else {cout<<"error not ordered by coordinates: "<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
-		}
-		else
-		{
-			AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
-			PeakBamInfor.clear();
-			//cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex+1<<endl;
+				if(chrindex2name[refID]!=peakchr) {cout<<"error read is not in next chr region: "<<chrindex2name[refID]<<"-"<<peakchr<<" "<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
 
-			PeakIndex++;
-			if(PeakIndex%100==0)
-			{
-				string stemp="rm -f "+tmpfilefolder+"/*";
-				system(stemp.c_str());
-				cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
-			}
-			peakchr=peakbedregion_set[PeakIndex].chr;
-			peakstart=peakbedregion_set[PeakIndex].start;
-			peakend=peakbedregion_set[PeakIndex].end;
+				if(readend>=peakstart && readstart<=peakend) {PeakBamInfor.push_back(mybaminfor);break;}
+				else if(readstart<peakstart) {cout<<"error read is not in next region of new chr!!: "<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
 
-			if(chrindex2name[refID]!=peakchr) {cout<<"error read is not in next chr region: "<<chrindex2name[refID]<<"-"<<peakchr<<" "<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
-
-			if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
-			else {cout<<"error read is not in next region of new chr: "<<readstart<<" "<<peakstart<<"-"<<peakend<<endl;exit(0);}
+			}while(1);
 		}
 
 	}while(1);
@@ -1614,3 +1622,4 @@ void OutputVcfResultHasInput_header(const string outputfile,const int argc,char 
 	os<<"##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality score\">"<<endl;
 	os<<"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE"<<endl;
 }
+
