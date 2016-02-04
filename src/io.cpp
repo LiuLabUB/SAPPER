@@ -1,4 +1,7 @@
 #include "io.hpp"
+#include <cstdio>
+// include header for fermi wrapper
+#include "fermi/SAPPER_wrapper.h"
 
 //needed for reading bam
 #define BAM_CIGAR_STR   "MIDNSHP=XB"
@@ -778,8 +781,9 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 					PeakIndex++;
 					if(PeakIndex%100==0)
 					{
-						string stemp="rm -f "+tmpfilefolder+"/*";
-						system(stemp.c_str());
+					  remove((tmpfilefolder+"/*").c_str());
+					  //string stemp="rm -f "+tmpfilefolder+"/*";
+					  //system(stemp.c_str());
 						cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 					}
 					peakchr=peakbedregion_set[PeakIndex].chr;
@@ -804,8 +808,9 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 				PeakIndex++;
 				if(PeakIndex%100==0)
 				{
-					string stemp="rm -f "+tmpfilefolder+"/*";
-					system(stemp.c_str());
+				  remove((tmpfilefolder+"/*").c_str());
+					  //string stemp="rm -f "+tmpfilefolder+"/*";
+					  //system(stemp.c_str());
 					cout<<"finish read ChIP-seq bam in peak: #"<<PeakIndex<<endl;
 				}
 				peakchr=peakbedregion_set[PeakIndex].chr;
@@ -827,8 +832,9 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 		AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
 		PeakBamInfor.clear();
 
-		string stemp="rm -f "+tmpfilefolder+"/*";
-		system(stemp.c_str());
+		remove((tmpfilefolder+"/*").c_str());
+		//string stemp="rm -f "+tmpfilefolder+"/*";
+		//system(stemp.c_str());
 	}
 }
 
@@ -848,6 +854,7 @@ void GetReverseComplementary(const string &input,string &output)
 	}
 }
 
+// Assemble contigs using fermi then run SAPPER
 void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_minpercent,const int ReadLength,const string fermi_location,const string tmpfilefolder,const string OutputVcffile,const int PeakIndex,const string regionchr,const vector<BamInfor> &PeakBamInfor,const vector<BamInfor> &PeakInputBamInfor)
 {
 	if(PeakBamInfor.size()==0) return;
@@ -858,11 +865,11 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 	string sbuf;
 
 	//get seq and bq, and ref seq in the extended peak region
-	stringstream ss1;
-	ss1<<tmpfilefolder<<"/"<<PeakIndex+1<<".fastq";
+	string ss1;
+	ss1 = tmpfilefolder+"/"+to_string(PeakIndex+1)+".fastq";
 
-	ofstream os1(ss1.str().c_str());
-	if(!os1) {cout<<"can not open tmp output file: "<<ss1.str()<<endl;exit(0);}
+	ofstream os1(ss1.c_str());
+	if(!os1) {cout<<"can not open tmp output file: "<<ss1.c_str()<<endl;exit(0);}
 
 	//
 	string extendrefseq=PeakBamInfor[0].refseq;
@@ -994,20 +1001,24 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 	if(extendref_end-extendref_start+1!=extendrefseq.size()) {cout<<"wrong extend ref: "<<extendref_end<<" "<<extendref_start<<" "<<extendrefseq.size()<<endl;exit(0);}
 
 	//fermi
-	stringstream p1_mag,p1_mag_log,sstemp;
-	p1_mag<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag";
-	p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
+	//stringstream p1_mag,p1_mag_log,sstemp;
+	string p1_mag;
+	string ss11 = ss1;
+	p1_mag = tmpfilefolder+"/"+to_string(PeakIndex+1)+"_p1.mag";
+	//p1_mag_log<<tmpfilefolder<<"/"<<PeakIndex+1<<"_p1.mag.log";
 	string cmdstring;
-	sstemp<<Fermi_overlap_par;
-	cmdstring=fermi_location+" -l "+sstemp.str()+" "+ss1.str()+" "+p1_mag.str()+" 2>"+p1_mag_log.str();
-	system(cmdstring.c_str());
+	//sstemp<<Fermi_overlap_par;
+	//cmdstring=fermi_location+" -l "+sstemp.str()+" "+ss1.str()+" "+p1_mag.str()+" 2>"+p1_mag_log.str();
+	//system(cmdstring.c_str());
+	// call fermi function
+	assemble( (char*)ss11.c_str(), (char*)p1_mag.c_str(), Fermi_overlap_par);
 
 	//read contig
 	vector<string> contigname_set;
 	vector<string> contigseq_set;
 
-	ifstream is(p1_mag.str().c_str());
-	if(!is) {cout<<"can not open: "<<p1_mag.str()<<endl;return;}
+	ifstream is(p1_mag.c_str());
+	if(!is) {cout<<"can not open: "<<p1_mag.c_str()<<endl;return;}
 	do
 	{
 		sbuf.clear();

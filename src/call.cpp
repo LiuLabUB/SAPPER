@@ -7,41 +7,6 @@
 
 using namespace std;
 
-string lookupFermi()
-{
-  vector<string> path_array;
-
-  char *dup = strdup(getenv("PATH"));
-  char *s = dup;
-  char *p = NULL;
-
-  do {
-    p = strchr(s, ':');
-    if (p != NULL) {
-      p[0] = 0;
-    }
-    path_array.push_back(s);
-    s = p+1;
-  } while (p != NULL);
-
-  for (int i = 0; i < path_array.size(); ++i)
-    {
-      string temp = path_array[i];
-
-      temp = temp + "/" + "SAPPER_fermi";
-      // let execv determine if it is executable
-      // or you can do that here if required
-      if ( access(temp.c_str(), F_OK) == 0)
-	{
-	  cout << "Executable fermi binary file found at " << temp << "\n";
-	  return temp;
-	}
-    }
-
-  cout << "Executable fermi binary file can't be found in PATH. Please make sure fermi is installed in the system!\n";
-  return("");
-}
-
 int main_call(int argc, char *argv[])
 {
   int c;
@@ -94,11 +59,7 @@ int main_call(int argc, char *argv[])
     return 1;
   }
   
-  fermi_location = lookupFermi();
-  if ( fermi_location == "" ) {
-    cerr<<"The modified fermi 'SAPPER_fermi' can't be found in the system.\n";
-    return 1;
-  }
+  fermi_location = "";
 
   if(Fermi_overlap_minpercent<0 || Fermi_overlap_minpercent>1) {cerr<<"Wrong FermiOverlapMinPercent, which must be must be an float between 0 and 1"<<endl;return 1;}
   if(top2nt_minpercent<0.5 || top2nt_minpercent>1) {cerr<<"Wrong top2ntMinPercent, which must be must be an float between 0.5 and 1"<<endl;return 1;}

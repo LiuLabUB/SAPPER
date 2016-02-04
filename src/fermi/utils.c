@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 // 1: error; 2: warning; 3: message; 4: progress; 5: debugging; >=10: pure debugging
-int fm_verbose = 4;
+int fm_verbose = 0;//TL I turned off the debugging information
 
 void *xmalloc_core(size_t s, const char *func)
 {
