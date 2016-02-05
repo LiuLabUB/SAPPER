@@ -839,14 +839,10 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 
       // remove (PeakIndex/100-1)*100 to (PeakIndex) files with .fastq and .mag suffix
       // make sure  (PeakIndex/100-1)*100 is larger than 1.
-      for (int remove_i = (PeakIndex/PEAK_INFO_STEP>0?PeakIndex/PEAK_INFO_STEP:1)*PEAK_INFO_STEP; remove_i <= PeakIndex; remove_i ++ ){
+      for (int remove_i = PeakIndex/PEAK_INFO_STEP*PEAK_INFO_STEP; remove_i <= PeakIndex; remove_i ++ ){
 	remove((tmpfilefolder+"/" + to_string(remove_i+1) + ".fastq").c_str()) ;
 	remove((tmpfilefolder+"/" + to_string(remove_i+1) + "_p1.mag").c_str()) ;
       }
-
-      //
-      //string stemp="rm -f "+tmpfilefolder+"/*";
-      //system(stemp.c_str());
     }
 }
 
