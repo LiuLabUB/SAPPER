@@ -1,12 +1,11 @@
 # modified from original Makefile in Heng Li's fermi
 
 CC= gcc
-CFLAGS=	-g -Wall -O3 --ff-fmath
+CFLAGS=	-g -Wall -O3 -ffast-math
 DFLAGS=	#-D_USE_RLE6 #-DNDEBUG
 OBJS=	utils.o seq.o ksa.o ksa64.o rld.o exact.o merge.o sub.o correct.o \
 	build.o smem.o unitig.o seqsort.o cmp.o\
 	ksw.o mag.o bubble.o scaf.o bcr.o bprope6.o ropebwt.o SAPPER_wrapper.o
-LIBS=	-lpthread -lm -lz
 FERMIA= fermi.a
 
 .SUFFIXES:.c .o

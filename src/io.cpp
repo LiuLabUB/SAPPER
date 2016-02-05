@@ -89,7 +89,7 @@ int32_t bam_aux2i(const uint8_t *s)
 void ReadPeakBedFile(const string Peakbedfile,const string Bamfile,vector<BedRegion> &peakbedregion_set)
 {
   string sbuf,chr,s1;
-  int ia,ib,i,j;
+  int ia,ib;
 
   //read header
   vector<string> bam_chrorder;
@@ -149,12 +149,12 @@ void ReadPeakBedFile(const string Peakbedfile,const string Bamfile,vector<BedReg
   is.close();
 
   //
-  for(i=0;i<bam_chrorder.size();i++)
+  for(unsigned long i=0;i<bam_chrorder.size();i++)
     {
       if(chr2Bedregionset.find(bam_chrorder[i])!=chr2Bedregionset.end())
 	{
 	  vector<BedRegion> vBtemp(chr2Bedregionset[bam_chrorder[i]]);
-	  for(j=0;j<vBtemp.size();j++) peakbedregion_set.push_back(vBtemp[j]);
+	  for(unsigned long j=0;j<vBtemp.size();j++) peakbedregion_set.push_back(vBtemp[j]);
 	}
     }
 }
@@ -171,7 +171,7 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
 
   //for 'H'
   itemp=0;
-  for(i=0;i<cigar.length();i++)
+  for(unsigned long i=0;i<cigar.length();i++)
     {
       if(cigar[i]=='H' && i!=cigar.length()-1) {cigar=cigar.substr(i+1);i=0;}
       else if(cigar[i]=='H' && i==cigar.length()-1) {cigar=cigar.substr(0,itemp+1);}
@@ -185,7 +185,7 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
 
   //for 'S'
   itemp=0;
-  for(i=0;i<cigar.length();i++)
+  for(unsigned long i=0;i<cigar.length();i++)
     {
       if(cigar[i]=='S' && i!=cigar.length()-1)
 	{
@@ -214,7 +214,7 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
   int start=0;
   int end=0;
   int seq_index=0;
-  for(i=0;i<cigar.length();i++)
+  for(unsigned long i=0;i<cigar.length();i++)
     {
       if(cigar[i]<'0' || cigar[i]>'9')
 	{
@@ -254,7 +254,7 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
   end=0;
   seq_index=0;//index in refseq
   vector<int> Istart_index,Ilength;
-  for(i=0;i<cigar.length();i++)
+  for(unsigned long i=0;i<cigar.length();i++)
     {
       if(cigar[i]<'0' || cigar[i]>'9')
 	{
@@ -290,11 +290,11 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
       vstemp.push_back(refseq.substr(0,Istart_index[0]));
       if(Istart_index.size()>1)
 	{
-	  for(i=0;i<Istart_index.size()-1;i++) vstemp.push_back(refseq.substr(Istart_index[i]+Ilength[i],Istart_index[i+1]-(Istart_index[i]+Ilength[i])));
+	  for(unsigned long i=0;i<Istart_index.size()-1;i++) vstemp.push_back(refseq.substr(Istart_index[i]+Ilength[i],Istart_index[i+1]-(Istart_index[i]+Ilength[i])));
 	}
       vstemp.push_back(refseq.substr(Istart_index[Istart_index.size()-1]+Ilength[Istart_index.size()-1]));
       refseq.clear();
-      for(i=0;i<vstemp.size();i++) refseq+=vstemp[i];
+      for(unsigned long i=0;i<vstemp.size();i++) refseq+=vstemp[i];
       vstemp.clear();
     }
 
@@ -302,7 +302,7 @@ void GetRefSeq(const uint8_t *seq,const int32_t l_seq,const char *qual,string &c
   start=0;
   end=0;
   seq_index=0;
-  for(i=0;i<MD_str.length();i++)
+  for(unsigned long i=0;i<MD_str.length();i++)
     {
       if(MD_str[i]=='^')
 	{
@@ -451,7 +451,7 @@ int GetReadLengthFromBamFile(const string Bamfile)
 
   //
   int sum=0;
-  for(i=0;i<read_length_set.size();i++) sum+=read_length_set[i];
+  for(unsigned long i=0;i<read_length_set.size();i++) sum+=read_length_set[i];
 
   if(read_length_set.size()==0) {cerr<<"Error: Can't set read length because the number of reads from ChIP sample is less than "<<to_string(PEAK_INFO_STEP)<<endl;exit(0);}
   if(sum==0) {cerr<<"Error: Zero read length for the first "<<to_string(PEAK_INFO_STEP)<<" reads of ChIP sample"<<endl;exit(0);}
@@ -558,7 +558,7 @@ void ReadInputBamfile(const vector<BedRegion> &peakbedregion_set,const string In
       uint8_t *MD=bam_aux_get(s,aux,aux_size,"MD");
       uint8_t *nm=bam_aux_get(s,aux,aux_size,"NM");
       int32_t nm_i=bam_aux2i(nm);
-      if(MD==(uint8_t)0) {cerr<<"Error:Can't get MD flag: "<<read_name<<endl;exit(0);}//e.g. CTCF after GATK MONK:252:D1AB6ACXX:1:1202:4974:74864 no MD flag
+      if(*MD==(uint8_t)0) {cerr<<"Error:Can't get MD flag: "<<read_name<<endl;exit(0);}//e.g. CTCF after GATK MONK:252:D1AB6ACXX:1:1202:4974:74864 no MD flag
 
 
       //get ref seq
@@ -742,7 +742,7 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
       uint8_t *MD=bam_aux_get(s,aux,aux_size,"MD");
       uint8_t *nm=bam_aux_get(s,aux,aux_size,"NM");
       int32_t nm_i=bam_aux2i(nm);
-      if(MD==(uint8_t)0) {cerr<<"Error: Can't get MD flag: "<<read_name<<endl;exit(0);}//e.g. CTCF after GATK MONK:252:D1AB6ACXX:1:1202:4974:74864 no MD flag
+      if(*MD==(uint8_t)0) {cerr<<"Error: Can't get MD flag: "<<read_name<<endl;exit(0);}//e.g. CTCF after GATK MONK:252:D1AB6ACXX:1:1202:4974:74864 no MD flag
 
       //get ref seq
       string revisedseq,revisedbq;//compared to ref genome, if has deletion, use '--'; if has insertion, do not show the insertion seq;
@@ -855,7 +855,7 @@ void GetReverseComplementary(const string &input,string &output)
   output=input;
 
   int length=input.size();
-  for(int i=0;i<input.size();i++)
+  for(unsigned long i=0;i<input.size();i++)
     {
       if(input[i]=='A') output[length-i-1]='T';
       else if(input[i]=='C') output[length-i-1]='G';
@@ -885,11 +885,11 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 
   //
   string extendrefseq=PeakBamInfor[0].refseq;
-  int extendref_start=PeakBamInfor[0].start;//sam format
-  int extendref_end=PeakBamInfor[0].end;//sam format
+  unsigned long extendref_start=PeakBamInfor[0].start;//sam format
+  unsigned long extendref_end=PeakBamInfor[0].end;//sam format
   int index_old=0;
 
-  for(i=0;i<PeakBamInfor.size();i++)
+  for(unsigned long i=0;i<PeakBamInfor.size();i++)
     {
       BamInfor mybaminfor=PeakBamInfor[i];
 
@@ -926,8 +926,8 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 
   //
   string extendrefseq_input;
-  int extendref_input_start=0;
-  int extendref_input_end=0;//sam format
+  unsigned long extendref_input_start=0;
+  unsigned long extendref_input_end=0;//sam format
   index_old=0;
   if(PeakInputBamInfor.size()>0)
     {
@@ -936,7 +936,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
       extendref_input_end=PeakInputBamInfor[0].end;
     }
 
-  for(i=0;i<PeakInputBamInfor.size();i++)
+  for(unsigned long i=0;i<PeakInputBamInfor.size();i++)
     {
       BamInfor mybaminfor=PeakInputBamInfor[i];
 
@@ -976,11 +976,11 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   if(extendrefseq_input.size()>0) {if(extendref_input_end-extendref_input_start+1 != extendrefseq_input.size()) {cerr<<"Error: Can't read reference seq for input: "<<endl;exit(0);}}
 
   map<int,char> pos2ref;
-  for(i=0;i<extendrefseq.size();i++)
+  for(unsigned long i=0;i<extendrefseq.size();i++)
     {
       pos2ref[extendref_start++]=extendrefseq[i];
     }
-  for(i=0;i<extendrefseq_input.size();i++)
+  for(unsigned long i=0;i<extendrefseq_input.size();i++)
     {
       if(extendrefseq_input[i]!='N') pos2ref[extendref_input_start++]=extendrefseq_input[i];
       else extendref_input_start++;
@@ -1045,7 +1045,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   vector<vector<int> > contigcoor;//if there is insertion, the coor is -1;
 
   bool btemp=false;
-  for(i=0;i<contigseq_set.size();i++)
+  for(unsigned long i=0;i<contigseq_set.size();i++)
     {
       seq_pair problem1,problem2;
       seq_pair result1,result2;
@@ -1071,7 +1071,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 
       //
       string myrefseq_noinsert;
-      for(j=0;j<myrefseq.size();j++)
+      for(unsigned long j=0;j<myrefseq.size();j++)
 	{
 	  if(myrefseq[j]!='-') myrefseq_noinsert.push_back(myrefseq[j]);
 	}
@@ -1090,12 +1090,12 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
       //
       int itemp1=0;
       int itemp2=0;
-      for(j=0;j<mycontigseq.size();j++)
+      for(unsigned long j=0;j<mycontigseq.size();j++)
 	{
 	  if(mycontigseq[j]!='-') break;
 	  itemp1++;
 	}
-      for(j=mycontigseq.size()-1;j>=0;j--)
+      for(int j=mycontigseq.size()-1;j>=0;j--)
 	{
 	  if(mycontigseq[j]!='-') break;
 	  itemp2++;
@@ -1107,12 +1107,12 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
       refseq.push_back(myrefseq.substr(itemp1,mycontigseq.size()-itemp2-itemp1));
     }
 
-  for(i=0;i<contigseq.size();i++)
+  for(unsigned long i=0;i<contigseq.size();i++)
     {
       vector<int> mycontigcoor;
 
       int ia=refstart[i]-1;
-      for(j=0;j<refseq[i].size();j++)
+      for(unsigned long j=0;j<refseq[i].size();j++)
 	{
 	  if(refseq[i][j]=='-') mycontigcoor.push_back(-1);
 	  else {++ia;mycontigcoor.push_back(ia);}
@@ -1127,11 +1127,11 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   map<int,char> snvpos2refallele;
   map<int,vector<char> > snvpos2contigNTs;//maybe there is redundant NTs
 
-  for(i=0;i<refstart.size();i++)
+  for(unsigned long i=0;i<refstart.size();i++)
     {
       int pos=refstart[i];
 
-      for(j=0;j<refseq[i].size();j++)
+      for(unsigned long j=0;j<refseq[i].size();j++)
 	{
 	  if(refseq[i][j]=='-') continue;
 	  if(refseq[i][j]=='N') {pos++;continue;}
@@ -1176,7 +1176,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   vector<string> readsseq,readsbq,inputreadsseq,inputreadsbq;
   vector<vector<int> > readscoor,inputreadscoor;//only select reads overlapped with snvs, and coor seq are the same as contig
 
-  for(i=0;i<PeakBamInfor.size();i++)
+  for(unsigned long i=0;i<PeakBamInfor.size();i++)
     {
       string revisedseq,revisedbq;
       vector<int> revisedcoor;
@@ -1186,7 +1186,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
       readscoor.push_back(revisedcoor);
     }
 
-  for(i=0;i<PeakInputBamInfor.size();i++)
+  for(unsigned long i=0;i<PeakInputBamInfor.size();i++)
     {
       string revisedseq,revisedbq;
       vector<int> revisedcoor;
@@ -1199,7 +1199,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   //Fill snv infor: ChIP reads infor
   vector<int>::iterator it;
   btemp=false;
-  for(i=0;i<readscoor.size();i++)
+  for(unsigned long i=0;i<readscoor.size();i++)
     {
       for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
 	{
@@ -1223,7 +1223,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 
   //Fill snv infor: Input reads infor
   btemp=false;
-  for(i=0;i<inputreadscoor.size();i++)
+  for(unsigned long i=0;i<inputreadscoor.size();i++)
     {
       for(posmich=snvpos2refallele.begin();posmich!=snvpos2refallele.end();++posmich)
 	{
@@ -1254,7 +1254,8 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 
 void GetReadSeqCoor(const string seq,const string bq,const int startpos,const string cigar,string &revisedseq,string &revisedbq,vector<int> &revisedcoor)
 {
-  int i,j,itemp;
+  unsigned long i;
+  int j,itemp;
 
   revisedseq=seq;
   revisedbq=bq;
@@ -1465,7 +1466,7 @@ void FillControlQualInfor(const int snvpos,const char readnt,const char readbq,m
 
 bool ConsistentWithContig(const vector<int> &readscoor,const string &readsseq,vector<vector<int> > &contigcoor,const vector<string> &contigseq)
 {
-  int i,j;
+  unsigned long i,j;
   bool btemp=false;
   vector<int>::iterator it;
 
@@ -1497,7 +1498,7 @@ bool ConsistentWithContig(const vector<int> &readscoor,const string &readsseq,ve
 
 void OutputVcfResultHasInput(const string outputfile,const string regionchr,map<int,PosReadsInfor> &pos2Readsinfo)
 {
-  int i;
+  unsigned long i;
 
   //output
   ofstream os(outputfile.c_str(),ofstream::app);

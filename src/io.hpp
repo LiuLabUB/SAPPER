@@ -48,16 +48,16 @@ struct BamInfor
 {
 	string readname;
 	string chr;
-	int start;//1-base
-	int end;
-	int firstsegment;//0: SE, 1: PE /1, 2 PE /2
+	unsigned long start;//1-base
+	unsigned long end;
+	unsigned short firstsegment;//0: SE, 1: PE /1, 2 PE /2
 	bool reversestrand;//true: -, false: +
-	int mapq;
+	unsigned int mapq;
 	string cigar_old;
 	string cigar;//revised e.g. 20M81S --> 20M
 	string seq;
 	string bq;
-	int nm;
+	unsigned int nm;
 	string md;
 	string refseq;
 };

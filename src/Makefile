@@ -3,8 +3,9 @@ MAKE = make
 MKDIR = mkdir
 CPPC = g++ 
 CC = gcc
-CPPFLAGS = -g -Wall -O3
+CPPFLAGS = -g -Wall -O3 -ffast-math -std=c++11 -Wsign-compare
 CPPOBJS = io.o analysis.o swalign.o math.o call.o filter.o stat.o SAPPER_common.o
+LIBS=	-lpthread -lm -lz
 
 .PHONY:all
 
@@ -12,7 +13,7 @@ all: ${APPNAME}
 
 ${APPNAME}:$(CPPOBJS)
 	$(MAKE) -C fermi/
-	$(CPPC) $(CPPFLAGS) -lz -o ${APPNAME} $(CPPOBJS) main.cpp fermi/fermi.a
+	$(CPPC) $(CPPFLAGS) $(LIBS) -o $(APPNAME) $(CPPOBJS) main.cpp fermi/fermi.a
 
 math.o : math.cpp math.hpp
 	$(CPPC) -c $(CPPFLAGS) math.cpp
@@ -40,6 +41,6 @@ SAPPER_common.o : SAPPER_common.cpp SAPPER_common.hpp
 
 clean :
 	$(MAKE) -C fermi/ clean
-	-rm -f $(OBJS)
+	-rm -f $(CPPOBJS)
 	-rm -f $(APPNAME)
 
