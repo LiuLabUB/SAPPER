@@ -38,8 +38,9 @@ static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result
   int j    = S.n - 1;
   int k    = 0;
   string c,d;
-  int t;
-  for(t=0;t<S.m+S.n+1;t++) {c.push_back(' ');d.push_back(' ');}
+  unsigned long t;
+  
+  for(int m=0;i<S.m+S.n+1;m++) {c.push_back(' ');d.push_back(' ');}
 
   if (local == true) {
     int l, m;
@@ -126,7 +127,8 @@ void smith_waterman(seq_pair &problem, bool local, seq_pair &result) {
   int m = problem.a.length() + 1;
   int n = problem.b.length() + 1;
 
-  int i, j, k, l;
+  unsigned long i, j;
+  int k, l;
   int val;
   int itemp=0.0;
   int nw_score;

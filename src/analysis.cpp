@@ -3,7 +3,7 @@
 void CalModel_Homo(const vector<double> &top1qualprob,const vector<double> &inputtop1qualprob,const vector<double> &top2qualprob,const vector<double> &inputtop2qualprob,
 		double &lnL,double &BIC)
 {
-	int i;
+	unsigned long i;
 	lnL=0;
 
 	for(i=0;i<top1qualprob.size();i++) lnL+=log(1-top1qualprob[i]);
@@ -70,7 +70,7 @@ void CalModel_Heter_AS(const vector<double> &top1qualprob,const vector<double> &
 void CalModel_Homo(const vector<double> &top1qualprob,const vector<double> &top2qualprob,
 		double &lnL,double &BIC)
 {
-	int i;
+	unsigned long i;
 	lnL=0;
 
 	for(i=0;i<top1qualprob.size();i++) lnL+=log(1-top1qualprob[i]);
