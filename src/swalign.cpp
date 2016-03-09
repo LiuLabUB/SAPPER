@@ -40,7 +40,7 @@ static void traceback(seq_pair &problem, matrix &S, bool local, seq_pair &result
   string c,d;
   unsigned long t;
   
-  for(int m=0;i<S.m+S.n+1;m++) {c.push_back(' ');d.push_back(' ');}
+  for(t=0;t<S.m+S.n+1;t++) {c.push_back(' ');d.push_back(' ');}
 
   if (local == true) {
     int l, m;
