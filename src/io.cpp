@@ -456,7 +456,7 @@ int GetReadLengthFromBamFile(const string Bamfile)
   if(read_length_set.size()==0) {cerr<<"Error: Can't set read length because the number of reads from ChIP sample is less than "<<to_string(PEAK_INFO_STEP)<<endl;exit(0);}
   if(sum==0) {cerr<<"Error: Zero read length for the first "<<to_string(PEAK_INFO_STEP)<<" reads of ChIP sample"<<endl;exit(0);}
 
-  cout<<"Read length in ChIP sample, according to the first "<<read_length_set.size()<<" reads is: \t"<<sum/read_length_set.size()<<endl;
+  cout<<" Approximate read length in ChIP data, according to the first "<<read_length_set.size()<<" reads is: \t"<<sum/read_length_set.size()<<endl;
   return sum/read_length_set.size();
 }
 
@@ -648,7 +648,7 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 
   int PeakIndex=0;
 
-  cout<<"Number of peaks: "<<PeakNo<<endl;
+  cout<<" Total # of peaks: "<<PeakNo<<endl;
 
   string peakchr=peakbedregion_set[0].chr;
   int peakstart=peakbedregion_set[0].start;
@@ -684,6 +684,9 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
     }
 
   //read bam reads
+
+  cout << " # of peaks have been processed:" << endl;
+
   int i=0;
   do
     {
@@ -781,14 +784,14 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	      do
 		{
 		  PeakIndex++;
-		  if(PeakIndex%PEAK_INFO_STEP==0)
+		  if( (PeakIndex+1) %PEAK_INFO_STEP==0)
 		    {
 		      // remove (PeakIndex/100-1)*100 to (PeakIndex) files with .fastq and .mag suffix
 		      for (int remove_i = (PeakIndex/PEAK_INFO_STEP-1)*PEAK_INFO_STEP; remove_i < PeakIndex; remove_i ++ ){
 			remove((tmpfilefolder+"/" + to_string(remove_i+1) + ".fastq").c_str()) ;
 			remove((tmpfilefolder+"/" + to_string(remove_i+1) + "_p1.mag").c_str()) ;
 		      }
-		      cout<<"Finished reading ChIP BAM file in "<<PeakIndex<<" peaks"<<endl;
+		      cout<<" "<<PeakIndex + 1<<endl;
 		    }
 		  peakchr=peakbedregion_set[PeakIndex].chr;
 		  peakstart=peakbedregion_set[PeakIndex].start;
@@ -809,14 +812,14 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	  do
 	    {
 	      PeakIndex++;
-	      if(PeakIndex%PEAK_INFO_STEP==0)
+	      if( (PeakIndex+1) %PEAK_INFO_STEP==0)
 		{
 		  // remove (PeakIndex/100-1)*PEAK_INFO_STEP to (PeakIndex) files with .fastq and .mag suffix
 		  for (int remove_i = (PeakIndex/PEAK_INFO_STEP-1)*PEAK_INFO_STEP; remove_i < PeakIndex; remove_i++ ){
 		    remove((tmpfilefolder+"/" + to_string(remove_i+1) + ".fastq").c_str()) ;
 		    remove((tmpfilefolder+"/" + to_string(remove_i+1) + "_p1.mag").c_str()) ;
 		  }
-		  cout<<"Finished reading ChIP BAM file in "<<PeakIndex<<" peaks"<<endl;
+		  cout<<" "<<PeakIndex + 1<<endl;
 		}
 	      peakchr=peakbedregion_set[PeakIndex].chr;
 	      peakstart=peakbedregion_set[PeakIndex].start;
@@ -844,6 +847,7 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	remove((tmpfilefolder+"/" + to_string(remove_i+1) + "_p1.mag").c_str()) ;
       }
     }
+  cout<<" Last one:"<< PeakIndex + 1 <<endl;
 }
 
 void GetReverseComplementary(const string &input,string &output)

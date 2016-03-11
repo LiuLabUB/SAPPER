@@ -71,20 +71,24 @@ int main_call(int argc, char *argv[])
 
   //read peak region bed file
   vector<BedRegion> peakbedregion_set;//sorted by bam header chr order
+  cout<<"* Start to read regions defined in BED file..."<<endl;
   ReadPeakBedFile(Peakbedfile,Bamfile,peakbedregion_set);
-  cout<<"Finished reading ChIP-Seq peak BED file"<<endl;
+  cout<<" Finish reading BED file."<<endl;
   //read Input bam file
   vector<vector<BamInfor> > AllPeakInputBamInfor;
+  cout<<"* Start to read information within given regions from input BAM file..."<<endl;
   ReadInputBamfile(peakbedregion_set,InputBamfile,AllPeakInputBamInfor);
-  cout<<"Finished reading input BAM file"<<endl;
+  cout<<" Finish reading input BAM file."<<endl;
 
   //get the read length from the first 100 reads of bam file
   int ReadLength=GetReadLengthFromBamFile(Bamfile);
 
   //read bam file and calculate
   OutputVcfResultHasInput_header(OutputVcffile,argc,argv);
+  cout<<"* Start to read information within given regions from ChIP BAM file..."<<endl;
+  cout<<" Assemble Unitigs in each given region, call SNVs and write to VCF file..."<<endl;
   ReadBamfile(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,peakbedregion_set,Bamfile,AllPeakInputBamInfor,fermi_location,tmpfilefolder,OutputVcffile);
-  cout<<"All finished!"<<endl;
+  cout<<"* All done!"<<endl;
 
   // remove temp dir
   remove( ctmpfilefolder );
