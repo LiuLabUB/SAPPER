@@ -416,16 +416,16 @@ static ext_t assemble(int l, char *s, int max_len, char *const t[2])
 	memset(&e, 0, sizeof(ext_t));
 	//printf(">0\n");for(j=0;j<l-1;++j)if(s[j]==0)printf("\n>%d\n",j);else putchar("$ACGTN"[(int)s[j]]);putchar('\n');exit(0);
 	g = fm6_api_unitig(max_len/3. < 17? max_len/3. : 17, l, s);
-	mag_g_merge(g, 1); // FIXME: this to remove multi-edges, which is likely to introduce small scale errors...
+	mag_g_merge(g, 1, 30); // FIXME: this to remove multi-edges, which is likely to introduce small scale errors...
 	mag_g_rm_vext(g, max_len * 1.1, 4);
-	mag_g_simplify_bubble(g, 25, max_len * 2);
-	mag_g_pop_simple(g, 10., 0.15, 1); // FIXME: always agressive?
+	mag_g_simplify_bubble(g, 25, max_len * 2, 30);
+	mag_g_pop_simple(g, 10., 0.15, 1, 30); // FIXME: always agressive?
 	mag_g_rm_edge(g, 0, 0.8, max_len * 1.1, 5);
-	mag_g_merge(g, 1);
+	mag_g_merge(g, 1, 30);
 	mag_g_rm_vext(g, max_len * 1.1, 100);
-	mag_g_merge(g, 0);
-	mag_g_simplify_bubble(g, 25, max_len * 2);
-	mag_g_pop_simple(g, 10., 0.15, 1); // FIXME: always agressive?
+	mag_g_merge(g, 0, 30);
+	mag_g_simplify_bubble(g, 25, max_len * 2, 30);
+	mag_g_pop_simple(g, 10., 0.15, 1, 30); // FIXME: always agressive?
 	for (j = max_len = 0, max_j = -1; j < g->v.n; ++j)
 		if (g->v.a[j].len > max_len)
 			max_len = g->v.a[j].len, max_j = j;

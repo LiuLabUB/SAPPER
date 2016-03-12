@@ -162,7 +162,7 @@ void mag_vh_simplify_bubble(mag_t *g, uint64_t idd, int max_vtx, int max_dist, m
 	}
 }
 
-void mag_g_simplify_bubble(mag_t *g, int max_vtx, int max_dist)
+void mag_g_simplify_bubble(mag_t *g, int max_vtx, int max_dist, int min_merge_len)
 {
 	int64_t i;
 	mogb_aux_t *a;
@@ -172,7 +172,7 @@ void mag_g_simplify_bubble(mag_t *g, int max_vtx, int max_dist)
 		mag_vh_simplify_bubble(g, i<<1|1, max_vtx, max_dist, a);
 	}
 	mag_b_destroyaux(a);
-	mag_g_merge(g, 0);
+	mag_g_merge(g, 0, min_merge_len);
 }
 
 void mag_vh_pop_simple(mag_t *g, uint64_t idd, float max_cov, float max_frac, int aggressive)
@@ -247,14 +247,14 @@ void mag_vh_pop_simple(mag_t *g, uint64_t idd, float max_cov, float max_frac, in
 	free(seq[0]); free(seq[1]);
 }
 
-void mag_g_pop_simple(mag_t *g, float max_cov, float max_frac, int aggressive)
+void mag_g_pop_simple(mag_t *g, float max_cov, float max_frac, int aggressive, int min_merge_len)
 {
 	int64_t i;
 	for (i = 0; i < g->v.n; ++i) {
 		mag_vh_pop_simple(g, i<<1|0, max_cov, max_frac, aggressive);
 		mag_vh_pop_simple(g, i<<1|1, max_cov, max_frac, aggressive);
 	}
-	mag_g_merge(g, 0);
+	mag_g_merge(g, 0, min_merge_len);
 }
 
 /****************
@@ -341,10 +341,10 @@ void mag_v_pop_open(mag_t *g, magv_t *p, int min_elen)
 	if (i == s->n) mag_v_del(g, p); // p is not connected to any other vertices
 }
 
-void mag_g_pop_open(mag_t *g, int min_elen)
+void mag_g_pop_open(mag_t *g, int min_elen, int min_merge_len)
 {
 	int64_t i;
 	for (i = 0; i < g->v.n; ++i)
 		mag_v_pop_open(g, &g->v.a[i], min_elen);
-	mag_g_merge(g, 0);
+	mag_g_merge(g, 0, min_merge_len);
 }

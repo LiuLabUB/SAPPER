@@ -6,7 +6,7 @@
 
 //modified from Heng Li's example.c of fermi software.
 
-void assemble( char * infq, char * outfq, int unitig_k )
+void assemble( char * infq, char * outfq, int unitig_k, int merge_min_len )
 {
   int ec_k = -1;
   char *seq, *qual;
@@ -20,6 +20,7 @@ void assemble( char * infq, char * outfq, int unitig_k )
   g = fm6_api_unitig(unitig_k, l, seq);
   magopt_t *opt = mag_init_opt();
   opt->flag |= MOG_F_CLEAN;
+  opt->min_merge_len = merge_min_len;
   mag_g_clean(g, opt);
   free(opt);
   mag_g_fprint(g, fp);

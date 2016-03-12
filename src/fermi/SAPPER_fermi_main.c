@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
 	magopt_t *opt = mag_init_opt();
 	//opt->flag |= MOG_F_AGGRESSIVE | MOG_F_CLEAN;
 	opt->flag |= MOG_F_CLEAN;
+	opt->min_merge_len = 30;
+	mag_g_clean(g, opt);
 	free(opt);
 	mag_g_fprint(g, fp);
 	mag_g_destroy(g);

@@ -296,7 +296,7 @@ mag_t *mag_g_read(const char *fn, const magopt_t *opt)
 		fprintf(stderr, "[M::%s] amended the graph in %.3f sec.\n", __func__, cputime() - t);
 	}
 	g->rdist = mag_cal_rdist(g);
-	if (opt->flag & MOG_F_READnMERGE) mag_g_merge(g, 1);
+	if (opt->flag & MOG_F_READnMERGE) mag_g_merge(g, 1, opt->min_merge_len);
 	return g;
 }
 
@@ -418,7 +418,7 @@ void mag_v_flip(mag_t *g, magv_t *p)
  * Unambiguous merge *
  *********************/
 
-int mag_vh_merge_try(mag_t *g, magv_t *p) // merge p's neighbor to the right-end of p
+int mag_vh_merge_try(mag_t *g, magv_t *p, int min_merge_len) // merge p's neighbor to the right-end of p
 {
 	magv_t *q;
 	khint_t kp, kq;
@@ -428,6 +428,8 @@ int mag_vh_merge_try(mag_t *g, magv_t *p) // merge p's neighbor to the right-end
 	// check if an unambiguous merge can be performed
 	if (p->nei[1].n != 1) return -1; // multiple or no neighbor; do not merge
 	if ((int64_t)p->nei[1].a[0].x < 0) return -2;
+	printf("%d\n", (int)p->nei[1].a[0].y);
+	if ((int)p->nei[1].a[0].y < min_merge_len) return -5;
 	kq = kh_get(64, g->h, p->nei[1].a[0].x);
 	assert(kq != kh_end(h)); // otherwise the neighbor is non-existant
 	q = &g->v.a[kh_val((hash64_t*)g->h, kq)>>1];
@@ -474,7 +476,7 @@ int mag_vh_merge_try(mag_t *g, magv_t *p) // merge p's neighbor to the right-end
 	return 0;
 }
 
-void mag_g_merge(mag_t *g, int rmdup)
+void mag_g_merge(mag_t *g, int rmdup, int min_merge_len)
 {
 	int i;
 	for (i = 0; i < g->v.n; ++i) { // remove multiedges; FIXME: should we do that?
@@ -489,9 +491,9 @@ void mag_g_merge(mag_t *g, int rmdup)
 	for (i = 0; i < g->v.n; ++i) {
 		magv_t *p = &g->v.a[i];
 		if (p->len < 0) continue;
-		while (mag_vh_merge_try(g, p) == 0);
+		while (mag_vh_merge_try(g, p, min_merge_len) == 0);
 		mag_v_flip(g, p);
-		while (mag_vh_merge_try(g, p) == 0);
+		while (mag_vh_merge_try(g, p, min_merge_len) == 0);
 	}
 }
 
@@ -617,6 +619,7 @@ magopt_t *mag_init_opt()
 	o->n_iter = 3;
 	o->min_elen = 300;
 	o->min_ovlp = 60;
+	o->min_merge_len = 0; //add this from fermi2
 	o->min_ensr = 4;
 	o->min_insr = 3;
 	o->min_dratio1 = 0.8;
@@ -642,31 +645,31 @@ void mag_g_clean(mag_t *g, const magopt_t *opt)
 		t = cputime();
 		mag_g_rm_edge(g, opt->min_ovlp * r, opt->min_dratio1 * r, opt->min_elen, opt->min_ensr);
 		mag_g_rm_vext(g, opt->min_elen * r, opt->min_ensr * r > 2.? opt->min_ensr * r > 2. : 2);
-		mag_g_merge(g, 1);
+		mag_g_merge(g, 1, opt->min_merge_len);
 		if (fm_verbose >= 3)
 			fprintf(stderr, "[M::%s] finished simple graph simplification round %d in %.3f sec.\n", __func__, j+1, cputime() - t);
 	}
 	t = cputime();
 	for (j = 0; j < opt->n_iter; ++j) {
 		mag_g_rm_vext(g, opt->min_elen, opt->min_ensr);
-		mag_g_merge(g, 0);
+		mag_g_merge(g, 0, opt->min_merge_len);
 	}
 	if (fm_verbose >= 3)
 		fprintf(stderr, "[M::%s] finished another %d rounds of tip removal in %.3f sec.\n", __func__, opt->n_iter, cputime() - t);
 	if (opt->flag & MOG_F_AGGRESSIVE) {
 		t = cputime();
-		mag_g_pop_open(g, opt->min_elen);
+		mag_g_pop_open(g, opt->min_elen, opt->min_merge_len);
 		if (fm_verbose >= 3)
 			fprintf(stderr, "[M::%s] popped open bubbles in %.3f sec.\n", __func__, cputime() - t);
 	}
 	if (!(opt->flag & MOG_F_NO_SIMPL)) {
 		t = cputime();
-		mag_g_simplify_bubble(g, opt->max_bvtx, opt->max_bdist);
+		mag_g_simplify_bubble(g, opt->max_bvtx, opt->max_bdist, opt->min_merge_len);
 		if (fm_verbose >= 3)
 			fprintf(stderr, "[M::%s] simplified complex bubbles in %.3f sec.\n", __func__, cputime() - t);
 	}
 	t = cputime();
-	mag_g_pop_simple(g, opt->max_bcov, opt->max_bfrac, opt->flag & MOG_F_AGGRESSIVE);
+	mag_g_pop_simple(g, opt->max_bcov, opt->max_bfrac, opt->flag & MOG_F_AGGRESSIVE, opt->min_merge_len);
 	if (fm_verbose >= 3)
 		fprintf(stderr, "[M::%s] popped closed bubbles in %.3f sec.\n", __func__, cputime() - t);
 	if (opt->min_insr >= 2) {
@@ -674,15 +677,15 @@ void mag_g_clean(mag_t *g, const magopt_t *opt)
 		mag_g_rm_vint(g, opt->min_elen, opt->min_insr, g->min_ovlp);
 		mag_g_rm_edge(g, opt->min_ovlp, opt->min_dratio1, opt->min_elen, opt->min_ensr);
 		mag_g_rm_vext(g, opt->min_elen, opt->min_ensr);
-		mag_g_merge(g, 1);
+		mag_g_merge(g, 1, opt->min_merge_len);
 		if (fm_verbose >= 3)
 			fprintf(stderr, "[M::%s] removed interval low-cov vertices in %.3f sec.\n", __func__, cputime() - t);
 	}
 	t = cputime();
-	if (opt->flag & MOG_F_AGGRESSIVE) mag_g_pop_open(g, opt->min_elen);
+	if (opt->flag & MOG_F_AGGRESSIVE) mag_g_pop_open(g, opt->min_elen, opt->min_merge_len);
 	else {
 		mag_g_rm_vext(g, opt->min_elen, opt->min_ensr);
-		mag_g_merge(g, 0);
+		mag_g_merge(g, 0, opt->min_merge_len);
 	}
 	if (fm_verbose >= 3)
 		fprintf(stderr, "[M::%s] coverage based graph cleanup in %.3f sec.\n", __func__, cputime() - t);

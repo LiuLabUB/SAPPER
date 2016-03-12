@@ -872,6 +872,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   if(PeakBamInfor.size()==0) return;
 
   const int Fermi_overlap_par=(int)(ReadLength*Fermi_overlap_minpercent);
+  const int Fermi_merge_overlap=(int)(ReadLength*0.75)+1;
 
   int i,j;
   string sbuf;
@@ -1017,7 +1018,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   p1_mag = tmpfilefolder+"/"+to_string(PeakIndex+1)+"_p1.mag";
   string cmdstring;
   // call fermi function
-  assemble( (char*)ss1.c_str(), (char*)p1_mag.c_str(), Fermi_overlap_par);
+  assemble( (char*)ss1.c_str(), (char*)p1_mag.c_str(), Fermi_overlap_par, Fermi_merge_overlap);
 
   //read contig
   vector<string> contigname_set;
