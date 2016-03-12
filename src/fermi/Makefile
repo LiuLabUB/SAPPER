@@ -7,14 +7,22 @@ OBJS=	utils.o seq.o ksa.o ksa64.o rld.o exact.o merge.o sub.o correct.o \
 	build.o smem.o unitig.o seqsort.o cmp.o\
 	ksw.o mag.o bubble.o scaf.o bcr.o bprope6.o ropebwt.o SAPPER_wrapper.o
 FERMIA= fermi.a
+PROG=		SAPPER_fermi
+INCLUDES=	
+LIBS=		-lpthread -lm -lz
 
 .SUFFIXES:.c .o
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
-all:$(OBJS)
+all:$(FERMIA) $(PROG)
+
+$(FERMIA): $(OBJS)
 	ar -cq $(FERMIA) $(OBJS)	
+
+$(PROG):$(FERMIA) SAPPER_fermi_main.c
+	$(CC) $(CFLAGS) $(DFLAGS) $(FERMIA) SAPPER_fermi_main.c -o $@ $(LIBS)
 
 ksa64.o:ksa.c
 	$(CC) -c $(CFLAGS) -D_KSA64 $(DFLAGS) ksa.c -o $@

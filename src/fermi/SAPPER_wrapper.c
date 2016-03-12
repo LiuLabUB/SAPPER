@@ -25,5 +25,6 @@ void assemble( char * infq, char * outfq, int unitig_k )
   mag_g_fprint(g, fp);
   mag_g_destroy(g);
   free(seq);
+  fclose(fp);
   return;
 }

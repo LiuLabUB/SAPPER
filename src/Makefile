@@ -11,9 +11,11 @@ LIBS=	-lpthread -lm -lz
 
 all: ${APPNAME}
 
-${APPNAME}:$(CPPOBJS)
-	$(MAKE) -C fermi/
+${APPNAME}:$(CPPOBJS) fermi/fermi.a
 	$(CPPC) $(CPPFLAGS) $(LIBS) -o $(APPNAME) $(CPPOBJS) main.cpp fermi/fermi.a
+
+fermi/fermi.a: fermi/*.c
+	$(MAKE) -C fermi/
 
 math.o : math.cpp math.hpp
 	$(CPPC) -c $(CPPFLAGS) math.cpp
