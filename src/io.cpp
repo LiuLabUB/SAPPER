@@ -872,7 +872,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   if(PeakBamInfor.size()==0) return;
 
   const int Fermi_overlap_par=(int)(ReadLength*Fermi_overlap_minpercent);
-  const int Fermi_merge_overlap=(int)(ReadLength*0.75)+1;
+  const int Fermi_merge_overlap=(int)(ReadLength*0.8)+1;
 
   int i,j;
   string sbuf;
