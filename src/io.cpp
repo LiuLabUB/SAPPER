@@ -873,6 +873,8 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
 
   const int Fermi_overlap_par=(int)(ReadLength*Fermi_overlap_minpercent);
   const int Fermi_merge_overlap=(int)(ReadLength*0.8)+1;
+  if (ReadLength < 70 && Fermi_overlap_minpercent < 0.8)
+    cerr<<"Warning: since the read length is less than 70, we suggest you set a higher '-p'!";
 
   int i,j;
   string sbuf;

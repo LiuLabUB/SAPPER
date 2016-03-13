@@ -35,7 +35,9 @@ int main_call(int argc, char *argv[])
     cerr<<"                    <-o output.vcf>                 output vcf file\n\n";
     cerr<<"Options:\n"
     	<<"                    [-p FermiOverlapMinRatio]       The minimal ratio of a read to be overlapped during local assembly.\n"
-    	<<"                                                    (Default:0.5 which means half of the read). Must be a float between 0 and 1\n"
+    	<<"                                                    (Default:0.5 which means a half of the read). Must be a float between 0 and 1\n"
+        <<"                                                    Note: if the read length is short (<70bps), please set a higher ratio such as\n"
+        <<"                                                    0.8, otherwise there may be errors during local assemble!\n"
     	<<"                    [-q top2ntMinRatio]             The reads for the top 2 most frequent nucleotides at a loci shouldn't be too\n"
 	<<"                                                    few comparing to total reads mapped there. The minimum ratio is set here.\n"
 	<<"                                                    (Default:0.8 which means at least 80% of reads contain the top 2 nucleostides).\n"
