@@ -1,5 +1,6 @@
 #include "io.hpp"
 #include <cstdio>
+#include <thread>
 // include header for fermi wrapper
 #include "fermi/SAPPER_wrapper.h"
 
@@ -20,6 +21,8 @@ const char seq_nt16_str[] = "=ACMGRSVTWYHKDBN";
 
 //By default, read 100 peaks, assign CHIP reads and assemble them then clean the temporary directory.
 #define PEAK_INFO_STEP 100
+
+using namespace std;
 
 static inline int aux_type2size(uint8_t type)
 {
@@ -778,7 +781,8 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	  if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
 	  else if(readstart>peakend)
 	    {
-	      AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+	      thread t1(AssembleAndSNVAS, top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+	      t1.join();
 	      PeakBamInfor.clear();
 
 	      do
@@ -806,7 +810,8 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	}
       else
 	{
-	  AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+	  thread t1( AssembleAndSNVAS, top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+	  t1.join();
 	  PeakBamInfor.clear();
 
 	  do
@@ -837,7 +842,8 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 
   if(!PeakBamInfor.empty())
     {
-      AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+      thread t1(AssembleAndSNVAS, top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+      t1.join();
       PeakBamInfor.clear();
 
       // remove (PeakIndex/100-1)*100 to (PeakIndex) files with .fastq and .mag suffix
