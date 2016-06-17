@@ -1,6 +1,8 @@
 #include "io.hpp"
 #include <cstdio>
-#include <thread>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 // include header for fermi wrapper
 #include "fermi/SAPPER_wrapper.h"
 
@@ -781,8 +783,21 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	  if(readend>=peakstart && readstart<=peakend) PeakBamInfor.push_back(mybaminfor);
 	  else if(readstart>peakend)
 	    {
-	      thread t1(AssembleAndSNVAS, top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
-	      t1.join();
+	      pid_t child_id = fork();
+	      if (child_id == -1) {
+		cout <<"Can't create process!";
+		exit(1);
+	      } else if (child_id == 0) {
+		AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+		_exit(0);
+	      } else {
+		int child_exit_status;
+		wait(&child_exit_status);
+		if (child_exit_status != 0) {
+		  cerr << "Assembly failed for peak #" << PeakIndex << endl;
+		}
+	      }
+		
 	      PeakBamInfor.clear();
 
 	      do
@@ -810,8 +825,20 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 	}
       else
 	{
-	  thread t1( AssembleAndSNVAS, top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
-	  t1.join();
+	  pid_t child_id = fork();
+	  if (child_id == -1) {
+	    cout <<"Can't create process!";
+	    exit(1);
+	  } else if (child_id == 0) {
+	    AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+	    _exit(0);
+	  } else {
+	    int child_exit_status;
+	    wait(&child_exit_status);
+	    if (child_exit_status != 0) {
+	      cerr << "Assembly failed for peak " << PeakIndex << endl;
+	    }
+	  }
 	  PeakBamInfor.clear();
 
 	  do
@@ -842,8 +869,20 @@ void ReadBamfile(const double top2nt_minpercent,const double Fermi_overlap_minpe
 
   if(!PeakBamInfor.empty())
     {
-      thread t1(AssembleAndSNVAS, top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
-      t1.join();
+      pid_t child_id = fork();
+      if (child_id == -1) {
+	cout <<"Can't create process!";
+	exit(1);
+      } else if (child_id == 0) {
+	AssembleAndSNVAS(top2nt_minpercent,Fermi_overlap_minpercent,ReadLength,fermi_location,tmpfilefolder,OutputVcffile,PeakIndex,peakbedregion_set[PeakIndex].chr,PeakBamInfor,AllPeakInputBamInfor[PeakIndex]);
+	_exit(0);
+      } else {
+	int child_exit_status;
+	wait(&child_exit_status);
+	if (child_exit_status != 0) {
+	  cerr << "Assembly failed for peak " << PeakIndex << endl;
+	}
+      }
       PeakBamInfor.clear();
 
       // remove (PeakIndex/100-1)*100 to (PeakIndex) files with .fastq and .mag suffix
@@ -878,7 +917,7 @@ void AssembleAndSNVAS(const double top2nt_minpercent,const double Fermi_overlap_
   if(PeakBamInfor.size()==0) return;
 
   const int Fermi_overlap_par=(int)(ReadLength*Fermi_overlap_minpercent);
-  const int Fermi_merge_overlap=(int)(ReadLength*0.8)+1;
+  const int Fermi_merge_overlap=(int)(ReadLength*0.75)+1;
   if (ReadLength < 70 && Fermi_overlap_minpercent < 0.8)
     cerr<<"Warning: since the read length is less than 70, we suggest you set a higher '-p'!";
 

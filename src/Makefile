@@ -11,7 +11,7 @@ LIBS=	-lpthread -lm -lz
 
 all: ${APPNAME}
 
-${APPNAME}:$(CPPOBJS) fermi/fermi.a
+${APPNAME}:main.cpp $(CPPOBJS) fermi/fermi.a
 	$(CPPC) $(CPPFLAGS) $(LIBS) -o $(APPNAME) $(CPPOBJS) main.cpp fermi/fermi.a
 
 fermi/fermi.a: fermi/*.c

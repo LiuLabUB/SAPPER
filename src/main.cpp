@@ -20,7 +20,7 @@ int main(int argc,char *argv[])
   
   if (argc == 1) {
     cerr<<"Program: SAPPER (call SNV and allele-specific events from ChIP-seq data)\n";
-    cerr<<"Version: 0.1\n";
+    cerr<<"Version: 0.2\n";
     cerr<<"Contacts: Liqing Tian <liqingti@buffalo.edu> & Tao Liu <tliu4@buffalo.edu>\n\n";
     cerr<<"Usage:   SAPPER <command> [arguments]\n\n";
     cerr<<"Command: call     Call all possible SNVs\n";
@@ -37,6 +37,7 @@ int main(int argc,char *argv[])
     cerr<<"Unrecognized command.\n";
     return -1;
   }
+  cout << "SAPPER finished normally." <<endl;
   return ret;
 }
 
