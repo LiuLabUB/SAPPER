@@ -6,11 +6,10 @@ fermi (https://github.com/lh3/fermi/)::
 
  $ make
 
-You will have executable binary files 'SAPPER_fermi' (our modifed
-'fermi'), and 'SAPPER' in the 'bin' subdirectory. Now
+You will have executable binary files 'SAPPER' in the current directory. Now
 copy/move them to one of your PATH such as /usr/loca/bin::
 
- $ mv bin/* /usr/local/bin
+ $ mv SAPPER /usr/local/bin
 
 Usage
 =====
@@ -191,5 +190,5 @@ cutoffs is arbitrary. We recommand minimum depth of 10, and minimum GQ
 
 Release Notes
 =============
-Release 0.1 (2015-08-14)
+Release 0.2 (2016-06-14)
 This is the first public release of SAPPER.
