@@ -28,7 +28,7 @@ BEDFILE="Target.bed";
 MINDEPTH=20
 
 # Minimum Genotype Quality Score cutoff for heterozygous loci
-MINHETEROGQ=50
+MINHETEROGQ=100
 
 # Minimum Genotype Quality Score cutoff for homozygous loci
 MINHOMOGQ=10
