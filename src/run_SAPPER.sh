@@ -22,7 +22,7 @@ MODE="PE";
 # BAMPE' here if you are dealing with PE data, it will be set
 # according to your previous MODE setting. If you plan to use "PE"
 # MODE, you have to set '--broad-cutoff' together with '-q' or '-p'.
-MACS2EXTPARAM="-g hs -q 0.05 --fe-cutoff 5";
+MACS2EXTPARAM="-g hs -q 0.01 --fe-cutoff 2";
 #MACS2EXTPARAM="-g hs --broad-cutoff 0.1 -p 0.05 --fe-cutoff 5"; # this is for broad peak calling
 
 # For broad region calling, use 'broad'; for narrow peak calling, use
@@ -35,7 +35,7 @@ MACS2MODE="narrow";
 MINDEPTH=20
 
 # Minimum Genotype Quality Score cutoff for heterozygous loci
-MINHETEROGQ=50
+MINHETEROGQ=100
 
 # Minimum Genotype Quality Score cutoff for homozygous loci
 MINHOMOGQ=10
