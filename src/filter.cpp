@@ -12,7 +12,7 @@ int main_filter(int argc,char *argv[])
 {
   int c;
   int depthcutoff = 20;
-  int GQcutoff = 50;
+  int GQcutoff = 100;
   string type, ifile, ofile;
 
   while ((c = getopt(argc, argv, "i:d:q:t:o:")) >= 0) {
@@ -40,8 +40,8 @@ int main_filter(int argc,char *argv[])
 	<<"                                    hetero_nonAS: heterozygous SNV with non allele-specific binding\n"
 	<<"Options:\n"
 	<<"    [-d depthCutoff]        Keep the SNVs with read depth >= depthCutoff (Default:20). Must be a positive integer\n" 
-	<<"    [-q GQCutoff]           Genotype quality cutoff. (Recommend: 50 for heterozygous SNVs and 10 for\n"
-	<<"                            homozygous SNVs. Default: 50) Must be a positive integer.\n";
+	<<"    [-q GQCutoff]           Genotype quality cutoff. (Recommend: 100 for heterozygous SNVs and 10 for\n"
+	<<"                            homozygous SNVs. Default: 100) Must be a positive integer.\n";
     return 1;
   }
   string sbuf,INFO,s1,s2,s3,s4,s5,s6,s7,s8,s9;
