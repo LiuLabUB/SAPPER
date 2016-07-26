@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2010 Nicolaus Lance Hepler
+ *  Copyright (c) 2016 Modified by Liqing Tian <liqingti@buffalo.edu>
  *
  *  Permission is hereby granted, free of charge, to any person
  *  obtaining a copy of this software and associated documentation
