@@ -184,8 +184,8 @@ specific binding; 4) heterozygous SNVs with allele-specific binding:
       $ SAPPER filter -i sample.vcf -d MINDEPTH -t heter_noAS -q MINCUTOFF -o sample_heterNonAS_afterfilter.vcf
 
 The selection of minimum depth and minimum genotype quality score
-cutoffs is arbitrary. We recommand minimum depth of 10, and minimum GQ
-50 for heterozygous SNVs and 10 for homozygous SNVs.
+cutoffs is arbitrary. We recommand minimum depth of 20, and minimum GQ
+100 for heterozygous SNVs and 10 for homozygous SNVs.
 
 
 Release Notes
