@@ -28,11 +28,11 @@ void ExtractInfor(const string INFO,string &predicttype,string &top2NT,vector<in
 	int GQ_homo=0,GQ_heter_noAS=0,GQ_heter_AS=0;
 	for(i=0;i<vstemp.size();i++)
 	{
-		if(vstemp[i].substr(0,3)=="DP_")
-		{
-			if(vstemp[i].substr(0,8)=="DP_ChIP=") ChIPseq_depth=atoi(vstemp[i].substr(8).c_str());
-			else if(vstemp[i].substr(0,9)=="DP_input=") input_depth=atoi(vstemp[i].substr(9).c_str());
-		}
+		if(vstemp[i].substr(0,4)=="raw_")
+                {
+                        if(vstemp[i].substr(0,15)=="raw_depth_ChIP=") ChIPseq_depth=atoi(vstemp[i].substr(15).c_str());
+                        else if(vstemp[i].substr(0,16)=="raw_depth_input=") input_depth=atoi(vstemp[i].substr(16).c_str());
+                }
 		else if(vstemp[i].substr(0,5)=="top1=") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
 		else if(vstemp[i].substr(0,5)=="top2=") {top2NT.push_back(vstemp[i][vstemp[i].size()-1]);top2No.push_back(atoi(vstemp[i].substr(5,vstemp[i].size()-6).c_str()));}
 		else if(vstemp[i].substr(0,4)=="GQ_h")
