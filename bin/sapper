@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+# Time-stamp: <2017-05-23 16:56:06 Tao Liu>
+
+"""Description: SAPPER main executable.
+
+Copyright (c) 2016 Tao Liu, Liqing Tian
+
+This code is free software; you can redistribute it and/or modify it
+under the terms of the BSD License (see the file COPYING included with
+the distribution).
+
+@status: release candidate
+@version: $Id$
+@author:  Liqing Tian, Tao Liu
+@contact: tliu4@buffalo.edu
+"""
+
+# ------------------------------------
+# python modules
+# ------------------------------------
+
+import os
+import sys
+import argparse as ap
+
+# ------------------------------------
+# own python modules
+# ------------------------------------
+#from SAPPER.Constants import *
+
+# ------------------------------------
+# Main function
+# ------------------------------------
+def main():
+    """The Main function/pipeline for SAPPER.
+    
+    """
+    # Parse options...
+    argparser = prepare_argparser()
+    args = argparser.parse_args()
+
+    subcommand  = args.subcommand_name
+    if subcommand == None:
+        argparser.print_help()
+        sys.exit(1)
+    
+    if subcommand == "call":
+        from SAPPER.call_cmd import run
+        run( args )
+    #elif subcommand == "sum":
+    #    from SAPPER.sum_cmd import run
+    #    run( args )
+    #elif subcommand == "filter":
+    #    from SAPPER.filter_cmd import run
+    #    run( args )
+
+def prepare_argparser ():
+    """Prepare optparser object. New options will be added in this
+    function first.
+    
+    """
+    description = "%(prog)s -- de novo variant caller for ChIP-Seq"
+    epilog = "For command line options of each command, type: %(prog)s COMMAND -h"
+    # top-level parser
+    argparser = ap.ArgumentParser( description = description, epilog = epilog ) #, usage = usage )
+    argparser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
+    subparsers = argparser.add_subparsers( dest = 'subcommand_name' ) #help="sub-command help")
+    
+    add_call_parser( subparsers )    
+
+    add_sum_parser( subparsers )
+    
+    add_filter_parser( subparsers )
+
+    return argparser
+
+def add_call_parser( subparsers ):
+    """Add main function 'variant calling' argument parsers.
+    """
+    argparser_call = subparsers.add_parser("call", 
+                                           formatter_class = ap.RawDescriptionHelpFormatter,
+                                           help="Main SAPPER Function: Call variants from ChIP-Seq.", 
+                                           epilog = """Tips to prepare your input files from ChIP-Seq IP and CTRL BAM files:
+*Note: please modify the following command lines accordingly*
+
+1. Clean the BAM files:
+    $ samtools view -q 30 -F 4 -F 256 -F 2048 -b IP.bam -o IP_clean.bam
+    $ samtools view -q 30 -F 4 -F 256 -F 2048 -b CTRL.bam -o CTRL_clean.bam
+2. Sort the BAM file:
+    $ samtools sort  IP_clean.bam  IP_clean_sorted
+    $ samtools sort  CTRL_clean.bam  CTRL_clean_sorted
+3. Peak calling (example is for paired-end data):
+    $ macs2 callpeak -f BAMPE -t IP_clean_sort.bam -c CTRL_clean_sort.bam -n MyFactor
+4. Sort peak file:
+    $ sort -k1,1 -k2,2n MyFactor_peaks.narrowPeak > MyFactor_peaks.sorted.bed
+5. Extract reads in peak regions:
+    $ samtools view -b IP_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o IP_peaks.bam
+    $ samtools view -b CTRL_clean_sorted.bam -L MyFactor_peaks.sorted.bed -o CTRL_peaks.bam
+
+To run SAPPER:
+    $ sapper call -b MyFactor_peaks.sorted.bed -t IP_peaks.bam -c CTRL_peaks.bam -o MyFactor.vcf
+""")
+    # group for input files
+    group_input = argparser_call.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-b", "--peak", dest = "peakbed", type = str, required =True,
+                              help = "Peak regions in BED format, sorted by coordinates. REQUIRED." )
+    group_input.add_argument( "-t", "--treatment", dest = "tfile", type = str, required = True, nargs = "+",
+                              help = "ChIP-seq treatment files in BAM format, containing only records in peak regions, sorted by coordinates. If multiple files are given as '-t A B C', then they will all be read and pooled together. Check instruction on how to make the file using samtools. REQUIRED." )
+    group_input.add_argument( "-c", "--control", dest = "cfile", type = str, required = True, nargs = "+",
+                              help = "Control filse in BAM format, containing only records in peak regions, sorted by coordinates. If multiple files are given as '-c A B C', they will be pooled to estimate ChIP-seq background noise. Check instruction on how to make the file using samtools. REQUIRED")
+    # group for output files
+    group_output = argparser_call.add_argument_group( "Output arguments" )
+    group_output.add_argument( "-o", "--ofile", dest = "ofile", type = str, required = True,
+                               help = "Output VCF file name." )    
+    group_output.add_argument( "--verbose", dest = "verbose", type = int, default = 2,
+                               help = "Set verbose level of runtime message. 0: only show critical message, 1: show additional warning message, 2: show process information, 3: show debug messages. DEFAULT:2" )
+    # group for parameters
+    group_para = argparser_call.add_argument_group( "Variant calling arguments" )
+    group_para.add_argument( "-p", "--fermi-mratio", dest = "fermiOverlapMinRatio", type = float,
+                             help = "The minimal ratio of a read to be overlapped during local assembly. Must be a float between 0 and 1. Note: if the read length is short (<70bps), please set a higher ratio such as 0.8, otherwise there may be errors during local assembly! Default:0.5 which means a half of the read.", default = 0.5 )
+    group_para.add_argument( "-q", "--top2nt-mratio", dest = "top2ntMinRatio", type = float,
+                             help = "The reads for the top 2 most frequent nucleotides at a loci shouldn't be too few comparing to total reads mapped. The minimum ratio is set by this optoin. Must be a float between 0.5 and 1.  Default:0.8 which means at least 80%% of reads contain the top 2 nucleostides.", default = 0.8 )
+    
+    return
+
+def add_filter_parser( subparsers ):
+    """Add main function 'filter' argument parsers.
+    """
+    argparser_filter = subparsers.add_parser("filter", help="Apply cutoff to filter VCF file from SAPPER call")
+    
+
+    # group for input files
+    group_input = argparser_filter.add_argument_group( "Input files arguments" )
+
+    group_input.add_argument( "-i", "--ivcf", dest = "IVCF", type = str, required =True,
+                              help = "The raw output VCF file containing variants called by SAPPER. REQUIRED." )
+
+
+    # group for output
+    group_output = argparser_filter.add_argument_group( "Output files arguments" )
+    group_output.add_argument( "-o", "--ovcf", dest = "OVCF", type = str, required = True,
+                               help = "The VCF file after filtering. REQUIRED." )
+    # group for extra parameters
+    group_para = argparser_filter.add_argument_group( "Filtering arguments" )
+    group_para.add_argument( "-t", "--type", dest = "GENOTYPE", type = str, required = True,
+                             choices = ("homo",
+                                        "hetero",
+                                        "hetero_AS",
+                                        "hetero_nonAS",
+                                        ),
+                             help = "Genotypes or epigenotypes chosen from: 1) homo: homozygous SNVs; 2) hetero: heterozygous SNVs; 3) hetero_AS: heterozygous SNVs with allele-specific binding; 4) hetero_nonAS: heterozygous SNV with non allele-specific binding. REQUIRED")
+
+    group_para.add_argument( "-d", "--depth", dest = "depthCutoff", type = int, default = 20,
+                             help = "Keep the variants with read depth >= DEPTHCUTOFF. Must be a positive integer. Default: 20" )
+    group_para.add_argument( "-q", "--GQ-cutoff", dest = "GQCutoff", type = int, default = 50,
+                             help = "Genotype/epigenotype quality score cutoff. Recommend: 50 for heterozygous SNVs and 10 for homozygous SNVs. Must be a positive integer. Default: 50")
+ 
+def add_sum_parser( subparsers ):
+    """Add main function 'sum' argument parsers.
+    """
+    argparser_sum = subparsers.add_parser("sum", help="Summarize genotype quality cutoff from predicted SNVs")
+
+    # group for input files
+    group_input = argparser_sum.add_argument_group( "Input files arguments" )
+    group_input.add_argument( "-i", "--ivcf", dest = "IVCF", type = str, required = True,
+                              help = "The raw output VCF file containing variants called by SAPPER. REQUIRED.")
+    group_input.add_argument( "-b", "--peak", dest = "peakbed", type = str, required =True,
+                              help = "Peak regions in BED format, sorted by coordinates, which is used to call variants by SAPPER. REQUIRED." )
+
+    group_output = argparser_sum.add_argument_group( "Output files arguments" )
+    group_output.add_argument( "-o", "--output", dest = "output", type = str, required = True,
+                               help = "The output cutoff statistics for predicted SNVs of chosen genotype. Three columns are provided: 1) genotype quality cutoff; 2) density of predicted SNVs of chosen genotype per kbp; 3) ts/tv ratio of predicted SNVs of chosen genotype. REQUIRED" )
+
+    group_para = argparser_sum.add_argument_group( "Filtering arguments" )
+    group_para.add_argument( "-t", "--type", dest = "GENOTYPE", type = str, required = True,
+                             choices = ("homo",
+                                        "hetero",
+                                        "hetero_AS",
+                                        "hetero_nonAS",
+                                        ),
+                             help = "Genotypes or epigenotypes chosen from: 1) homo: homozygous SNVs; 2) hetero: heterozygous SNVs; 3) hetero_AS: heterozygous SNVs with allele-specific binding; 4) hetero_nonAS: heterozygous SNV with non allele-specific binding. REQUIRED")
+    group_para.add_argument( "-d", "--depth", dest = "depthCutoff", type = int, default = 20,
+                             help = "Keep the variants with read depth >= DEPTHCUTOFF. Must be a positive integer. Default: 20" )
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupted me! ;-) Bye!\n")
+        sys.exit(0)
