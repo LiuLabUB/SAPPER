@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-05 16:31:17 Tao Liu>
+# Time-stamp: <2017-06-06 10:27:21 Tao Liu>
 
 """Description: sapper call
 
@@ -106,31 +106,37 @@ def run( args ):
 
     chrs = peaks.get_chr_names()
 
-    b = BAMParser( peaktfile )
-    c = BAMParser( peakcfile )
+    tbam = BAMParser( peaktfile )
+    cbam = BAMParser( peakcfile )
+
+    assert tbam.get_chromosomes() == cbam.get_chromosomes(), Exception("Treatment and Control BAM files have different orders of sorted chromosomes! Please check BAM Headers and re-sort BAM files.")
 
     ra_collections = []
 
-    o = open(args.ofile, "w")
+    ovcf = open(args.ofile, "w")
     
-    o.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
-    o.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
+    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
+    ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
-    for chrom in chrs:
+    for chrom in tbam.get_chromosomes():
         peaks_chr = peaks.get_data_from_chrom( chrom )
         for peak in peaks_chr:
             # note, when we extract reads from BAM within a peak
             # region, we assume BAM should be sorted and the BAM
             # should be generated from "samtools view -L" process.
-            ra_collection = RACollection( chrom, peak, b.get_reads_in_region( chrom, peak["start"], peak["end"] ), c.get_reads_in_region( chrom, peak["start"], peak["end"]) )
+            print ( chrom, peak["start"], peak["end"] )
+            ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
             ra_collection.remove_outliers( percent = 5 )
+            print( ra_collection["count"], ra_collection["count_T"], ra_collection["count_C"] )
             s = ra_collection.get_peak_REFSEQ()
-            for i in range( ra_collection["left"], ra_collection["right"] ):
+            for i in range( ra_collection["left"], ra_collection["right"] ):                
                 ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
                 PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
+                if PRI.raw_read_depth() == 0: # skip if coverage is 0
+                    continue
                 PRI.update_top_nts()
                 PRI.call_GT()
                 PRI.apply_GQ_cutoff()
                 if not PRI.filterflag():
-                    o.write ( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
+                    ovcf.write ( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
     return

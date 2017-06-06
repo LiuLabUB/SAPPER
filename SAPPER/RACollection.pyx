@@ -1,4 +1,4 @@
-# Time-stamp: <2017-05-31 15:17:41 Tao Liu>
+# Time-stamp: <2017-06-06 10:22:07 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -117,6 +117,12 @@ cdef class RACollection:
             return self.right
         elif keyname == "length":
             return self.length
+        elif keyname == "count":
+            return len( self.RAlists[ 0 ] )+ len( self.RAlists[ 1 ] )
+        elif keyname == "count_T":
+            return len( self.RAlists[ 0 ] )
+        elif keyname == "count_C":
+            return len( self.RAlists[ 1 ] )
         else:
             raise KeyError("Unavailable key:", keyname)
 

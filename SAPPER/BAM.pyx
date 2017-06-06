@@ -1,4 +1,4 @@
-# Time-stamp: <2017-05-26 15:52:20 Tao Liu>
+# Time-stamp: <2017-06-06 10:09:13 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -110,7 +110,7 @@ cdef class BAMParser:
     cdef bool gzipped
     #cdef int tag_size
     cdef object fhd             # BAM file handler
-    cdef list references        # name of references/chromosomes
+    cdef list references        # name of references/chromosomes, contain the order of chromosomes
     cdef dict rlengths          # lengths of references/chromosomes
     cdef bool sorted            # if BAM is sorted
     cdef long SOA               # position in file for the Start of Alignment blocks
@@ -245,6 +245,12 @@ cdef class BAMParser:
                     self.sorted = True
         return
     
+    cpdef get_chromosomes ( self ):
+        """Get chromosomes in order of their appearance in BAM HEADER.
+
+        """
+        return self.references
+
     cpdef get_reads_in_region ( self, bytes chrom, int left, int right ):
         """Get reads in a given region. Initial call will start at
         'self.SOA', but will keep incrementing.
@@ -255,15 +261,12 @@ cdef class BAMParser:
             int i = 0
             int m = 0
             int entrylength, fpos, strand, chrid
-            list references
-            dict rlengths
             list readslist
         
         readslist = []
         fread = self.fhd.read
         fseek = self.fhd.seek
         ftell = self.fhd.tell
-        #print( "start:", ftell() )
         while True:
             try:
                 entrylength = unpack( '<i', fread( 4 ) )[ 0 ]
@@ -271,7 +274,6 @@ cdef class BAMParser:
                 # if reaching the EOF, this will trigger
                 break
             read = self.__fw_binary_parse( fread( entrylength ) )
-            #print( "end of read:", ftell() )
             if read != None:
                 if read["chrom"] == chrom and read["lpos"] < right and read["rpos"] > left:
                     # an overlap is found
