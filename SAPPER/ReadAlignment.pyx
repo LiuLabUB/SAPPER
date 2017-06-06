@@ -1,4 +1,4 @@
-# Time-stamp: <2017-05-30 16:51:19 Tao Liu>
+# Time-stamp: <2017-06-06 11:39:21 Tao Liu>
 
 """Module for SAPPER ReadAlignment class
 
@@ -162,6 +162,13 @@ cdef class ReadAlignment:
         #    self.n_edits = value
         else:
             raise KeyError("No such key", keyname)
+
+    def __getstate__ ( self ):
+        return ( self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.cigar, self.MD, self.n_edits )
+
+    def __setstate__ ( self, state ):
+        ( self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.cigar, self.MD, self.n_edits ) = state
+
 
     cpdef bytearray get_SEQ ( self ):
         """Convert binary seq to ascii seq.

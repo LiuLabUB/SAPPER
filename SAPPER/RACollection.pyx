@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 10:22:07 Tao Liu>
+# Time-stamp: <2017-06-06 11:32:45 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -126,6 +126,15 @@ cdef class RACollection:
         else:
             raise KeyError("Unavailable key:", keyname)
 
+    def __getstate__ ( self ):
+        #return {"chrom":self.chrom, "peak":self.peak, "RAlists":self.RAlists,
+        #        "left":self.left, "right":self.right, "length": self.length,
+        #        "RAs_left":self.RAs_left, "RAs_right":self.RAs_right}
+        return (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right)
+        
+    def __setstate__ ( self, state ):
+        (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right) = state
+        
     cpdef remove_outliers ( self, int percent = 5 ):
         """ Remove outliers with too many n_edits. The outliers with
         n_edits in top p% will be removed.

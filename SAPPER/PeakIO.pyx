@@ -1,4 +1,4 @@
-# Time-stamp: <2017-05-23 12:04:26 Tao Liu>
+# Time-stamp: <2017-06-06 11:38:16 Tao Liu>
 
 """Module for PeakIO IO classes.
 
@@ -117,6 +117,16 @@ cdef class PeakContent:
         elif a == "name":
             self.name = v
 
+    def __getstate__ ( self ):
+        return ( self.start, self.end, self.length, self.summit,
+                 self.score, self.pileup, self.pscore, self.fc,
+                 self.qscore, self.name )
+
+    def __setstate__ ( self, state ):
+        ( self.start, self.end, self.length, self.summit, \
+              self.score, self.pileup, self.pscore, self.fc, \
+              self.qscore, self.name ) = state
+
     def __str__ (self):
         return "start:%d;end:%d;score:%f" % ( self.start, self.end, self.score )
 
@@ -130,6 +140,13 @@ cdef class PeakIO:
     def __init__ (self):
         self.peaks = {}
     
+
+    def __getstate__ ( self ):
+        return self.peaks
+
+    def __setstate__ ( self, state ):
+        self.peaks = state
+
     cpdef add (self, bytes chromosome, int start, int end, int summit = 0, 
                float peak_score=0, float pileup=0, 
                float pscore=0, float fold_change=0, float qscore=0,
