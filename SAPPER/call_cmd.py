@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 12:37:45 Tao Liu>
+# Time-stamp: <2017-06-06 15:42:20 Tao Liu>
 
 """Description: sapper call
 
@@ -23,6 +23,8 @@ import datetime
 import sys
 from functools import partial
 import multiprocessing as mp
+
+from time import time
 
 # ------------------------------------
 # own python modules
@@ -88,10 +90,6 @@ def run( args ):
     """The Main function/pipeline for SAPPER
 
     """
-    # Parse options...
-    #options = opt_validate( args )
-    # end of parsing commandline options
-    
     peakbedfile = args.peakbed
     peaktfile = args.tfile[0]
     peakcfile = args.cfile[0]
@@ -121,48 +119,104 @@ def run( args ):
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
+    # this partial function will only be used in multiprocessing
+    p_call_variants_at_given_pos =  partial(call_variants_at_given_pos, top2ntminr=top2ntminr)
+
+    t_get_ra = 0
+    t_get_pri = 0
+    t_call_top2nt = 0
+    t_call_lnL = 0
+    t_call_GQ = 0
+    t_call_to_vcf = 0
+    t0 = time()
+
     for chrom in tbam.get_chromosomes():
         peaks_chr = peaks.get_data_from_chrom( chrom )
         for peak in peaks_chr:
             # note, when we extract reads from BAM within a peak
             # region, we assume BAM should be sorted and the BAM
             # should be generated from "samtools view -L" process.
-            #print ( chrom, peak["start"], peak["end"] )
+            #t0 = time()
             ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
             ra_collection.remove_outliers( percent = 5 )
-            #print( ra_collection["count"], ra_collection["count_T"], ra_collection["count_C"] )
             s = ra_collection.get_peak_REFSEQ()
+            #t_get_ra += time() - t0
 
             # multiprocessing the following part
 
             if NP > 1:
-                p_call_variants_at_given_pos =  partial(call_variants_at_given_pos, chrom=chrom, seq=s, ra_c=ra_collection, top2ntminr=top2ntminr)
                 for i in range( ra_collection["left"], ra_collection["right"], NP ):
                     P = mp.Pool( NP )
                     l = i
                     r = min( i+NP, ra_collection["right"] )
-                    results = P.map( p_call_variants_at_given_pos, range( l, r ) )
+                    PRIs = []
+                    for j in range( l, r ):
+                        ref_nt = chr(s[ j-ra_collection["left"] ] ).encode()
+                        PRIs.append( ra_collection.get_PosReadsInfo_ref_pos ( j, ref_nt ) )
+                    results = P.map( p_call_variants_at_given_pos, PRIs )
                     P.close()
                     P.join()
-                    for result in results:
+                    for j in range( l, r ):
+                        result = results[ l-j ]
                         if result:
-                            ovcf.write( result )
+                            ovcf.write( "\t".join( ( chrom.decode(), str(j+1), ".", result ) ) + "\n" )
             else:
                 for i in range( ra_collection["left"], ra_collection["right"] ):
-                    result  = call_variants_at_given_pos( i, chrom, s, ra_collection, top2ntminr )
+                    ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
+
+                    #t0 = time()
+                    PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
+                    #t_get_pri += time() - t0
+
+                    #if PRI.raw_read_depth() == 0: # skip if coverage is 0
+                    #    return None
+                    #t0 = time()
+                    #PRI.update_top_nts( top2ntminr )
+                    #t_call_top2nt += time() - t0
+
+                    #t0 = time()
+                    #PRI.compute_lnL()
+                    #t_call_lnL += time() - t0
+
+                    #t0 = time()
+                    #PRI.compute_GQ()
+                    #t_call_GQ += time() - t0
+
+                    #if not PRI.filterflag():
+                    #    #t0 = time()
+                    #    result=PRI.to_vcf()
+                    #    #t_call_to_vcf += time() - t0
+                    result  = call_variants_at_given_pos( PRI, top2ntminr )
+                    #t_call += time() - t0
                     if result:
-                        ovcf.write( result )
+                        ovcf.write( "\t".join( ( chrom.decode(), str(i+1), ".", result ) ) + "\n" )
+
+    #print ("time to read RAcollection from BAM:",t_get_ra)
+    #print ("time to get reads information for each position:",t_get_pri)
+    #print ("time to call top2 NTs:",t_call_top2nt)
+    #print ("time to compute lnL:",t_call_lnL)
+    #print ("time to compute GQ:",t_call_GQ)
+    #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-def call_variants_at_given_pos ( i, chrom, seq, ra_c, top2ntminr ):
-    ref_nt = chr(seq[ i-ra_c["left"] ] ).encode()
-    PRI = ra_c.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
+# def call_variants_at_given_pos ( i, chrom, seq, ra_c, top2ntminr ):
+#     ref_nt = chr(seq[ i-ra_c["left"] ] ).encode()
+#     PRI = ra_c.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
+#     if PRI.raw_read_depth() == 0: # skip if coverage is 0
+#         return None
+#     PRI.update_top_nts( top2ntminr )
+#     PRI.call_GT()
+#     PRI.apply_GQ_cutoff()
+#     if not PRI.filterflag():
+#         return "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
+#     return None
+
+def call_variants_at_given_pos ( PRI, top2ntminr ):
     if PRI.raw_read_depth() == 0: # skip if coverage is 0
         return None
     PRI.update_top_nts( top2ntminr )
     PRI.call_GT()
     PRI.apply_GQ_cutoff()
     if not PRI.filterflag():
-        return "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
+        return PRI.to_vcf()
     return None
-

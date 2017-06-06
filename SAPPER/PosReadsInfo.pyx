@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-05 16:42:21 Tao Liu>
+# Time-stamp: <2017-06-06 15:37:39 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -110,6 +110,40 @@ cdef class PosReadsInfo:
         self.ref_pos = ref_pos
         self.ref_nt = ref_nt
 
+    def __getstate__ ( self ):
+        return ( self.ref_pos, self.ref_nt, self.alt_nt, self.filterout,
+                 self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
+                 self.top1nt, self.top2nt, self.top12NT_ratio,
+                 self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
+                 self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
+                 self.heter_noAS_kc, self.heter_noAS_ki,
+                 self.heter_AS_kc, self.heter_AS_ki,
+                 self.heter_AS_alleleratio,
+                 self.GQ_homo_major, self.GQ_heter_noAS, self.GQ_heter_AS,
+                 self.GQ_heter_ASsig,
+                 self.GQ,
+                 self.GT,
+                 self.type,
+                 self.hasfermiinfor,
+                 self.fermiNTs )
+
+    def __setstate__ ( self, state ):
+        ( self.ref_pos, self.ref_nt, self.alt_nt, self.filterout,
+          self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
+          self.top1nt, self.top2nt, self.top12NT_ratio,
+          self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
+          self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
+          self.heter_noAS_kc, self.heter_noAS_ki,
+          self.heter_AS_kc, self.heter_AS_ki,
+          self.heter_AS_alleleratio,
+          self.GQ_homo_major, self.GQ_heter_noAS, self.GQ_heter_AS,
+          self.GQ_heter_ASsig,
+          self.GQ,
+          self.GT,
+          self.type,
+          self.hasfermiinfor,
+          self.fermiNTs ) = state
+
     cpdef filterflag ( self ):
         return self.filterout
 
@@ -121,12 +155,14 @@ cdef class PosReadsInfo:
         return
 
     cpdef add_T ( self, int read_index, bytes read_nt, int read_bq ):
-        self.bq_set_T[ read_nt ].append( (read_index, read_bq) )
+        #self.bq_set_T[ read_nt ].append( (read_index, read_bq) )
+        self.bq_set_T[ read_nt ].append( read_bq )
         self.n_reads_T[ read_nt ] += 1
         self.n_reads[ read_nt ] += 1
 
     cpdef add_C ( self, int read_index, bytes read_nt, int read_bq ):
-        self.bq_set_C[ read_nt ].append( (read_index, read_bq) )
+        #self.bq_set_C[ read_nt ].append( (read_index, read_bq) )
+        self.bq_set_C[ read_nt ].append( read_bq )
         self.n_reads_C[ read_nt ] += 1
         self.n_reads[ read_nt ] += 1
 
@@ -167,24 +203,28 @@ cdef class PosReadsInfo:
         if self.filterout:
             return
 
-        top1_bq_T_l = self.bq_set_T[ self.top1nt ] 
-        top2_bq_T_l = self.bq_set_T[ self.top2nt ] 
-        top1_bq_C_l = self.bq_set_C[ self.top1nt ] 
-        top2_bq_C_l = self.bq_set_C[ self.top2nt ] 
+        #top1_bq_T_l = self.bq_set_T[ self.top1nt ] 
+        #top2_bq_T_l = self.bq_set_T[ self.top2nt ] 
+        #top1_bq_C_l = self.bq_set_C[ self.top1nt ] 
+        #top2_bq_C_l = self.bq_set_C[ self.top2nt ] 
 
-        top1_bq_T = np.zeros( len(top1_bq_T_l),dtype="int32")
-        top2_bq_T = np.zeros( len(top2_bq_T_l),dtype="int32")
-        top1_bq_C = np.zeros( len(top1_bq_C_l),dtype="int32")
-        top2_bq_C = np.zeros( len(top2_bq_C_l),dtype="int32")
+        #top1_bq_T = np.zeros( len(top1_bq_T_l),dtype="int32")
+        #top2_bq_T = np.zeros( len(top2_bq_T_l),dtype="int32")
+        #top1_bq_C = np.zeros( len(top1_bq_C_l),dtype="int32")
+        #top2_bq_C = np.zeros( len(top2_bq_C_l),dtype="int32")
+        top1_bq_T = np.array( self.bq_set_T[ self.top1nt ], dtype="int32" )
+        top2_bq_T = np.array( self.bq_set_T[ self.top2nt ], dtype="int32" )
+        top1_bq_C = np.array( self.bq_set_C[ self.top1nt ], dtype="int32" )
+        top2_bq_C = np.array( self.bq_set_C[ self.top2nt ], dtype="int32" )
 
-        for i in range( len(top1_bq_T_l) ):
-            top1_bq_T[ i ] = top1_bq_T_l[ i ][ 1 ]
-        for i in range( len(top2_bq_T_l) ):
-            top2_bq_T[ i ] = top2_bq_T_l[ i ][ 1 ]
-        for i in range( len(top1_bq_C_l) ):
-            top1_bq_C[ i ] = top1_bq_C_l[ i ][ 1 ]
-        for i in range( len(top2_bq_C_l) ):
-            top2_bq_C[ i ] = top2_bq_C_l[ i ][ 1 ]
+        #for i in range( len(top1_bq_T_l) ):
+        #    top1_bq_T[ i ] = top1_bq_T_l[ i ][ 1 ]
+        #for i in range( len(top2_bq_T_l) ):
+        #    top2_bq_T[ i ] = top2_bq_T_l[ i ][ 1 ]
+        #for i in range( len(top1_bq_C_l) ):
+        #    top1_bq_C[ i ] = top1_bq_C_l[ i ][ 1 ]
+        #for i in range( len(top2_bq_C_l) ):
+        #    top2_bq_C[ i ] = top2_bq_C_l[ i ][ 1 ]
             
         (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
         (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
@@ -232,6 +272,80 @@ cdef class PosReadsInfo:
                 self.alt_nt = self.top1nt+b','+self.top2nt
                 self.GT = "1/2"
 
+        return
+
+    cpdef compute_lnL ( self ):
+        """Require update_top_nts being called.
+        """
+        cdef:
+            np.ndarray[np.int32_t, ndim=1] top1_bq_T
+            np.ndarray[np.int32_t, ndim=1] top2_bq_T
+            np.ndarray[np.int32_t, ndim=1] top1_bq_C
+            np.ndarray[np.int32_t, ndim=1] top2_bq_C
+            int i
+            list top1_bq_T_l
+            list top2_bq_T_l
+            list top1_bq_C_l
+            list top2_bq_C_l
+
+        if self.filterout:
+            return
+
+        top1_bq_T = np.array( self.bq_set_T[ self.top1nt ], dtype="int32" )
+        top2_bq_T = np.array( self.bq_set_T[ self.top2nt ], dtype="int32" )
+        top1_bq_C = np.array( self.bq_set_C[ self.top1nt ], dtype="int32" )
+        top2_bq_C = np.array( self.bq_set_C[ self.top2nt ], dtype="int32" )
+
+        (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+        (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
+        (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+        (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+
+        return
+
+    cpdef compute_GQ ( self ):
+        if self.filterout:
+            return
+        self.GQ_homo_major = 0
+        self.GQ_heter_noAS = 0
+        self.GQ_heter_AS = 0
+        self.GQ_heter_ASsig = 0
+        
+        # assign GQ, GT, and type
+        if self.ref_nt != self.top1nt and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+            self.type = "homo"
+            self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
+            self.GQ = self.GQ_homo_major
+            self.GT = "1/1"
+            self.alt_nt = self.top1nt
+        elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
+            self.type = "heter_noAS"
+            self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
+            self.GQ = self.GQ_heter_noAS
+        elif self.BIC_heter_AS < self.BIC_homo_major and self.BIC_heter_AS < self.BIC_homo_minor and self.BIC_heter_AS < self.BIC_heter_noAS:
+            self.type = "heter_AS"
+            self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
+            self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
+            self.GQ = self.GQ_heter_AS
+        elif self.ref_nt == self.top1nt and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+            self.type = "homo_ref"
+            # we do not calculate GQ if type is homo_ref
+            self.GT = "0/0"
+            self.filterout = True
+        else:
+            self.type="unsure"
+            self.filterout = True
+
+        if self.type.startswith( "heter" ):
+            if self.ref_nt == self.top1nt:
+                self.alt_nt = self.top2nt
+                self.GT = "0/1"
+            elif self.ref_nt == self.top2nt:
+                self.alt_nt = self.top1nt
+                self.GT = "0/1"
+            else:
+                self.alt_nt = self.top1nt+b','+self.top2nt
+                self.GT = "1/2"
         return
 
     cpdef to_vcf ( self ):

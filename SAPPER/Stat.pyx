@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-01 16:28:41 Tao Liu>
+# Time-stamp: <2017-06-06 15:35:50 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -19,12 +19,13 @@ with the distribution).
 # ------------------------------------
 from cpython cimport bool
 
+cimport cython
 
 import numpy as np
 cimport numpy as np
 
-from numpy cimport int32_t
 ctypedef np.float32_t float32_t
+ctypedef np.int32_t int32_t
 
 #from libc.math cimport log10, log, exp, M_LN10 #,fabs,log1p
 #from libc.math cimport M_LN10
@@ -33,7 +34,9 @@ from math import log1p, exp, log
 LN10 = 2.3025850929940458
 LN10_tenth = 0.23025850929940458
 
-cpdef tuple CalModel_Homo( np.ndarray top1_bq_T, np.ndarray top1_bq_C, np.ndarray top2_bq_T, np.ndarray top2_bq_C):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef tuple CalModel_Homo( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray[int32_t, ndim=1] top1_bq_C, np.ndarray[int32_t, ndim=1] top2_bq_T, np.ndarray[int32_t, ndim=1] top2_bq_C):
     """Return (lnL, BIC).
 
     """
@@ -57,7 +60,9 @@ cpdef tuple CalModel_Homo( np.ndarray top1_bq_T, np.ndarray top1_bq_C, np.ndarra
     BIC = -2*lnL                # no free variable
     return (lnL, BIC)
 
-cpdef tuple CalModel_Heter_noAS( np.ndarray top1_bq_T,np.ndarray top1_bq_C,np.ndarray top2_bq_T,np.ndarray top2_bq_C ):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef tuple CalModel_Heter_noAS( np.ndarray[int32_t, ndim=1] top1_bq_T,np.ndarray[int32_t, ndim=1] top1_bq_C,np.ndarray[int32_t, ndim=1] top2_bq_T,np.ndarray[int32_t, ndim=1] top2_bq_C ):
     """Return (lnL, BIC)
 
     k_T
@@ -104,7 +109,9 @@ cpdef tuple CalModel_Heter_noAS( np.ndarray top1_bq_T,np.ndarray top1_bq_C,np.nd
     return ( lnL, BIC )
 
 
-cpdef tuple CalModel_Heter_AS( np.ndarray top1_bq_T, np.ndarray top1_bq_C, np.ndarray top2_bq_T, np.ndarray top2_bq_C):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray[int32_t, ndim=1] top1_bq_C, np.ndarray[int32_t, ndim=1] top2_bq_T, np.ndarray[int32_t, ndim=1] top2_bq_C):
     """Return (lnL, BIC)
 
     kc
@@ -149,7 +156,9 @@ cpdef tuple CalModel_Heter_AS( np.ndarray top1_bq_T, np.ndarray top1_bq_C, np.nd
     return (lnL, BIC)
 
 
-cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray me, np.ndarray ne):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne):
     """Return lnL, k and alleleratio in tuple.
 
     Note: I only translate Liqing's C++ code into pyx here. Haven't done any review.
@@ -244,7 +253,9 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray me, np.ndarray 
         raise Exception("error in GreedyMaxFunctionAS")
 
 
-cdef tuple GreedyMaxFunctionNoAS (int m, int n, int tn, np.ndarray me, np.ndarray ne ):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef tuple GreedyMaxFunctionNoAS (int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne ):
     """Return lnL, and k in tuple.
 
     Note: I only translate Liqing's C++ code into pyx here. Haven't done any review.
@@ -321,7 +332,9 @@ cdef tuple GreedyMaxFunctionNoAS (int m, int n, int tn, np.ndarray me, np.ndarra
     else:
         raise Exception("error in GreedyMaxFunctionNoAS")
 
-cdef calculate_ln( int m, int n, int tn, np.ndarray me, np.ndarray ne, double r, int k):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef calculate_ln( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne, double r, int k):
     """Calculate log likelihood given quality of top1 and top2, the ratio r and the observed k.
 
     """
