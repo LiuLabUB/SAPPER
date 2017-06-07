@@ -25,16 +25,11 @@ from functools import partial
 import multiprocessing as mp
 
 from time import time
+from math import ceil
 
 # ------------------------------------
 # own python modules
 # ------------------------------------
-#from MACS2.OptValidator import opt_validate
-#from MACS2.OutputWriter import *
-#from MACS2.Prob import binomial_cdf_inv
-#from MACS2.PeakModel import PeakModel,NotEnoughPairsException
-#from MACS2.PeakDetect import PeakDetect
-#from MACS2.Constants import *
 from SAPPER.Constants import *
 from SAPPER.PeakIO import PeakIO
 from SAPPER.BAM import BAMParser
@@ -119,9 +114,6 @@ def run( args ):
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
-    # this partial function will only be used in multiprocessing
-    p_call_variants_at_given_pos =  partial(call_variants_at_given_pos, top2ntminr=top2ntminr)
-
     t_get_ra = 0
     t_get_pri = 0
     t_call_top2nt = 0
@@ -145,21 +137,26 @@ def run( args ):
             # multiprocessing the following part
 
             if NP > 1:
-                for i in range( ra_collection["left"], ra_collection["right"], NP ):
-                    P = mp.Pool( NP )
-                    l = i
-                    r = min( i+NP, ra_collection["right"] )
-                    PRIs = []
-                    for j in range( l, r ):
-                        ref_nt = chr(s[ j-ra_collection["left"] ] ).encode()
-                        PRIs.append( ra_collection.get_PosReadsInfo_ref_pos ( j, ref_nt ) )
-                    results = P.map( p_call_variants_at_given_pos, PRIs )
-                    P.close()
-                    P.join()
-                    for j in range( l, r ):
-                        result = results[ l-j ]
-                        if result:
-                            ovcf.write( "\t".join( ( chrom.decode(), str(j+1), ".", result ) ) + "\n" )
+                # divide right-left into NP parts
+                window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
+
+                P = mp.Pool( NP )
+
+                # this partial function will only be used in multiprocessing
+                p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, ra_collection=ra_collection, top2ntminr=top2ntminr)
+
+                ranges = []
+                
+                for i in range( NP ):
+                    l = i * window_size + ra_collection["left"]
+                    r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
+                    ranges.append( (l, r) )
+
+                results = P.map( p_call_variants_at_range, ranges )
+                P.close()
+                P.join()
+                for i in range( NP ):
+                    ovcf.write( results[ i ] )
             else:
                 for i in range( ra_collection["left"], ra_collection["right"] ):
                     ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
@@ -199,17 +196,19 @@ def run( args ):
     #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-# def call_variants_at_given_pos ( i, chrom, seq, ra_c, top2ntminr ):
-#     ref_nt = chr(seq[ i-ra_c["left"] ] ).encode()
-#     PRI = ra_c.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
-#     if PRI.raw_read_depth() == 0: # skip if coverage is 0
-#         return None
-#     PRI.update_top_nts( top2ntminr )
-#     PRI.call_GT()
-#     PRI.apply_GQ_cutoff()
-#     if not PRI.filterflag():
-#         return "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
-#     return None
+def call_variants_at_range ( lr, chrom, s, ra_collection, top2ntminr ):
+    result = ""
+    for i in range( lr[ 0 ], lr[ 1 ] ):
+        ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
+        PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
+        if PRI.raw_read_depth() == 0: # skip if coverage is 0
+            continue
+        PRI.update_top_nts( top2ntminr )
+        PRI.call_GT()
+        PRI.apply_GQ_cutoff()
+        if not PRI.filterflag():
+            result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
+    return result
 
 def call_variants_at_given_pos ( PRI, top2ntminr ):
     if PRI.raw_read_depth() == 0: # skip if coverage is 0

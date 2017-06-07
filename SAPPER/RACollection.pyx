@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 11:32:45 Tao Liu>
+# Time-stamp: <2017-06-06 16:40:02 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -23,7 +23,7 @@ from struct import unpack
 import gzip
 import io
 from collections import Counter
-
+from operator import itemgetter
 
 from SAPPER.Constants import *
 from SAPPER.ReadAlignment import ReadAlignment
@@ -76,6 +76,7 @@ cdef class RACollection:
         long length             # length of peak
         long RAs_left           # left position of all RAs in the collection
         long RAs_right          # right position of all RAs in the collection
+        bool sorted             # if sorted by lpos
 
     def __init__ ( self, chrom, peak, RAlist_T, RAlist_C=[] ):
         """Create RACollection object by taking:
@@ -95,6 +96,7 @@ cdef class RACollection:
         self.length =  self.right - self.left
         self.RAs_left = RAlist_T[0]["lpos"] # initial assignment of RAs_left
         self.RAs_right = RAlist_T[-1]["rpos"] # initial assignment of RAs_right
+        self.sorted = True
         # check RAs_left and RAs_right
         for ra in RAlist_T:
             if ra[ "lpos" ] < self.RAs_left:
@@ -134,6 +136,15 @@ cdef class RACollection:
         
     def __setstate__ ( self, state ):
         (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right) = state
+        
+    cpdef sort ( self ):
+        """Sort RAs according to lpos. Should be used after realignment.
+
+        """
+        self.RAlists[ 0 ].sort(key=itemgetter("lpos"))
+        self.RAlists[ 1 ].sort(key=itemgetter("lpos"))
+        self.sorted = True
+        return
         
     cpdef remove_outliers ( self, int percent = 5 ):
         """ Remove outliers with too many n_edits. The outliers with
