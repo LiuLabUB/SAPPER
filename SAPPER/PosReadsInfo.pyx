@@ -148,6 +148,8 @@ cdef class PosReadsInfo:
         return self.filterout
 
     cpdef apply_GQ_cutoff ( self, int min_homo_GQ = 50, int min_heter_GQ = 100 ):
+        if self.filterout:
+            return
         if self.type.startswith('homo') and self.GQ < min_homo_GQ:
             self.filterout = True
         elif self.type.startswith('heter') and self.GQ < min_heter_GQ:
@@ -176,8 +178,11 @@ cdef class PosReadsInfo:
             float r
         [self.top1nt, self.top2nt] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
         
-        self.top12NT_ratio = self.n_reads[ self.top1nt ] + self.n_reads[ self.top2nt ] /  sum( self.n_reads.values() )
+        self.top12NT_ratio = ( self.n_reads[ self.top1nt ] + self.n_reads[ self.top2nt ] ) /  sum( self.n_reads.values() )
         if self.top12NT_ratio < min_top12NT_ratio:
+            self.filterout = True
+        if self.top1nt == self.ref_nt and self.n_reads[ self.top2nt ] == 0:
+            # This means this position only contains top1nt which is the ref_nt. So the GT must be 0/0
             self.filterout = True
         return
 
