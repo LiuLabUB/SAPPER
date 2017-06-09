@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 10:09:13 Tao Liu>
+# Time-stamp: <2017-06-08 15:34:15 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -301,6 +301,7 @@ cdef class BAMParser:
             int ref, leftmost, rightmost, i, j, l_seq, strand
             short bwflag, l_read_name, n_cigar_op, MAPQ
             short bin_bam
+            bytes read_name
             bytes seq #note: for each byte, 1st base in the highest 4bit; 2nd in the lowest 4bit. "=ACMGRSVTWYHKDBN" -> [0,15]
             bytes qual
             tuple cigar_op  # op_len<<4|op, op: "MIDNSHP=X" -> 012345678
@@ -338,7 +339,9 @@ cdef class BAMParser:
         leftmost = unpack( '<i', data[ 4:8 ] )[ 0 ]
         # read length of query sequence
         l_seq = unpack( '<i', data[ 16:20 ]  )[0]
-        # cigar_op
+        # readname , skip next_refID, next_pos, tlen, which is 12 bytes or from the 32th byte
+        read_name = unpack( '<%ds' % (l_read_name), data[ 32: 32+l_read_name ] )[0][:-1] # last byte is \x00
+        # cigar_op, find the index i first.
         i = 32 + l_read_name
         cigar_op = unpack( '<%dI' % (n_cigar_op) , data[ i : i + n_cigar_op*4 ] )
         # read sequence information
@@ -355,7 +358,7 @@ cdef class BAMParser:
                     
         # strand information
         if bwflag & 16:
-            ## need to decipher CIGAR string
+            # reverse strand
             strand = 1
         else:
             strand = 0
@@ -369,5 +372,5 @@ cdef class BAMParser:
         MD = tag[ j+3 : tag[j:].find(b"\0") + j ]
 
         # construct a ReadAlignment object and return
-        return ReadAlignment( self.references[ref], leftmost, rightmost, strand, seq, qual, cigar_op, MD )
+        return ReadAlignment( read_name, self.references[ref], leftmost, rightmost, strand, seq, qual, cigar_op, MD )
 

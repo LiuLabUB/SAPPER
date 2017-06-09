@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 15:42:20 Tao Liu>
+# Time-stamp: <2017-06-09 16:52:06 Tao Liu>
 
 """Description: sapper call
 
@@ -91,6 +91,9 @@ def run( args ):
     top2ntminr = args.top2ntMinRatio
     NP = args.np
 
+    # parameter for assembly
+    fermiOverlapMinRatio = args.fermiOverlapMinRatio
+    
     peakio = open( peakbedfile )
     peaks = PeakIO()
     i = 0
@@ -131,9 +134,12 @@ def run( args ):
             #t0 = time()
             ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
             ra_collection.remove_outliers( percent = 5 )
+            # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
+            unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
+            ra_collection.filter_RAs_w_unitigs( unitigs )
+            
             s = ra_collection.get_peak_REFSEQ()
             #t_get_ra += time() - t0
-
             # multiprocessing the following part
 
             if NP > 1:

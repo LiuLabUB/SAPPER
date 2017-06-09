@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 11:39:21 Tao Liu>
+# Time-stamp: <2017-06-09 13:52:42 Tao Liu>
 
 """Module for SAPPER ReadAlignment class
 
@@ -44,6 +44,7 @@ __doc__ = "All Parser classes"
 
 __BAMDNACODE__ = b"=ACMGRSVTWYHKDBN"
 __CIGARCODE__ = "MIDNSHP=X"
+__DNACOMPLEMENT__ = b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,-./0123456789:;<=>?@TBGDEFCHIJKLMNOPQRSAUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff' # A trans table to convert A to T, C to G, G to C, and T to A.
 
 # -- CIGAR CODE --
 #OP BAM  Description
@@ -67,30 +68,35 @@ __CIGARCODE__ = "MIDNSHP=X"
 # ------------------------------------
 cdef class ReadAlignment:
     cdef:
+        bytes readname
         bytes chrom
         int lpos
         int rpos
-        int strand
+        int strand              # strand information. 0 means forward strand, 1 means reverse strand.
         bytes binaryseq
         bytes binaryqual
+        int l                             #length of read
         tuple cigar             # each item contains op_l|op
         bytes MD
         int n_edits             # number of edits; higher the number,
                                 # more differences with reference
 
     def __init__ ( self, 
+                   bytes readname,
                    bytes chrom, int lpos, int rpos,
                    int strand,
                    bytes binaryseq, 
                    bytes binaryqual,
                    tuple cigar,
                    bytes MD ):
+        self.readname = readname
         self.chrom = chrom
         self.lpos = lpos
         self.rpos = rpos
         self.strand = strand
         self.binaryseq = binaryseq
         self.binaryqual = binaryqual
+        self.l = len( binaryqual )
         self.cigar = cigar
         self.MD = MD
         self.n_edits = self.get_n_edits()
@@ -117,7 +123,9 @@ cdef class ReadAlignment:
         return n_edits
 
     def __getitem__ ( self, keyname ):
-        if keyname == "chrom":
+        if keyname == "readname":
+            return self.readname
+        elif keyname == "chrom":
             return self.chrom
         elif keyname == "lpos":
             return self.lpos
@@ -129,6 +137,8 @@ cdef class ReadAlignment:
             return self.binaryseq
         elif keyname == "binaryqual":
             return self.binaryqual
+        elif keyname == "l":
+            return self.l
         elif keyname == "cigar":
             return self.cigar
         elif keyname == "MD":
@@ -139,7 +149,9 @@ cdef class ReadAlignment:
             raise KeyError("No such key", keyname)
 
     def __setitem__ ( self, keyname, value ):
-        if keyname == "chrom":
+        if keyname == "readname":
+            self.readname = value
+        elif keyname == "chrom":
             self.chrom = value
         elif keyname == "lpos":
             self.lpos = value
@@ -164,10 +176,10 @@ cdef class ReadAlignment:
             raise KeyError("No such key", keyname)
 
     def __getstate__ ( self ):
-        return ( self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.cigar, self.MD, self.n_edits )
+        return ( self.readname, self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.l, self.cigar, self.MD, self.n_edits )
 
     def __setstate__ ( self, state ):
-        ( self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.cigar, self.MD, self.n_edits ) = state
+        ( self.readname, self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.l, self.cigar, self.MD, self.n_edits ) = state
 
 
     cpdef bytearray get_SEQ ( self ):
@@ -183,7 +195,7 @@ cdef class ReadAlignment:
         cdef:
             char c
             bytearray seq
-            bytes s
+
         seq = bytearray(b"")
         for c in self.binaryseq:
             # high
@@ -194,6 +206,83 @@ cdef class ReadAlignment:
             # trim the last '=' if it exists
             seq = seq[:-1]
         return seq
+
+    cpdef tuple get_SEQ_QUAL ( self ):
+        """Get tuple of (SEQ, QUAL). SEQ will be reverse complemented when necessary.
+
+        """
+        cdef:
+            int i
+            char c
+            bytearray seq
+            bytearray qual
+
+        seq = bytearray(b"")
+        qual = bytearray(b"")
+
+        for i in range( len(self.binaryseq) ):
+            c = self.binaryseq[ i ]
+            # high
+            seq.append( __BAMDNACODE__[c >> 4 & 15] )
+            # low
+            seq.append( __BAMDNACODE__[c & 15] )
+
+        for i in range( len( self.binaryqual ) ):
+            # qual is the -10log10 p or phred score. In FASTQ, we need to add 33 to the raw value.
+            qual.append( self.binaryqual[i] + 33 )
+            
+        if seq[-1] == b"=":
+            # trim the last '=' if it exists
+            seq = seq[:-1]
+        assert len( seq ) == len( qual ), Exception("Lengths of seq and qual are not consistent!")
+
+        # reverse while necessary
+        if self.strand:
+            seq.reverse()
+            #compliment
+            seq = seq.translate( __DNACOMPLEMENT__ )
+            qual.reverse()
+
+        return ( bytes(seq), bytes(qual) )
+
+    
+    cpdef bytes get_FASTQ ( self ):
+        """Get FASTQ format text.
+
+        """
+        cdef:
+            int i
+            char c
+            bytearray seq
+            bytearray qual
+
+        seq = bytearray(b"")
+        qual = bytearray(b"")
+
+        for i in range( len(self.binaryseq) ):
+            c = self.binaryseq[ i ]
+            # high
+            seq.append( __BAMDNACODE__[c >> 4 & 15] )
+            # low
+            seq.append( __BAMDNACODE__[c & 15] )
+
+        for i in range( len( self.binaryqual ) ):
+            # qual is the -10log10 p or phred score. In FASTQ, we need to add 33 to the raw value.
+            qual.append( self.binaryqual[i] + 33 )
+            
+        if seq[-1] == b"=":
+            # trim the last '=' if it exists
+            seq = seq[:-1]
+        assert len( seq ) == len( qual ), Exception("Lengths of seq and qual are not consistent!")
+
+        # reverse while necessary
+        if self.strand:
+            seq.reverse()
+            #compliment
+            seq = seq.translate( __DNACOMPLEMENT__ )
+            qual.reverse()
+
+        return b"@" + self.readname + b"\n" + seq + b"\n+\n" + qual + b"\n"
 
     cpdef bytearray get_REFSEQ ( self ):
         """Fetch reference sequence, using self.MD and self.cigar

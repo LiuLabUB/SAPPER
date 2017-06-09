@@ -182,7 +182,7 @@ rld_t *fm_append(rld_t *e0, int len, const uint8_t *T)
 	rank_l = (uint64_t*)ws;
 	SA = (int*)ws + 2 * (len + 1);
 	// construct the suffix array
-	ksa_sa(T, (int*)SA, len, e0->asize);
+	ksa_sa64(T, (int*)SA, len, e0->asize); /* modified to use ksa_sa64 instead of ksa_sa */
 	// grab some memory from the stack
 	p = alloca(sizeof(int) * e0->asize);
 	oi = alloca(8 * e0->asize);

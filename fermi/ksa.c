@@ -34,21 +34,21 @@
 
 #include <stdlib.h>
 
-#ifdef _KSA64
+//#ifdef _KSA64
 #include <stdint.h>
 typedef int64_t saint_t;
 #define SAINT_MAX INT64_MAX
 #define SAIS_CORE ksa_core64
 #define SAIS_BWT  ksa_bwt64
 #define SAIS_MAIN ksa_sa64
-#else
-#include <limits.h>
-typedef int saint_t;
-#define SAINT_MAX INT_MAX
-#define SAIS_CORE ksa_core
-#define SAIS_BWT  ksa_bwt
-#define SAIS_MAIN ksa_sa
-#endif
+//#else
+//#include <limits.h>
+//typedef int saint_t;
+//#define SAINT_MAX INT_MAX
+//#define SAIS_CORE ksa_core
+//#define SAIS_BWT  ksa_bwt
+//#define SAIS_MAIN ksa_sa
+//#endif
 
 /* T is of type "const unsigned char*". If T[i] is a sentinel, chr(i) takes a negative value */
 #define chr(i) (cs == sizeof(saint_t) ? ((const saint_t *)T)[i] : (T[i]? (saint_t)T[i] : i - SAINT_MAX))
