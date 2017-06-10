@@ -93,6 +93,7 @@ def run( args ):
 
     # parameter for assembly
     fermiOverlapMinRatio = args.fermiOverlapMinRatio
+    fermiOff = args.fermiOff
     
     peakio = open( peakbedfile )
     peaks = PeakIO()
@@ -117,6 +118,7 @@ def run( args ):
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
+    # to get time
     t_get_ra = 0
     t_get_pri = 0
     t_call_top2nt = 0
@@ -134,9 +136,10 @@ def run( args ):
             #t0 = time()
             ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
             ra_collection.remove_outliers( percent = 5 )
-            # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
-            unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
-            ra_collection.filter_RAs_w_unitigs( unitigs )
+            if not fermiOff:
+                # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
+                unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
+                ra_collection.filter_RAs_w_unitigs( unitigs )
             
             s = ra_collection.get_peak_REFSEQ()
             #t_get_ra += time() - t0
