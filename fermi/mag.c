@@ -341,6 +341,8 @@ void mag_eh_add(mag_t *g, uint64_t u, uint64_t v, int ovlp) // add v to u
 	int i;
 	if ((int64_t)u < 0) return;
 	idd = tid2idd(g->h, u);
+	if ( g->v.n <= idd>>1 ) /* to avoid a strange out-of-bound bug FIXME */
+          return;
 	r = &g->v.a[idd>>1].nei[idd&1];
 	for (i = 0; i < r->n; ++i) // no multi-edges
 		if (r->a[i].x == v) return;
@@ -354,6 +356,8 @@ void mag_eh_markdel(mag_t *g, uint64_t u, uint64_t v) // mark deletion of v from
 	uint64_t idd;
 	if ((int64_t)u < 0) return;
 	idd = tid2idd(g->h, u);
+	if ( g->v.n <= idd>>1 ) /* to avoid a strange out-of-bound bug FIXME */
+          return;
 	ku128_v *r = &g->v.a[idd>>1].nei[idd&1];
 	for (i = 0; i < r->n; ++i)
 		if (r->a[i].x == v) edge_mark_del(r->a[i]);
@@ -536,6 +540,8 @@ void mag_g_rm_edge(mag_t *g, int min_ovlp, double min_ratio, int min_len, int mi
 					max_ovlp = r->a[k].y, max_k = k;
 			if (max_k >= 0) { // test if max_k is a tip
 				uint64_t x = tid2idd(g->h, r->a[max_k].x);
+				if ( g->v.n <= x>>1 ) /* to avoid a strange out-of-bound bug FIXME */
+				  continue;
 				magv_t *q = &g->v.a[x>>1];
 				if (q->len >= 0 && (q->nei[0].n == 0 || q->nei[1].n == 0) && q->len < min_len && q->nsr < min_nsr)
 					max_ovlp = min_ovlp;
