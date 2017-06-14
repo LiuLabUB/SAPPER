@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Time-stamp: <2017-06-06 12:33:01 Tao Liu>
+# Time-stamp: <2017-06-14 10:27:27 Tao Liu>
 
 """Description: SAPPER main executable.
 
@@ -120,8 +120,8 @@ To run SAPPER:
                              help = "When set, local assembly through Fermi will be turned off. Prediction is purely based original reads alignment. Default: False", default = False )
     group_para.add_argument( "-p", "--fermi-mratio", dest = "fermiOverlapMinRatio", type = float,
                              help = "The minimal ratio of a read to be overlapped during local assembly. Must be a float between 0 and 1. Note: if the read length is short (<70bps), please set a higher ratio such as 0.8, otherwise there may be errors during local assembly! Default:0.5 which means a half of the read.", default = 0.5 )
-    group_para.add_argument( "-q", "--top2nt-mratio", dest = "top2ntMinRatio", type = float,
-                             help = "The reads for the top 2 most frequent nucleotides at a loci shouldn't be too few comparing to total reads mapped. The minimum ratio is set by this optoin. Must be a float between 0.5 and 1.  Default:0.8 which means at least 80%% of reads contain the top 2 nucleostides.", default = 0.8 )
+    group_para.add_argument( "-q", "--top2alleles-mratio", dest = "top2allelesMinRatio", type = float,
+                             help = "The reads for the top 2 most frequent alleles at a loci shouldn't be too few comparing to total reads mapped. The minimum ratio is set by this optoin. Must be a float between 0.5 and 1.  Default:0.8 which means at least 80%% of reads contain the top 2 alleles.", default = 0.8 )
     # group for misc
     group_misc = argparser_call.add_argument_group( "Misc arguments" )
     group_misc.add_argument( "-m", "--multiple-processing", dest = "np", type = int, default = 0,

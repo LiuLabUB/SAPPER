@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-09 16:52:06 Tao Liu>
+# Time-stamp: <2017-06-14 15:49:38 Tao Liu>
 
 """Description: sapper call
 
@@ -40,14 +40,15 @@ VCFHEADER="""##fileformat=VCFv4.1
 ##fileDate=%s
 ##source=SAPPER_V%s
 ##Program_Args=%s
-##INFO=<ID=MinBIC_model,Number=.,Type=String,Description="Model with minimum BIC value">
+##INFO=<ID=SAPPER_model,Number=.,Type=String,Description="SAPPER Model with minimum BIC value">
+##INFO=<ID=Mutation_type,Number=.,Type=String,Description="Mutation type: SNV/Insertion/Deletion">
 ##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Read depth in ChIP-seq data">
 ##INFO=<ID=DP_input,Number=1,Type=Integer,Description="Read depth in input data">
 ##INFO=<ID=fermiNTs,Number=.,Type=String,Description="Nucleotides from the genotype information of fermi assembly result">
-##INFO=<ID=top1,Number=.,Type=String,Description="Read depth of top1 nucleotide in ChIP-seq data">
-##INFO=<ID=top2,Number=.,Type=String,Description="Read depth of top2 nucleotide in ChIP-seq data">
-##INFO=<ID=top1input,Number=.,Type=String,Description="Read depth of top1 nucleotide in input data">
-##INFO=<ID=top2input,Number=.,Type=String,Description="Read depth of top2 nucleotide in input data">
+##INFO=<ID=top1,Number=.,Type=String,Description="Read depth of top1 allele in ChIP-seq data">
+##INFO=<ID=top2,Number=.,Type=String,Description="Read depth of top2 allele in ChIP-seq data">
+##INFO=<ID=top1input,Number=.,Type=String,Description="Read depth of top1 allele in input data">
+##INFO=<ID=top2input,Number=.,Type=String,Description="Read depth of top2 allele in input data">
 ##INFO=<ID=lnL_homo_major,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with major allele model">
 ##INFO=<ID=lnL_homo_minor,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with minor allele model">
 ##INFO=<ID=lnL_heter_noAS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with no allele-specific model">
@@ -88,7 +89,7 @@ def run( args ):
     peakbedfile = args.peakbed
     peaktfile = args.tfile[0]
     peakcfile = args.cfile[0]
-    top2ntminr = args.top2ntMinRatio
+    top2allelesminr = args.top2allelesMinRatio
     NP = args.np
 
     # parameter for assembly
@@ -121,7 +122,7 @@ def run( args ):
     # to get time
     t_get_ra = 0
     t_get_pri = 0
-    t_call_top2nt = 0
+    t_call_top2alleles = 0
     t_call_lnL = 0
     t_call_GQ = 0
     t_call_to_vcf = 0
@@ -139,9 +140,38 @@ def run( args ):
             if not fermiOff:
                 # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
                 unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
-                ra_collection.filter_RAs_w_unitigs( unitigs )
+                (unitig_alns, reference_alns) = ra_collection.align_unitig_to_REFSEQ( unitigs )
+                unitig_collection = ra_collection.remap_RAs_w_unitigs( unitigs, (unitig_alns, reference_alns) )                
+                # print ( "---begin of peak---")
+                # print ( "Peak:" )
+                # print ( chrom.decode(), peak["start"], peak["end"])
+                # print ( "RefSeq in peak and extended peak" )
+                # print ( ra_collection["peak_refseq_ext"].find(ra_collection["peak_refseq"])*' '+ra_collection["peak_refseq"].decode() )
+                # print ( ra_collection["peak_refseq_ext"].decode() )
+                # print ( "Assembled unitigs collection:")
+                # print ( unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
+                
+                # for (i, ua) in enumerate(unitig_collection["URAs_list"]):
+                #     print ("Unitig",i)
+                #     print ( ua["chrom"].decode(), ua["lpos"], ua["rpos"], ua["count"] )
+                #     print ( "unitig seq:", ua["seq"].decode() )
+                #     print ( "unitig aln:", ua["unitig_aln"].decode() )
+                #     print ( "refere aln:", ua["reference_aln"].decode() )
+                
+                #     #if ua["seq"] == b'TGTTTTGTACTGGAGTTGGTCTTGAGTTTCTGCACGTGATACACTAGGTGGTGCTAATTGACTGAGCTGA':
+                #     #    print ("20393773",ua.get_variant_bq_by_ref_pos( 20393773 ))
+                #     #    print ("20393774",ua.get_variant_bq_by_ref_pos( 20393774 ))
+                #     #    print ("20393775",ua.get_variant_bq_by_ref_pos( 20393775 ))
+                #     #    print ("20393776",ua.get_variant_bq_by_ref_pos( 20393776 ))
+                #     #    return
+
+                # unitig_collection.get_PosReadsInfo_ref_pos( 
+                # print ( "---end of peak---" )
+                # continue
+
+                # ra_collection.filter_RAs_w_unitigs( unitigs )
             
-            s = ra_collection.get_peak_REFSEQ()
+            s = ra_collection["peak_refseq"]
             #t_get_ra += time() - t0
             # multiprocessing the following part
 
@@ -152,7 +182,10 @@ def run( args ):
                 P = mp.Pool( NP )
 
                 # this partial function will only be used in multiprocessing
-                p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, ra_collection=ra_collection, top2ntminr=top2ntminr)
+                if not fermiOff:
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr)
+                else:
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr)
 
                 ranges = []
                 
@@ -171,14 +204,17 @@ def run( args ):
                     ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
 
                     #t0 = time()
-                    PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
+                    if not fermiOff:
+                        PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
+                    else:
+                        PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
                     #t_get_pri += time() - t0
 
                     #if PRI.raw_read_depth() == 0: # skip if coverage is 0
                     #    return None
                     #t0 = time()
-                    #PRI.update_top_nts( top2ntminr )
-                    #t_call_top2nt += time() - t0
+                    #PRI.update_top_nts( top2allelesminr )
+                    #t_call_top2alleles += time() - t0
 
                     #t0 = time()
                     #PRI.compute_lnL()
@@ -192,37 +228,37 @@ def run( args ):
                     #    #t0 = time()
                     #    result=PRI.to_vcf()
                     #    #t_call_to_vcf += time() - t0
-                    result  = call_variants_at_given_pos( PRI, top2ntminr )
+                    result  = call_variants_at_given_pos( PRI, top2allelesminr )
                     #t_call += time() - t0
                     if result:
                         ovcf.write( "\t".join( ( chrom.decode(), str(i+1), ".", result ) ) + "\n" )
 
     #print ("time to read RAcollection from BAM:",t_get_ra)
     #print ("time to get reads information for each position:",t_get_pri)
-    #print ("time to call top2 NTs:",t_call_top2nt)
+    #print ("time to call top2 NTs:",t_call_top2alleles)
     #print ("time to compute lnL:",t_call_lnL)
     #print ("time to compute GQ:",t_call_GQ)
     #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-def call_variants_at_range ( lr, chrom, s, ra_collection, top2ntminr ):
+def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
-        ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
-        PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
+        ref_nt = chr(s[ i-collection["left"] ] ).encode()
+        PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
         if PRI.raw_read_depth() == 0: # skip if coverage is 0
             continue
-        PRI.update_top_nts( top2ntminr )
+        PRI.update_top_alleles( top2allelesminr )
         PRI.call_GT()
         PRI.apply_GQ_cutoff()
         if not PRI.filterflag():
             result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
     return result
 
-def call_variants_at_given_pos ( PRI, top2ntminr ):
+def call_variants_at_given_pos ( PRI, top2allelesminr ):
     if PRI.raw_read_depth() == 0: # skip if coverage is 0
         return None
-    PRI.update_top_nts( top2ntminr )
+    PRI.update_top_alleles( top2allelesminr )
     PRI.call_GT()
     PRI.apply_GQ_cutoff()
     if not PRI.filterflag():

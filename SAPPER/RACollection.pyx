@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-09 16:46:59 Tao Liu>
+# Time-stamp: <2017-06-14 12:53:28 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -18,16 +18,16 @@ with the distribution).
 # ------------------------------------
 import logging
 import struct
-from struct import unpack
-import gzip
-import io
 from collections import Counter
 from operator import itemgetter
+from copy import copy
 
 from SAPPER.Constants import *
 from SAPPER.ReadAlignment import ReadAlignment
 from SAPPER.PosReadsInfo import PosReadsInfo
 from SAPPER.PeakIO import PeakIO
+from SAPPER.UnitigRACollection import UnitigRAs, UnitigCollection
+#from SAPPER.Alignment import SWalign
 
 from cpython cimport bool
 
@@ -45,6 +45,9 @@ cdef extern from "stdlib.h":
     char * strcpy(char *a, char *b)
     long atol(char *bytes)
     int atoi(char *bytes)
+
+
+# --- fermi functions ---
 
 cdef extern from "kstring.h":
     ctypedef struct kstring_t:
@@ -72,7 +75,8 @@ cdef extern from "mag.h":
         uint32_t max_len        # allocated seq/cov size
         uint64_t k[2]           # bi-interval
         ku128_v nei[2]          # neighbors
-        char *seq, *cov         # sequence and coverage
+        char *seq
+        char *cov               # sequence and coverage
         void *ptr               # additional information
     ctypedef struct magv_v:
         size_t n, m
@@ -92,8 +96,26 @@ cdef extern from "mag.h":
 cdef extern from "fermi.h":
     int fm6_api_correct(int kmer, int64_t l, char *_seq, char *_qual)
     mag_t *fm6_api_unitig(int min_match, int64_t l, char *seq)
+# --- end of fermi functions ---
 
+# --- smith-waterman alignment functions ---
 
+cdef extern from "swalign.h":
+    ctypedef struct seq_pair_t:
+        char *a
+        unsigned int alen
+        char *b
+        unsigned int blen
+    ctypedef struct align_t:
+        seq_pair_t *seqs
+        int start_a
+        int start_b
+        int end_a
+        int end_b
+        int matches
+        double score
+    align_t *smith_waterman(seq_pair_t *problem, bool local)
+    void destroy_seq_pair(seq_pair_t *pair)
     
 # ------------------------------------
 # constants
@@ -103,6 +125,8 @@ __author__ = "Tao Liu <tliu4@buffalo.edu>"
 __doc__ = "All Parser classes"
 
 __DNACOMPLEMENT__ = b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,-./0123456789:;<=>?@TBGDEFCHIJKLMNOPQRSAUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff' # A trans table to convert A to T, C to G, G to C, and T to A.
+
+__CIGARCODE__ = "MIDNSHP=X"
 
 # ------------------------------------
 # Misc functions
@@ -127,6 +151,8 @@ cdef class RACollection:
         long RAs_left           # left position of all RAs in the collection
         long RAs_right          # right position of all RAs in the collection
         bool sorted             # if sorted by lpos
+        bytes peak_refseq       # reference sequence in peak region b/w left and right
+        bytes peak_refseq_ext   # reference sequence in peak region with extension on both sides b/w RAs_left and RAs_right
 
     def __init__ ( self, chrom, peak, RAlist_T, RAlist_C=[] ):
         """Create RACollection object by taking:
@@ -146,7 +172,7 @@ cdef class RACollection:
         self.length =  self.right - self.left
         self.RAs_left = RAlist_T[0]["lpos"] # initial assignment of RAs_left
         self.RAs_right = RAlist_T[-1]["rpos"] # initial assignment of RAs_right
-        self.sorted = True
+        self.sort()                           # it will set self.sorted = True
         # check RAs_left and RAs_right
         for ra in RAlist_T:
             if ra[ "lpos" ] < self.RAs_left:
@@ -159,6 +185,7 @@ cdef class RACollection:
                 self.RAs_left = ra[ "lpos" ]
             if ra[ "rpos" ] > self.RAs_right:
                 self.RAs_right = ra[ "rpos" ]
+        (self.peak_refseq, self.peak_refseq_ext) = self.__get_peak_REFSEQ()
 
     def __getitem__ ( self, keyname ):
         if keyname == "chrom":
@@ -179,6 +206,10 @@ cdef class RACollection:
             return len( self.RAlists[ 0 ] )
         elif keyname == "count_C":
             return len( self.RAlists[ 1 ] )
+        elif keyname == "peak_refseq":
+            return self.peak_refseq
+        elif keyname == "peak_refseq_ext":
+            return self.peak_refseq_ext
         else:
             raise KeyError("Unavailable key:", keyname)
 
@@ -186,10 +217,10 @@ cdef class RACollection:
         #return {"chrom":self.chrom, "peak":self.peak, "RAlists":self.RAlists,
         #        "left":self.left, "right":self.right, "length": self.length,
         #        "RAs_left":self.RAs_left, "RAs_right":self.RAs_right}
-        return (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right)
+        return (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right, self.peak_refseq, self.peak_refseq_ext)
         
     def __setstate__ ( self, state ):
-        (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right) = state
+        (self.chrom, self.peak, self.RAlists, self.left, self.right, self.length, self.RAs_left, self.RAs_right, self.peak_refseq, self.peak_refseq_ext) = state
         
     cpdef sort ( self ):
         """Sort RAs according to lpos. Should be used after realignment.
@@ -249,7 +280,7 @@ cdef class RACollection:
         c = Counter( n_edits_list )
         print( c )
 
-    cpdef bytearray get_peak_REFSEQ ( self ):
+    cdef tuple __get_peak_REFSEQ ( self ):
         """Get the reference sequence within the peak region.
 
         """
@@ -261,23 +292,24 @@ cdef class RACollection:
             long end
             long ind, ind_r
             object read
+            bytearray read_refseq_ext
             bytearray read_refseq
 
         start = min( self.RAs_left, self.left )
         end = max( self.RAs_right, self.right )
-        peak_refseq = bytearray( b'N' * ( end - start ) )
+        peak_refseq_ext = bytearray( b'N' * ( end - start ) )
 
         # for treatment.
-        peak_refseq = self.__fill_refseq ( peak_refseq, self.RAlists[0] )
+        peak_refseq_ext = self.__fill_refseq ( peak_refseq_ext, self.RAlists[0] )
         # and control if available.
         if self.RAlists[1]:
-            peak_refseq = self.__fill_refseq ( peak_refseq, self.RAlists[1] )
+            peak_refseq_ext = self.__fill_refseq ( peak_refseq_ext, self.RAlists[1] )
 
         # trim
-        peak_refseq = peak_refseq[ self.left - start: self.right - start ]
-        return peak_refseq
+        peak_refseq = peak_refseq_ext[ self.left - start: self.right - start ]
+        return ( bytes( peak_refseq ), bytes( peak_refseq_ext ) )
 
-    cdef bytearray __fill_refseq ( self, seq, ralist ):
+    cdef bytearray __fill_refseq ( self, bytearray seq, list ralist ):
         """Fill refseq sequence of whole peak with refseq sequences of
         each read in ralist.
 
@@ -384,7 +416,7 @@ cdef class RACollection:
             kstring_t out
             bytes tmpunitig
             bytes unitig                 #final unitig
-            list unitig_list
+            list unitig_list             # contain list of sequences in bytes format
             
         seq = b''
         qual = b''
@@ -392,14 +424,17 @@ cdef class RACollection:
         unitig_k=int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
         merge_min_len=int(self.RAlists[0][0]["l"]*0.75)+1;
         
-        # prepare seq and qual
+        # prepare seq and qual, note, we only extract SEQ according to the +
+        # strand of reference sequence.
         for ra in self.RAlists[0]:
-            ( tmps, tmpq ) =  ra.get_SEQ_QUAL()
+            tmps = ra["SEQ"]
+            tmpq = ra["QUAL"]
             seq += tmps + b'\x00'
             qual+= tmpq + b'\x00'
 
         for ra in self.RAlists[1]:
-            ( tmps, tmpq ) =  ra.get_SEQ_QUAL()
+            tmps = ra["SEQ"]
+            tmpq = ra["QUAL"]
             seq += tmps + b'\x00'
             qual+= tmpq + b'\x00'
             
@@ -433,63 +468,119 @@ cdef class RACollection:
         mag_g_destroy(g)
         return unitig_list
 
-    cpdef align_unitig_to_REFSEQ ( self, list unitig_list, bytes refseq ):
-        """
-        """
-        cdef:
-            list unitig_refstart_list
-            list unitig_refend_list
-            
-        return
-
-
-    cpdef filter_RAs_w_unitigs ( self, list unitig_list ):
-        """
+    cpdef tuple align_unitig_to_REFSEQ ( self, list unitig_list ):
+        """Note: we use smith waterman, but we don't use linear gap
+        penalty at this time.
         """
         cdef:
-            int i
-            bytes tmps
             bytes unitig
-            list new_RAlist_T, new_RAlist_C
+            seq_pair_t problem
+            char * tmp
+            bytes target
+            bytes reference
+            bytes target_aln
+            bytes reference_aln
+            list target_alns = []
+            list reference_alns = []
 
-        new_RAlist_T = []
-        new_RAlist_C = []
-        for ra in self.RAlists[0]:
-            tmps =  bytes(ra.get_SEQ())
-            for unitig in unitig_list:
-                if tmps in unitig:
-                    new_RAlist_T.append( ra )
+        reference = copy(self.peak_refseq_ext+b'\x00')
+
+        for unitig in unitig_list:
+            target = copy(unitig + b'\x00')
+
+            # we use swalign.c for local alignment (without affine gap
+            # penalty). Will revise later.
+            problem.a = target
+            problem.alen = len( unitig )
+            problem.b = reference
+            problem.blen = len( self.peak_refseq_ext )
+            results = smith_waterman( &problem, False )
+            target_aln = results.seqs.a
+            reference_aln = results.seqs.b
+            # end of local alignment
+
+            target_alns.append( target_aln )
+            reference_alns.append( reference_aln )
+            
+        return ( target_alns, reference_alns )
+
+
+    cpdef object remap_RAs_w_unitigs ( self, list unitig_list, tuple alns ):
+        """unitig_list and tuple_alns are in the same order!
+
+        return UnitigCollection object.
+
+        """
+        cdef:
+            list target_alns, reference_alns
+            list RAlists_T = []
+            list RAlists_C = []
+            object tmp_ra
+            bytes tmp_ra_seq
+            bytes tmp_unitig_seq
+            bytes tmp_reference_seq
+            bytes tmp_unitig_aln
+            bytes tmp_reference_aln
+            int i, j
+            long left_padding_ref, right_padding_ref
+            long left_padding_unitig, right_padding_unitig
+            list ura_list = []
+            object unitig_collection
+
+        ( target_alns, reference_alns ) = alns
+
+        
+        for i in range( len(unitig_list) ):
+            RAlists_T.append([])         # for each unitig, there is another list of RAs
+            RAlists_C.append([])
+
+        # assign RAs to unitigs
+        for tmp_ra in self.RAlists[0]:
+            tmp_ra_seq = tmp_ra["SEQ"]
+            for i in range( len(unitig_list) ):
+                unitig = unitig_list[ i ]
+                if tmp_ra_seq in unitig:
+                    RAlists_T[ i ].append( tmp_ra )
                     break
-                else:
-                    tmps = tmps[::-1].translate( __DNACOMPLEMENT__ )
-                    if tmps in unitig:
-                        new_RAlist_T.append( ra )
-                        break
-
-        for ra in self.RAlists[1]:
-            tmps =  bytes(ra.get_SEQ())
-            for unitig in unitig_list:
-                if tmps in unitig:
-                    new_RAlist_C.append( ra )
+        for tmp_ra in self.RAlists[1]:
+            tmp_ra_seq = tmp_ra["SEQ"]
+            for i in range( len(unitig_list) ):
+                unitig = unitig_list[ i ]
+                if tmp_ra_seq in unitig:
+                    RAlists_C[ i ].append( tmp_ra )
                     break
-                else:
-                    tmps = tmps[::-1].translate( __DNACOMPLEMENT__ )
-                    if tmps in unitig:
-                        new_RAlist_C.append( ra )
-                        break
 
-        self.RAlists = [new_RAlist_T, new_RAlist_C]
-        self.RAs_left = new_RAlist_T[0]["lpos"] # initial assignment of RAs_left
-        self.RAs_right = new_RAlist_T[-1]["rpos"] # initial assignment of RAs_right
-        # check RAs_left and RAs_right
-        for ra in new_RAlist_T:
-            if ra[ "lpos" ] < self.RAs_left:
-                self.RAs_left = ra[ "lpos" ]
-            if ra[ "rpos" ] > self.RAs_right:
-                self.RAs_right = ra[ "rpos" ]
+        # create UnitigCollection
+        for i in range( len( unitig_list ) ):
+            #b'---------------------------AAATAATTTTATGTCCTTCAGTACAAAAAGCAGTTTCAACTAAAACCCAGTAACAAGCTAGCAATTCCTTTTAAATGGTGCTACTTCAAGCTGCAGCCAGGTAGCTTTTTATTACAAAAAATCCCACAGGCAGCCACTAGGTGGCAGTAACAGGCTTTTGCCAGCGGCTCCAGTCAGCATGGCTTGACTGTGTGCTGCAGAAACTTCTTAAATCGTCTGTGTTTGGGACTCGTGGGGCCCCACAGGGCTTTACAAGGGCTTTTTAATTTCCAAAAACATAAAACAAAAAAA--------------'
+            #b'GATATAAATAGGATGTTATGAGTTTTCAAATAATTTTATGTCCTTCAGTACAAAAAGCAGTTTCAACTAAAACCCAGTAACAAGCTAGCAATTCCTTTTAAATGGTGCTACTTCAAGCTGCAGCCAGGTAGCTTTTTATTACAAAAA-TCCCACAGGCAGCCACTAGGTGGCAGTAACAGGCTTTTGCCAGCGGCTCCAGTCAGCATGGCTTGACTGTGTGCTGCAGAAACTTCTTAAATCGTCTGTGTTTGGGACTCGTGGGGCCCCACAGGGCTTTACAAGGGCTTTTTAATTTCCAAAAACATAAAACAAAAAAAAATACAAATGTATT'
+            tmp_unitig_aln = alns[ 0 ][ i ]
+            tmp_reference_aln = alns[ 1 ][ i ]
+            tmp_unitig_seq = tmp_unitig_aln.replace(b'-',b'')
+            tmp_reference_seq = tmp_reference_aln.replace(b'-',b'')
 
-        for ra in new_RAlist_C:
-            if ra[ "lpos" ] < self.RAs_left:
-                self.RAs_left = ra[ "lpos" ]
-            if ra[ "rpos" ] > self.RAs_right:
-                self.RAs_right = ra[ "rpos" ]
+            # find the position on self.peak_refseq_ext
+            left_padding_ref = self.peak_refseq_ext.find( tmp_reference_seq ) # this number of nts should be skipped on refseq_ext from left
+            right_padding_ref = self.peak_refseq_ext.rfind( tmp_reference_seq ) # this number of nts should be skipped on refseq_ext from right
+            
+            #now, decide the lpos and rpos on reference of this unitig
+            #first, trim left padding '-'
+            left_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.lstrip(b'-'))
+            right_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.rstrip(b'-'))
+
+            tmp_lpos = self.RAs_left - left_padding_ref
+            tmp_rpos = self.RAs_right - right_padding_ref
+            for j in range( left_padding_unitig ):
+                if tmp_reference_aln[ j ] != b'-':
+                    tmp_lpos += 1
+            for j in range( 1, right_padding_unitig + 1 ):
+                if tmp_reference_aln[ -j ] != b'-':
+                    tmp_rpos -= 1
+
+            tmp_unitig_aln = tmp_unitig_aln[ left_padding_unitig:(len(tmp_unitig_aln)-right_padding_unitig)]
+            tmp_reference_aln = tmp_reference_aln[ left_padding_unitig:(len(tmp_reference_aln)-right_padding_unitig)]
+
+            ura_list.append( UnitigRAs( self.chrom, tmp_lpos, tmp_rpos, tmp_unitig_aln, tmp_reference_aln, [RAlists_T[i], RAlists_C[i]] ) )
+
+        return UnitigCollection( self.chrom, self.peak, ura_list )
+                

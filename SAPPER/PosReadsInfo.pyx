@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-06 15:37:39 Tao Liu>
+# Time-stamp: <2017-06-14 16:12:49 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -64,8 +64,8 @@ __doc__ = "All Parser classes"
 cdef class PosReadsInfo:
     cdef:
         long ref_pos
-        bytes ref_nt
-        bytes alt_nt
+        bytes ref_allele
+        bytes alt_allele
         bool filterout          # if true, do not output
 
         dict bq_set_T     #{A:[], C:[], G:[], T:[], N:[]} for treatment
@@ -74,9 +74,9 @@ cdef class PosReadsInfo:
         dict n_reads_C
         dict n_reads
 
-        bytes top1nt
-        bytes top2nt
-        float top12NT_ratio
+        bytes top1allele
+        bytes top2allele
+        float top12alleles_ratio
 
         double lnL_homo_major,lnL_heter_AS,lnL_heter_noAS,lnL_homo_minor
         double BIC_homo_major,BIC_heter_AS,BIC_heter_noAS,BIC_homo_minor
@@ -91,8 +91,9 @@ cdef class PosReadsInfo:
         
         str GT
         str type
+        str mutation_type       # SNV or Insertion or Deletion
 
-        bool hasfermiinfor #if no fermi bam overlap in the position, false; if fermi bam in the position GT: N, false; if anyone of top2NT is not in fermi GT NTs, false;
+        bool hasfermiinfor #if no fermi bam overlap in the position, false; if fermi bam in the position GT: N, false; if anyone of top2allele is not in fermi GT NTs, false;
         bytearray fermiNTs # 
 
     def __cinit__ ( self ):
@@ -104,16 +105,16 @@ cdef class PosReadsInfo:
         self.filterout = False
         self.GQ = 0
         self.GT = "unsure"
-        self.alt_nt = b'.'
+        self.alt_allele = b'.'
         
-    def __init__ ( self, ref_pos, ref_nt ):
+    def __init__ ( self, ref_pos, ref_allele ):
         self.ref_pos = ref_pos
-        self.ref_nt = ref_nt
+        self.ref_allele = ref_allele
 
     def __getstate__ ( self ):
-        return ( self.ref_pos, self.ref_nt, self.alt_nt, self.filterout,
+        return ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
                  self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
-                 self.top1nt, self.top2nt, self.top12NT_ratio,
+                 self.top1allele, self.top2allele, self.top12alleles_ratio,
                  self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
                  self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
                  self.heter_noAS_kc, self.heter_noAS_ki,
@@ -128,9 +129,9 @@ cdef class PosReadsInfo:
                  self.fermiNTs )
 
     def __setstate__ ( self, state ):
-        ( self.ref_pos, self.ref_nt, self.alt_nt, self.filterout,
+        ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
           self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
-          self.top1nt, self.top2nt, self.top12NT_ratio,
+          self.top1allele, self.top2allele, self.top12alleles_ratio,
           self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
           self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
           self.heter_noAS_kc, self.heter_noAS_ki,
@@ -156,43 +157,53 @@ cdef class PosReadsInfo:
             self.filterout = True
         return
 
-    cpdef add_T ( self, int read_index, bytes read_nt, int read_bq ):
-        #self.bq_set_T[ read_nt ].append( (read_index, read_bq) )
-        self.bq_set_T[ read_nt ].append( read_bq )
-        self.n_reads_T[ read_nt ] += 1
-        self.n_reads[ read_nt ] += 1
+    cpdef add_T ( self, int read_index, bytes read_allele, int read_bq ):
+        if not self.bq_set_T.has_key( read_allele ):
+            self.bq_set_T[read_allele] = []
+            self.bq_set_C[read_allele] = []
+            self.n_reads_T[read_allele] = 0
+            self.n_reads_C[read_allele] = 0
+            self.n_reads[read_allele] = 0
+        self.bq_set_T[read_allele].append( read_bq )
+        self.n_reads_T[ read_allele ] += 1
+        self.n_reads[ read_allele ] += 1
 
-    cpdef add_C ( self, int read_index, bytes read_nt, int read_bq ):
-        #self.bq_set_C[ read_nt ].append( (read_index, read_bq) )
-        self.bq_set_C[ read_nt ].append( read_bq )
-        self.n_reads_C[ read_nt ] += 1
-        self.n_reads[ read_nt ] += 1
+    cpdef add_C ( self, int read_index, bytes read_allele, int read_bq ):
+        if not self.bq_set_C.has_key( read_allele ):
+            self.bq_set_T[read_allele] = []
+            self.bq_set_C[read_allele] = []
+            self.n_reads_T[read_allele] = 0
+            self.n_reads_C[read_allele] = 0
+            self.n_reads[read_allele] = 0
+        self.bq_set_C[read_allele].append( read_bq )
+        self.n_reads_C[ read_allele ] += 1
+        self.n_reads[ read_allele ] += 1
 
     cpdef raw_read_depth ( self ):
         return sum( self.n_reads.values() )
 
-    cpdef update_top_nts ( self, float min_top12NT_ratio = 0.8 ):
+    cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8 ):
         """Identify top1 and top2 NT.  the ratio of (top1+top2)/total
         """
         cdef:
             float r
-        [self.top1nt, self.top2nt] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
+        [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
         
-        self.top12NT_ratio = ( self.n_reads[ self.top1nt ] + self.n_reads[ self.top2nt ] ) /  sum( self.n_reads.values() )
-        if self.top12NT_ratio < min_top12NT_ratio:
+        self.top12alleles_ratio = ( self.n_reads[ self.top1allele ] + self.n_reads[ self.top2allele ] ) /  sum( self.n_reads.values() )
+        if self.top12alleles_ratio < min_top12alleles_ratio:
             self.filterout = True
-        if self.top1nt == self.ref_nt and self.n_reads[ self.top2nt ] == 0:
-            # This means this position only contains top1nt which is the ref_nt. So the GT must be 0/0
+        if self.top1allele == self.ref_allele and self.n_reads[ self.top2allele ] == 0:
+            # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.filterout = True
         return
 
-    cpdef top12NT ( self ):
-        print ( self.ref_pos, self.ref_nt)
-        print ("Top1NT",self.top1nt, "Treatment", self.bq_set_T[self.top1nt], "Control", self.bq_set_C[self.top1nt])
-        print ("Top2NT",self.top2nt, "Treatment", self.bq_set_T[self.top2nt], "Control", self.bq_set_C[self.top2nt])
+    cpdef top12alleles ( self ):
+        print ( self.ref_pos, self.ref_allele)
+        print ("Top1allele",self.top1allele, "Treatment", self.bq_set_T[self.top1allele], "Control", self.bq_set_C[self.top1allele])
+        print ("Top2allele",self.top2allele, "Treatment", self.bq_set_T[self.top2allele], "Control", self.bq_set_C[self.top2allele])
     
     cpdef call_GT ( self ):
-        """Require update_top_nts being called.
+        """Require update_top_alleles being called.
         """
         cdef:
             np.ndarray[np.int32_t, ndim=1] top1_bq_T
@@ -204,23 +215,27 @@ cdef class PosReadsInfo:
             list top2_bq_T_l
             list top1_bq_C_l
             list top2_bq_C_l
+            list tmp_mutation_type
+            bytes tmp_alt
 
         if self.filterout:
             return
 
-        #top1_bq_T_l = self.bq_set_T[ self.top1nt ] 
-        #top2_bq_T_l = self.bq_set_T[ self.top2nt ] 
-        #top1_bq_C_l = self.bq_set_C[ self.top1nt ] 
-        #top2_bq_C_l = self.bq_set_C[ self.top2nt ] 
+        #top1_bq_T_l = self.bq_set_T[ self.top1allele ] 
+        #top2_bq_T_l = self.bq_set_T[ self.top2allele ] 
+        #top1_bq_C_l = self.bq_set_C[ self.top1allele ] 
+        #top2_bq_C_l = self.bq_set_C[ self.top2allele ] 
 
         #top1_bq_T = np.zeros( len(top1_bq_T_l),dtype="int32")
         #top2_bq_T = np.zeros( len(top2_bq_T_l),dtype="int32")
         #top1_bq_C = np.zeros( len(top1_bq_C_l),dtype="int32")
         #top2_bq_C = np.zeros( len(top2_bq_C_l),dtype="int32")
-        top1_bq_T = np.array( self.bq_set_T[ self.top1nt ], dtype="int32" )
-        top2_bq_T = np.array( self.bq_set_T[ self.top2nt ], dtype="int32" )
-        top1_bq_C = np.array( self.bq_set_C[ self.top1nt ], dtype="int32" )
-        top2_bq_C = np.array( self.bq_set_C[ self.top2nt ], dtype="int32" )
+        #print self.top1allele
+        #print self.top2allele
+        top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
+        top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
+        top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
+        top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
 
         #for i in range( len(top1_bq_T_l) ):
         #    top1_bq_T[ i ] = top1_bq_T_l[ i ][ 1 ]
@@ -242,12 +257,12 @@ cdef class PosReadsInfo:
         self.GQ_heter_ASsig = 0
         
         # assign GQ, GT, and type
-        if self.ref_nt != self.top1nt and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+        if self.ref_allele != self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
             self.type = "homo"
             self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
             self.GQ = self.GQ_homo_major
             self.GT = "1/1"
-            self.alt_nt = self.top1nt
+            self.alt_allele = self.top1allele
         elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
             self.type = "heter_noAS"
             self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
@@ -257,7 +272,7 @@ cdef class PosReadsInfo:
             self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
             self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
             self.GQ = self.GQ_heter_AS
-        elif self.ref_nt == self.top1nt and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+        elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
             self.type = "homo_ref"
             # we do not calculate GQ if type is homo_ref
             self.GT = "0/0"
@@ -267,20 +282,31 @@ cdef class PosReadsInfo:
             self.filterout = True
 
         if self.type.startswith( "heter" ):
-            if self.ref_nt == self.top1nt:
-                self.alt_nt = self.top2nt
+            if self.ref_allele == self.top1allele:
+                self.alt_allele = self.top2allele
                 self.GT = "0/1"
-            elif self.ref_nt == self.top2nt:
-                self.alt_nt = self.top1nt
+            elif self.ref_allele == self.top2allele:
+                self.alt_allele = self.top1allele
                 self.GT = "0/1"
             else:
-                self.alt_nt = self.top1nt+b','+self.top2nt
+                self.alt_allele = self.top1allele+b','+self.top2allele
                 self.GT = "1/2"
+
+        tmp_mutation_type = []
+        for tmp_alt in self.alt_allele.split(b','):
+            if tmp_alt == b'*':
+                tmp_mutation_type.append( "Deletion" )
+            elif len( self.alt_allele ) > 1:
+                tmp_mutation_type.append( "Insertion" )
+            else:
+                tmp_mutation_type.append( "SNV" )
+        self.mutation_type = ",".join( tmp_mutation_type )
+
 
         return
 
     cpdef compute_lnL ( self ):
-        """Require update_top_nts being called.
+        """Require update_top_alleles being called.
         """
         cdef:
             np.ndarray[np.int32_t, ndim=1] top1_bq_T
@@ -296,10 +322,10 @@ cdef class PosReadsInfo:
         if self.filterout:
             return
 
-        top1_bq_T = np.array( self.bq_set_T[ self.top1nt ], dtype="int32" )
-        top2_bq_T = np.array( self.bq_set_T[ self.top2nt ], dtype="int32" )
-        top1_bq_C = np.array( self.bq_set_C[ self.top1nt ], dtype="int32" )
-        top2_bq_C = np.array( self.bq_set_C[ self.top2nt ], dtype="int32" )
+        top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
+        top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
+        top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
+        top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
 
         (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
         (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
@@ -309,6 +335,10 @@ cdef class PosReadsInfo:
         return
 
     cpdef compute_GQ ( self ):
+        cdef:
+            list tmp_mutation_type
+            bytes tmp_alt
+
         if self.filterout:
             return
         self.GQ_homo_major = 0
@@ -317,12 +347,12 @@ cdef class PosReadsInfo:
         self.GQ_heter_ASsig = 0
         
         # assign GQ, GT, and type
-        if self.ref_nt != self.top1nt and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+        if self.ref_allele != self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
             self.type = "homo"
             self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
             self.GQ = self.GQ_homo_major
             self.GT = "1/1"
-            self.alt_nt = self.top1nt
+            self.alt_allele = self.top1allele
         elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
             self.type = "heter_noAS"
             self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
@@ -332,7 +362,7 @@ cdef class PosReadsInfo:
             self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
             self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
             self.GQ = self.GQ_heter_AS
-        elif self.ref_nt == self.top1nt and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+        elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
             self.type = "homo_ref"
             # we do not calculate GQ if type is homo_ref
             self.GT = "0/0"
@@ -342,15 +372,25 @@ cdef class PosReadsInfo:
             self.filterout = True
 
         if self.type.startswith( "heter" ):
-            if self.ref_nt == self.top1nt:
-                self.alt_nt = self.top2nt
+            if self.ref_allele == self.top1allele:
+                self.alt_allele = self.top2allele
                 self.GT = "0/1"
-            elif self.ref_nt == self.top2nt:
-                self.alt_nt = self.top1nt
+            elif self.ref_allele == self.top2allele:
+                self.alt_allele = self.top1allele
                 self.GT = "0/1"
             else:
-                self.alt_nt = self.top1nt+b','+self.top2nt
+                self.alt_allele = self.top1allele+b','+self.top2allele
                 self.GT = "1/2"
+
+        tmp_mutation_type = []
+        for tmp_alt in self.alt_allele.split(b','):
+            if tmp_alt == 42: # means '*'
+                tmp_mutation_type.append( "Deletion" )
+            elif len( self.alt_allele ) > 1:
+                tmp_mutation_type.append( "Insertion" )
+            else:
+                tmp_mutation_type.append( "SNV" )
+        self.mutation_type = ",".join( tmp_mutation_type )
         return
 
     cpdef to_vcf ( self ):
@@ -361,17 +401,17 @@ cdef class PosReadsInfo:
 
         # T       C       .       .       MinBIC_model=heter_AS;raw_depth_ChIP=56;raw_depth_input=0;DP_ChIP=46;DP_input=0;fermiNTs=CT;top1=33T;top2=13C;top1input=0T;top2input=0C;top1raw=40T;top2raw=16C;top1inputraw=0T;top2inputraw=0C;lnL_homo_major=-117.897;lnL_homo_minor=-296.115;lnL_heter_noAS=-31.7978;lnL_heter_AS=-29.4305;BIC_homo_major=235.794;BIC_homo_minor=592.229;BIC_heter_noAS=67.4243;BIC_heter_AS=66.5183;GQ_homo=0;GQ_heter_noAS=0;GQ_heter_AS=384;GQ_heter_ASsig=10;Allele_ratio_heter_AS=0.717391      GT:DP:GQ        0|1:46:384
 
-        vcf_ref = self.ref_nt.decode()
-        vcf_alt = self.alt_nt.decode()
+        vcf_ref = self.ref_allele.decode()
+        vcf_alt = self.alt_allele.decode()
         vcf_qual = "%d" % self.GQ
         vcf_filter = "."
-        vcf_info = (b"MinBIC_model=%s;DP_ChIP=%d;DP_input=%d;fermiNTs=%d;top1=%d%s;top2=%d%s;top1input=%d%s;top2input=%d%s;lnL_homo_major=%f;lnL_homo_minor=%f;lnL_heter_noAS=%f;lnL_heter_AS=%f;BIC_homo_major=%f;BIC_homo_minor=%f;BIC_heter_noAS=%f;BIC_heter_AS=%f;GQ_homo=%d;GQ_heter_noAS=%d;GQ_heter_AS=%d;GQ_heter_ASsig=%d;Allele_ratio_heter_AS=%f" % \
-            (self.type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 0, 
-             self.n_reads_T[self.top1nt], self.top1nt, self.n_reads_T[self.top2nt], self.top2nt,
-             self.n_reads_C[self.top1nt], self.top1nt, self.n_reads_C[self.top2nt], self.top2nt,
+        vcf_info = (b"SAPPER_model=%s;Mutation_type=%s;DP_ChIP=%d;DP_input=%d;fermiNTs=%d;top1=%d%s;top2=%d%s;top1input=%d%s;top2input=%d%s;lnL_homo_major=%f;lnL_homo_minor=%f;lnL_heter_noAS=%f;lnL_heter_AS=%f;BIC_homo_major=%f;BIC_homo_minor=%f;BIC_heter_noAS=%f;BIC_heter_AS=%f;GQ_homo=%d;GQ_heter_noAS=%d;GQ_heter_AS=%d;GQ_heter_ASsig=%d;Allele_ratio_heter_AS=%f" % \
+            (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 0, 
+             self.n_reads_T[self.top1allele], self.top1allele, self.n_reads_T[self.top2allele], self.top2allele,
+             self.n_reads_C[self.top1allele], self.top1allele, self.n_reads_C[self.top2allele], self.top2allele,
              self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS,
              self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS,
-             self.GQ_homo_major, self.GQ_heter_noAS, self.GQ_heter_AS, self.GQ_heter_ASsig, self.n_reads_T[self.top1nt]/(self.n_reads_T[self.top1nt]+self.n_reads_T[self.top2nt])
+             self.GQ_homo_major, self.GQ_heter_noAS, self.GQ_heter_AS, self.GQ_heter_ASsig, self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele])
              )).decode()
         vcf_format = "GT:DP:GQ"
         vcf_sample = "%s:%d:%d" % (self.GT, self.raw_read_depth(), self.GQ )

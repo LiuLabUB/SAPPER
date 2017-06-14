@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-09 13:52:42 Tao Liu>
+# Time-stamp: <2017-06-14 11:16:32 Tao Liu>
 
 """Module for SAPPER ReadAlignment class
 
@@ -80,6 +80,8 @@ cdef class ReadAlignment:
         bytes MD
         int n_edits             # number of edits; higher the number,
                                 # more differences with reference
+        bytes SEQ               # sequence of read regarding to + strand
+        bytes QUAL              # quality of read regarding to + strand
 
     def __init__ ( self, 
                    bytes readname,
@@ -100,6 +102,7 @@ cdef class ReadAlignment:
         self.cigar = cigar
         self.MD = MD
         self.n_edits = self.get_n_edits()
+        (self.SEQ, self.QUAL) = self.__get_SEQ_QUAL()
 
     cdef int get_n_edits( self ):
         """The number is from self.cigar and self.MD.
@@ -133,6 +136,12 @@ cdef class ReadAlignment:
             return self.rpos
         elif keyname == "strand":
             return self.strand
+        elif keyname == "SEQ":
+            return self.SEQ
+        elif keyname == "QUAL":
+            return self.QUAL
+        elif keyname == "n_edits":
+            return self.n_edits
         elif keyname == "binaryseq":
             return self.binaryseq
         elif keyname == "binaryqual":
@@ -143,73 +152,50 @@ cdef class ReadAlignment:
             return self.cigar
         elif keyname == "MD":
             return self.MD
-        elif keyname == "n_edits":
-            return self.n_edits
-        else:
-            raise KeyError("No such key", keyname)
-
-    def __setitem__ ( self, keyname, value ):
-        if keyname == "readname":
-            self.readname = value
-        elif keyname == "chrom":
-            self.chrom = value
-        elif keyname == "lpos":
-            self.lpos = value
-        elif keyname == "rpos":
-            self.rpos = value
-        elif keyname == "strand":
-            self.strand = value
-        # do not allow change to binaryseq
-        #elif keyname == "binaryseq":
-        #    self.binaryseq = value
-        # allow change to bq, in case of bq calibration
-        elif keyname == "binaryqual":
-            self.binaryqual = value
-        elif keyname == "cigar":
-            self.cigar = value
-        elif keyname == "MD":
-            self.MD = value
-        # do not allow change to n_edits
-        #elif keyname == "n_edits":
-        #    self.n_edits = value
         else:
             raise KeyError("No such key", keyname)
 
     def __getstate__ ( self ):
-        return ( self.readname, self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.l, self.cigar, self.MD, self.n_edits )
+        return ( self.readname, self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.l, self.cigar, self.MD, self.n_edits, self.SEQ, self.QUAL )
 
     def __setstate__ ( self, state ):
-        ( self.readname, self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.l, self.cigar, self.MD, self.n_edits ) = state
+        ( self.readname, self.chrom, self.lpos, self.rpos, self.strand, self.binaryseq, self.binaryqual, self.l, self.cigar, self.MD, self.n_edits, self.SEQ, self.QUAL ) = state
 
+    # cpdef bytearray get_SEQ ( self ):
+    #     """Convert binary seq to ascii seq.
 
-    cpdef bytearray get_SEQ ( self ):
-        """Convert binary seq to ascii seq.
+    #     Rule: for each byte, 1st base in the highest 4bit; 2nd in the lowest 4bit. "=ACMGRSVTWYHKDBN" -> [0,15]
+
+    #     Note: In BAM, if a sequence is mapped to reverse strand, the
+    #     reverse complement seq is written in SEQ field. So the return
+    #     value of this function will not be the original one if the
+    #     read is mapped to - strand.
+    #     """
+    #     cdef:
+    #         char c
+    #         bytearray seq
+
+    #     seq = bytearray(b"")
+    #     for c in self.binaryseq:
+    #         # high
+    #         seq.append( __BAMDNACODE__[c >> 4 & 15] )
+    #         # low
+    #         seq.append( __BAMDNACODE__[c & 15] )
+    #     if seq[-1] == b"=":
+    #         # trim the last '=' if it exists
+    #         seq = seq[:-1]
+    #     return seq
+
+    cdef tuple __get_SEQ_QUAL ( self ):
+        """Get tuple of (SEQ, QUAL).
 
         Rule: for each byte, 1st base in the highest 4bit; 2nd in the lowest 4bit. "=ACMGRSVTWYHKDBN" -> [0,15]
 
         Note: In BAM, if a sequence is mapped to reverse strand, the
         reverse complement seq is written in SEQ field. So the return
         value of this function will not be the original one if the
-        read is mapped to - strand.
-        """
-        cdef:
-            char c
-            bytearray seq
-
-        seq = bytearray(b"")
-        for c in self.binaryseq:
-            # high
-            seq.append( __BAMDNACODE__[c >> 4 & 15] )
-            # low
-            seq.append( __BAMDNACODE__[c & 15] )
-        if seq[-1] == b"=":
-            # trim the last '=' if it exists
-            seq = seq[:-1]
-        return seq
-
-    cpdef tuple get_SEQ_QUAL ( self ):
-        """Get tuple of (SEQ, QUAL). SEQ will be reverse complemented when necessary.
-
+        read is mapped to - strand. If you need to original one, do
+        reversecomp for SEQ and reverse QUAL.
         """
         cdef:
             int i
@@ -228,20 +214,20 @@ cdef class ReadAlignment:
             seq.append( __BAMDNACODE__[c & 15] )
 
         for i in range( len( self.binaryqual ) ):
-            # qual is the -10log10 p or phred score. In FASTQ, we need to add 33 to the raw value.
-            qual.append( self.binaryqual[i] + 33 )
+            # qual is the -10log10 p or phred score. 
+            qual.append( self.binaryqual[i] )
             
         if seq[-1] == b"=":
             # trim the last '=' if it exists
             seq = seq[:-1]
         assert len( seq ) == len( qual ), Exception("Lengths of seq and qual are not consistent!")
 
-        # reverse while necessary
-        if self.strand:
-            seq.reverse()
-            #compliment
-            seq = seq.translate( __DNACOMPLEMENT__ )
-            qual.reverse()
+        # Example on how to get original SEQ and QUAL:
+        #if self.strand:
+        #    seq.reverse()
+        #    #compliment
+        #    seq = seq.translate( __DNACOMPLEMENT__ )
+        #    qual.reverse()
 
         return ( bytes(seq), bytes(qual) )
 
@@ -251,36 +237,24 @@ cdef class ReadAlignment:
 
         """
         cdef:
-            int i
-            char c
-            bytearray seq
+            bytes seq
             bytearray qual
 
-        seq = bytearray(b"")
-        qual = bytearray(b"")
+        seq = self.SEQ
+        qual = bytearray(self.QUAL)
 
-        for i in range( len(self.binaryseq) ):
-            c = self.binaryseq[ i ]
-            # high
-            seq.append( __BAMDNACODE__[c >> 4 & 15] )
-            # low
-            seq.append( __BAMDNACODE__[c & 15] )
-
-        for i in range( len( self.binaryqual ) ):
-            # qual is the -10log10 p or phred score. In FASTQ, we need to add 33 to the raw value.
-            qual.append( self.binaryqual[i] + 33 )
-            
-        if seq[-1] == b"=":
-            # trim the last '=' if it exists
-            seq = seq[:-1]
-        assert len( seq ) == len( qual ), Exception("Lengths of seq and qual are not consistent!")
-
+        for i in range( len( self.QUAL ) ):
+            # qual is the -10log10 p or phred score, to make FASTQ, we have to add 33
+            qual[ i ] += 33
+        
         # reverse while necessary
         if self.strand:
-            seq.reverse()
+            seq = self.SEQ[::-1]
             #compliment
             seq = seq.translate( __DNACOMPLEMENT__ )
-            qual.reverse()
+            qual = qual[::-1]
+        else:
+            seq = self.SEQ
 
         return b"@" + self.readname + b"\n" + seq + b"\n+\n" + qual + b"\n"
 
@@ -295,7 +269,7 @@ cdef class ReadAlignment:
             int ind
             bool flag_del       # flag for deletion event in query
 
-        seq = self.get_SEQ()    # we start with read seq then make modifications
+        seq = bytearray(self.SEQ)    # we start with read seq then make modifications
 
         # 2-step proces
         # First step: use CIGAR to edit SEQ to remove S (softclip) and I (insert)
@@ -463,10 +437,6 @@ cdef class ReadAlignment:
                     bq_array.append( self.binaryqual[ p ] )
                     if seq_array == p_refseq:
                         seq_array = bytearray( b'=' )
-                        
-                    #if ref_pos == 17255842 and self.lpos == 17255842:
-                    #    print( p_refseq, seq_array, "mark" )
-
                     break
                 else:
                     # go to the next cigar code
@@ -477,12 +447,7 @@ cdef class ReadAlignment:
                     # find the position, however ...
                     # position located in a region in reference that not exists in query
                     seq_array.append( b'-' )
-                    bq_array.append( 93 )
-
-                    #if ref_pos == 17255842 and self.lpos == 17255842:
-                    #    print( "mark2" )
-
-
+                    bq_array.append( 93 )   #assign 93 for deletion
                     break
                 else:
                     # go to the next cigar code
@@ -498,9 +463,6 @@ cdef class ReadAlignment:
                         seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ]  ) 
                         bq_array.append( self.binaryqual[ p ] )
 
-                    #if ref_pos == 17255842 and self.lpos == 17255842:
-                    #    print( "mark3" )
-                    
                     break
                 else:
                     p += op_l
