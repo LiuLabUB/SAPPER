@@ -257,7 +257,9 @@ void destroy_seq_pair(seq_pair_t *pair) {
   return;
 }
 
-align_t *smith_waterman(seq_pair_t *problem, bool local) {
+//align_t *smith_waterman(seq_pair_t *problem, bool local) {
+align_t *smith_waterman(seq_pair_t *problem) {
+  bool local = false;
   unsigned int m = problem->alen + 1;
   unsigned int n = problem->blen + 1;
   matrix_t *S = create_matrix(m, n);
@@ -353,7 +355,7 @@ int main(int argc, const char **argv) {
     problem.b = d;
     problem.blen = strlen(problem.b);
   
-    result = smith_waterman(&problem, false);
+    result = smith_waterman(&problem);
   
     print_alignment(result, problem.alen, problem.blen);
   }

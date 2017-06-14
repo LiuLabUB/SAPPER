@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-14 12:53:28 Tao Liu>
+# Time-stamp: <2017-06-14 16:26:21 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -114,7 +114,7 @@ cdef extern from "swalign.h":
         int end_b
         int matches
         double score
-    align_t *smith_waterman(seq_pair_t *problem, bool local)
+    align_t *smith_waterman(seq_pair_t *problem)
     void destroy_seq_pair(seq_pair_t *pair)
     
 # ------------------------------------
@@ -494,7 +494,7 @@ cdef class RACollection:
             problem.alen = len( unitig )
             problem.b = reference
             problem.blen = len( self.peak_refseq_ext )
-            results = smith_waterman( &problem, False )
+            results = smith_waterman( &problem )
             target_aln = results.seqs.a
             reference_aln = results.seqs.b
             # end of local alignment

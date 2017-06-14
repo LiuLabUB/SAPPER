@@ -77,6 +77,7 @@ void print_matrix(matrix_t *matrix, seq_pair_t *seq_pair);
 
 void destroy_seq_pair(seq_pair_t *pair);
 
-align_t *smith_waterman(seq_pair_t *problem, bool local);
+// align_t *smith_waterman(seq_pair_t *problem, bool local);
+align_t *smith_waterman(seq_pair_t *problem);
 
 void print_alignment(align_t *result, int target_len, int query_len);
