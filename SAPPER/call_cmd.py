@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 14:43:39 Tao Liu>
+# Time-stamp: <2017-06-15 15:21:19 Tao Liu>
 
 """Description: sapper call
 
@@ -143,23 +143,23 @@ def run( args ):
                 (unitig_alns, reference_alns) = ra_collection.align_unitig_to_REFSEQ( unitigs )
                 unitig_collection = ra_collection.remap_RAs_w_unitigs( unitigs, (unitig_alns, reference_alns) )                
 
-                print ( "---begin of peak---")
-                print ( "Peak:" )
-                print ( chrom.decode(), peak["start"], peak["end"])
-                print ( ra_collection["left"], ra_collection["right"])
-                print ( ra_collection["RAs_left"], ra_collection["RAs_right"])                
-                print ( "RefSeq in peak and extended peak" )
-                print ( ra_collection["peak_refseq_ext"].find(ra_collection["peak_refseq"])*' '+ra_collection["peak_refseq"].decode() )
-                print ( ra_collection["peak_refseq_ext"].decode() )
-                print ( "Assembled unitigs collection:")
-                print ( unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
+                # print ( "---begin of peak---")
+                # print ( "Peak:" )
+                # print ( chrom.decode(), peak["start"], peak["end"])
+                # print ( ra_collection["left"], ra_collection["right"])
+                # print ( ra_collection["RAs_left"], ra_collection["RAs_right"])                
+                # print ( "RefSeq in peak and extended peak" )
+                # print ( ra_collection["peak_refseq_ext"].find(ra_collection["peak_refseq"])*' '+ra_collection["peak_refseq"].decode() )
+                # print ( ra_collection["peak_refseq_ext"].decode() )
+                # print ( "Assembled unitigs collection:")
+                # print ( unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
                 
-                for (i, ua) in enumerate(unitig_collection["URAs_list"]):
-                    print ("Unitig",i)
-                    print ( ua["chrom"].decode(), ua["lpos"], ua["rpos"], ua["count"] )
-                    print ( "unitig seq:", ua["seq"].decode() )
-                    print ( "unitig aln:", ua["unitig_aln"].decode() )
-                    print ( "refere aln:", ua["reference_aln"].decode() )
+                # for (i, ua) in enumerate(unitig_collection["URAs_list"]):
+                #     print ("Unitig",i)
+                #     print ( ua["chrom"].decode(), ua["lpos"], ua["rpos"], ua["count"] )
+                #     print ( "unitig seq:", ua["seq"].decode() )
+                #     print ( "unitig aln:", ua["unitig_aln"].decode() )
+                #     print ( "refere aln:", ua["reference_aln"].decode() )
                 
                 #     if ua["seq"] == b'AAGAAGTCAGAAAAATAATCTATACAGCTTGCATGGTTGGGGAGTTAGGAGAGGCCAAGGCCACGTGCACGTAGAGCAAGAGGTAGAAGAGGCCCGGGGGCTAGAGCGCACCCTGGTGGATAGTGTGAGAATTTCACACTGGCTCAAGCCTTGAAGACCACCCCAGGGGTGCGCCTTAGCAACGCACTTATGCAAGACCCCAACAACTGGCCCTTGAAAGGAGCTTTTCACTG':
                 #         print ("24608458",ua.get_variant_bq_by_ref_pos( 24608458 ))
