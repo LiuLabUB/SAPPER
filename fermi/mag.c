@@ -428,6 +428,7 @@ int mag_vh_merge_try(mag_t *g, magv_t *p, int min_merge_len) // merge p's neighb
 	khint_t kp, kq;
 	int i, j, new_l;
 	hash64_t *h = (hash64_t*)g->h;
+	uint64_t x;
 
 	// check if an unambiguous merge can be performed
 	if (p->nei[1].n != 1) return -1; // multiple or no neighbor; do not merge
@@ -435,7 +436,9 @@ int mag_vh_merge_try(mag_t *g, magv_t *p, int min_merge_len) // merge p's neighb
 	//if ((int)p->nei[1].a[0].y < min_merge_len) return -5;
 	kq = kh_get(64, g->h, p->nei[1].a[0].x);
 	assert(kq != kh_end(h)); // otherwise the neighbor is non-existant
-	q = &g->v.a[kh_val((hash64_t*)g->h, kq)>>1];
+	x = kh_val((hash64_t*)g->h, kq);
+	if ( g->v.n <= x>>1 ) return -5; // skip to avoid a bug related to khash
+	q = &g->v.a[x>>1];
 	if (p == q) return -3; // we have a loop p->p. We cannot merge in this case
 	if (q->nei[kh_val(h, kq)&1].n != 1) return -4; // the neighbor q has multiple neighbors. cannot be an unambiguous merge
 
