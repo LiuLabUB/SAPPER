@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-14 16:12:49 Tao Liu>
+# Time-stamp: <2017-06-15 13:50:42 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -296,7 +296,7 @@ cdef class PosReadsInfo:
         for tmp_alt in self.alt_allele.split(b','):
             if tmp_alt == b'*':
                 tmp_mutation_type.append( "Deletion" )
-            elif len( self.alt_allele ) > 1:
+            elif len( tmp_alt ) > 1:
                 tmp_mutation_type.append( "Insertion" )
             else:
                 tmp_mutation_type.append( "SNV" )
@@ -386,7 +386,7 @@ cdef class PosReadsInfo:
         for tmp_alt in self.alt_allele.split(b','):
             if tmp_alt == 42: # means '*'
                 tmp_mutation_type.append( "Deletion" )
-            elif len( self.alt_allele ) > 1:
+            elif len( tmp_alt ) > 1:
                 tmp_mutation_type.append( "Insertion" )
             else:
                 tmp_mutation_type.append( "SNV" )
@@ -399,13 +399,11 @@ cdef class PosReadsInfo:
         cdef:
             str vcf_ref, vcf_alt, vcf_qual, vcf_filter, vcf_info, vcf_format, vcf_sample
 
-        # T       C       .       .       MinBIC_model=heter_AS;raw_depth_ChIP=56;raw_depth_input=0;DP_ChIP=46;DP_input=0;fermiNTs=CT;top1=33T;top2=13C;top1input=0T;top2input=0C;top1raw=40T;top2raw=16C;top1inputraw=0T;top2inputraw=0C;lnL_homo_major=-117.897;lnL_homo_minor=-296.115;lnL_heter_noAS=-31.7978;lnL_heter_AS=-29.4305;BIC_homo_major=235.794;BIC_homo_minor=592.229;BIC_heter_noAS=67.4243;BIC_heter_AS=66.5183;GQ_homo=0;GQ_heter_noAS=0;GQ_heter_AS=384;GQ_heter_ASsig=10;Allele_ratio_heter_AS=0.717391      GT:DP:GQ        0|1:46:384
-
         vcf_ref = self.ref_allele.decode()
         vcf_alt = self.alt_allele.decode()
         vcf_qual = "%d" % self.GQ
         vcf_filter = "."
-        vcf_info = (b"SAPPER_model=%s;Mutation_type=%s;DP_ChIP=%d;DP_input=%d;fermiNTs=%d;top1=%d%s;top2=%d%s;top1input=%d%s;top2input=%d%s;lnL_homo_major=%f;lnL_homo_minor=%f;lnL_heter_noAS=%f;lnL_heter_AS=%f;BIC_homo_major=%f;BIC_homo_minor=%f;BIC_heter_noAS=%f;BIC_heter_AS=%f;GQ_homo=%d;GQ_heter_noAS=%d;GQ_heter_AS=%d;GQ_heter_ASsig=%d;Allele_ratio_heter_AS=%f" % \
+        vcf_info = (b"SAPPER_model=%s;Mutation_type=%s;DP_ChIP=%d;DP_input=%d;fermiNTs=%d;top1=%d%s;top2=%d%s;top1input=%d%s;top2input=%d%s;lnL_homo_major=%.4f;lnL_homo_minor=%.4f;lnL_heter_noAS=%.4f;lnL_heter_AS=%.4f;BIC_homo_major=%.4f;BIC_homo_minor=%.4f;BIC_heter_noAS=%.4f;BIC_heter_AS=%.4f;GQ_homo=%d;GQ_heter_noAS=%d;GQ_heter_AS=%d;GQ_heter_ASsig=%d;Allele_ratio_heter_AS=%.4f" % \
             (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 0, 
              self.n_reads_T[self.top1allele], self.top1allele, self.n_reads_T[self.top2allele], self.top2allele,
              self.n_reads_C[self.top1allele], self.top1allele, self.n_reads_C[self.top2allele], self.top2allele,
