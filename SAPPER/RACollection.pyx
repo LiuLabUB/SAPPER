@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-14 16:26:21 Tao Liu>
+# Time-stamp: <2017-06-15 14:40:19 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -562,24 +562,34 @@ cdef class RACollection:
             tmp_reference_aln = alns[ 1 ][ i ]
             tmp_unitig_seq = tmp_unitig_aln.replace(b'-',b'')
             tmp_reference_seq = tmp_reference_aln.replace(b'-',b'')
+            
+            # print "tmp unitig aln:", tmp_unitig_aln
+            # print "tmp refere aln:", tmp_reference_aln
+            # print "peak refseqext:", self.peak_refseq_ext
 
             # find the position on self.peak_refseq_ext
             left_padding_ref = self.peak_refseq_ext.find( tmp_reference_seq ) # this number of nts should be skipped on refseq_ext from left
-            right_padding_ref = self.peak_refseq_ext.rfind( tmp_reference_seq ) # this number of nts should be skipped on refseq_ext from right
+            right_padding_ref = len(self.peak_refseq_ext) - left_padding_ref - len(tmp_reference_seq) # this number of nts should be skipped on refseq_ext from right
             
+            # print "padding ref", (left_padding_ref, right_padding_ref)
+
             #now, decide the lpos and rpos on reference of this unitig
             #first, trim left padding '-'
             left_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.lstrip(b'-'))
             right_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.rstrip(b'-'))
 
-            tmp_lpos = start - left_padding_ref
+            tmp_lpos = start + left_padding_ref
             tmp_rpos = end - right_padding_ref
+
             for j in range( left_padding_unitig ):
                 if tmp_reference_aln[ j ] != b'-':
                     tmp_lpos += 1
             for j in range( 1, right_padding_unitig + 1 ):
                 if tmp_reference_aln[ -j ] != b'-':
                     tmp_rpos -= 1
+
+            # print "unitig lpos and rpos:", ( tmp_lpos, tmp_rpos )
+
 
             tmp_unitig_aln = tmp_unitig_aln[ left_padding_unitig:(len(tmp_unitig_aln)-right_padding_unitig)]
             tmp_reference_aln = tmp_reference_aln[ left_padding_unitig:(len(tmp_reference_aln)-right_padding_unitig)]
