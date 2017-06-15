@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 14:40:19 Tao Liu>
+# Time-stamp: <2017-06-15 16:08:59 Tao Liu>
 
 """Module for SAPPER BAMParser class
 

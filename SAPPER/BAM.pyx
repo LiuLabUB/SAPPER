@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-08 15:34:15 Tao Liu>
+# Time-stamp: <2017-06-15 17:30:32 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -250,6 +250,12 @@ cdef class BAMParser:
 
         """
         return self.references
+
+    cpdef get_rlengths ( self ):
+        """Get chromosomes in order of their appearance in BAM HEADER.
+
+        """
+        return self.rlengths
 
     cpdef get_reads_in_region ( self, bytes chrom, int left, int right ):
         """Get reads in a given region. Initial call will start at

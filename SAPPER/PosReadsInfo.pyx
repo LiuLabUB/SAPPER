@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 13:50:42 Tao Liu>
+# Time-stamp: <2017-06-15 17:24:06 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -97,19 +97,19 @@ cdef class PosReadsInfo:
         bytearray fermiNTs # 
 
     def __cinit__ ( self ):
-        self.bq_set_T = { b'A':[], b'C':[], b'G':[], b'T':[], b'N':[] }
-        self.bq_set_C = { b'A':[], b'C':[], b'G':[], b'T':[], b'N':[] }
-        self.n_reads_T = { b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
-        self.n_reads_C = { b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
-        self.n_reads = { b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.filterout = False
         self.GQ = 0
         self.GT = "unsure"
         self.alt_allele = b'.'
         
-    def __init__ ( self, ref_pos, ref_allele ):
+    def __init__ ( self, long ref_pos, bytes ref_allele ):
         self.ref_pos = ref_pos
         self.ref_allele = ref_allele
+        self.bq_set_T = { ref_allele:[],b'A':[], b'C':[], b'G':[], b'T':[], b'N':[] }
+        self.bq_set_C = { ref_allele:[],b'A':[], b'C':[], b'G':[], b'T':[], b'N':[] }
+        self.n_reads_T = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
+        self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
+        self.n_reads =  { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
 
     def __getstate__ ( self ):
         return ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
@@ -403,12 +403,13 @@ cdef class PosReadsInfo:
         vcf_alt = self.alt_allele.decode()
         vcf_qual = "%d" % self.GQ
         vcf_filter = "."
-        vcf_info = (b"SAPPER_model=%s;Mutation_type=%s;DP_ChIP=%d;DP_input=%d;fermiNTs=%d;top1=%d%s;top2=%d%s;top1input=%d%s;top2input=%d%s;lnL_homo_major=%.4f;lnL_homo_minor=%.4f;lnL_heter_noAS=%.4f;lnL_heter_AS=%.4f;BIC_homo_major=%.4f;BIC_homo_minor=%.4f;BIC_heter_noAS=%.4f;BIC_heter_AS=%.4f;GQ_homo=%d;GQ_heter_noAS=%d;GQ_heter_AS=%d;GQ_heter_ASsig=%d;Allele_ratio_heter_AS=%.4f" % \
-            (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 0, 
+#        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;lnLHOMOMAJOR=%.4f;lnLHOMOMINOR=%.4f;lnLHETERNOAS=%.4f;lnLHETERAS=%.4f;BICHOMOMAJOR=%.4f;BICHOMOMINOR=%.4f;BICHETERNOAS=%.4f;BICHETERAS=%.4f;GQHOMO=%d;GQHETERNOAS=%d;GQHETERAS=%d;GQHETERASsig=%d;AR=%.4f" % \
+        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;GQHOMO=%d;GQHETERNOAS=%d;GQHETERAS=%d;GQHETERASsig=%d;AR=%.4f" % \
+            (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 
              self.n_reads_T[self.top1allele], self.top1allele, self.n_reads_T[self.top2allele], self.top2allele,
              self.n_reads_C[self.top1allele], self.top1allele, self.n_reads_C[self.top2allele], self.top2allele,
-             self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS,
-             self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS,
+#             self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS,
+#             self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS,
              self.GQ_homo_major, self.GQ_heter_noAS, self.GQ_heter_AS, self.GQ_heter_ASsig, self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele])
              )).decode()
         vcf_format = "GT:DP:GQ"

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 15:21:19 Tao Liu>
+# Time-stamp: <2017-06-15 17:33:48 Tao Liu>
 
 """Description: sapper call
 
@@ -36,32 +36,52 @@ from SAPPER.BAM import BAMParser
 from SAPPER.RACollection import RACollection
 
 
+VCFHEADER_0="""##fileformat=VCFv4.1
+##fileDate=%s
+##source=SAPPER_V%s
+##Program_Args=%s
+##INFO=<ID=M,Number=.,Type=String,Description="SAPPER Model with minimum BIC value">
+##INFO=<ID=MT,Number=.,Type=String,Description="Mutation type: SNV/Insertion/Deletion">
+##INFO=<ID=DPT,Number=1,Type=Integer,Description="Depth Treatment: Read depth in ChIP-seq data">
+##INFO=<ID=DPC,Number=1,Type=Integer,Description="Depth Control: Read depth in control data">
+##INFO=<ID=DP1T,Number=.,Type=String,Description="Read depth of top1 allele in ChIP-seq data">
+##INFO=<ID=DP2T,Number=.,Type=String,Description="Read depth of top2 allele in ChIP-seq data">
+##INFO=<ID=DP1C,Number=.,Type=String,Description="Read depth of top1 allele in control data">
+##INFO=<ID=DP2C,Number=.,Type=String,Description="Read depth of top2 allele in control data">
+##INFO=<ID=lnLHOMOMAJOR,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with major allele model">
+##INFO=<ID=lnLHOMOMINOR,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with minor allele model">
+##INFO=<ID=lnLHETERNOAS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with no allele-specific model">
+##INFO=<ID=lnLHETERAS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with allele-specific model">
+##INFO=<ID=BICHOMOMAJOR,Number=1,Type=Float,Description="BIC value of homozygous with major allele model">
+##INFO=<ID=BICHOMOMINOR,Number=1,Type=Float,Description="BIC value of homozygous with minor allele model">
+##INFO=<ID=BICHETERNOAS,Number=1,Type=Float,Description="BIC value of heterozygous with no allele-specific model">
+##INFO=<ID=BICHETERAS,Number=1,Type=Float,Description="BIC value of heterozygous with allele-specific model">
+##INFO=<ID=GQHOMO,Number=1,Type=Integer,Description="Genotype quality of homozygous with major allele model">
+##INFO=<ID=GQHETERNOAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with no allele-specific model">
+##INFO=<ID=GQHETERAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with allele-specific model">
+##INFO=<ID=GQHETERASsig,Number=1,Type=Integer,Description="Genotype quality of allele-specific significance compared with no allele-specific model">
+##INFO=<ID=AR,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="read depth after filtering">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality score">"""
+
 VCFHEADER="""##fileformat=VCFv4.1
 ##fileDate=%s
 ##source=SAPPER_V%s
 ##Program_Args=%s
-##INFO=<ID=SAPPER_model,Number=.,Type=String,Description="SAPPER Model with minimum BIC value">
-##INFO=<ID=Mutation_type,Number=.,Type=String,Description="Mutation type: SNV/Insertion/Deletion">
-##INFO=<ID=DP_ChIP,Number=1,Type=Integer,Description="Read depth in ChIP-seq data">
-##INFO=<ID=DP_input,Number=1,Type=Integer,Description="Read depth in input data">
-##INFO=<ID=fermiNTs,Number=.,Type=String,Description="Nucleotides from the genotype information of fermi assembly result">
-##INFO=<ID=top1,Number=.,Type=String,Description="Read depth of top1 allele in ChIP-seq data">
-##INFO=<ID=top2,Number=.,Type=String,Description="Read depth of top2 allele in ChIP-seq data">
-##INFO=<ID=top1input,Number=.,Type=String,Description="Read depth of top1 allele in input data">
-##INFO=<ID=top2input,Number=.,Type=String,Description="Read depth of top2 allele in input data">
-##INFO=<ID=lnL_homo_major,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with major allele model">
-##INFO=<ID=lnL_homo_minor,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of homozygous with minor allele model">
-##INFO=<ID=lnL_heter_noAS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with no allele-specific model">
-##INFO=<ID=lnL_heter_AS,Number=1,Type=Float,Description="Log(e) scaled genotype likelihoods of heterozygous with allele-specific model">
-##INFO=<ID=BIC_homo_major,Number=1,Type=Float,Description="BIC value of homozygous with major allele model">
-##INFO=<ID=BIC_homo_minor,Number=1,Type=Float,Description="BIC value of homozygous with minor allele model">
-##INFO=<ID=BIC_heter_noAS,Number=1,Type=Float,Description="BIC value of heterozygous with no allele-specific model">
-##INFO=<ID=BIC_heter_AS,Number=1,Type=Float,Description="BIC value of heterozygous with allele-specific model">
-##INFO=<ID=GQ_homo,Number=1,Type=Integer,Description="Genotype quality of homozygous with major allele model">
-##INFO=<ID=GQ_heter_noAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with no allele-specific model">
-##INFO=<ID=GQ_heter_AS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with allele-specific model">
-##INFO=<ID=GQ_heter_ASsig,Number=1,Type=Integer,Description="Genotype quality of allele-specific significance compared with no allele-specific model">
-##INFO=<ID=Allele_ratio_heter_AS,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
+##INFO=<ID=M,Number=.,Type=String,Description="SAPPER Model with minimum BIC value">
+##INFO=<ID=MT,Number=.,Type=String,Description="Mutation type: SNV/Insertion/Deletion">
+##INFO=<ID=DPT,Number=1,Type=Integer,Description="Depth Treatment: Read depth in ChIP-seq data">
+##INFO=<ID=DPC,Number=1,Type=Integer,Description="Depth Control: Read depth in control data">
+##INFO=<ID=DP1T,Number=.,Type=String,Description="Read depth of top1 allele in ChIP-seq data">
+##INFO=<ID=DP2T,Number=.,Type=String,Description="Read depth of top2 allele in ChIP-seq data">
+##INFO=<ID=DP1C,Number=.,Type=String,Description="Read depth of top1 allele in control data">
+##INFO=<ID=DP2C,Number=.,Type=String,Description="Read depth of top2 allele in control data">
+##INFO=<ID=GQHOMO,Number=1,Type=Integer,Description="Genotype quality of homozygous with major allele model">
+##INFO=<ID=GQHETERNOAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with no allele-specific model">
+##INFO=<ID=GQHETERAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with allele-specific model">
+##INFO=<ID=GQHETERASsig,Number=1,Type=Integer,Description="Genotype quality of allele-specific significance compared with no allele-specific model">
+##INFO=<ID=AR,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="read depth after filtering">
 ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality score">"""
@@ -117,6 +137,11 @@ def run( args ):
     ovcf = open(args.ofile, "w")
     
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
+    for (chrom, chrlength) in tbam.get_rlengths().items():
+        ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
+        
+
+
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
     # to get time
