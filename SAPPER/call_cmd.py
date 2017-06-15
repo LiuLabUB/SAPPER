@@ -145,6 +145,8 @@ def run( args ):
                 # print ( "---begin of peak---")
                 # print ( "Peak:" )
                 # print ( chrom.decode(), peak["start"], peak["end"])
+                # print ( ra_collection["left"], ra_collection["right"])
+                # print ( ra_collection["RAs_left"], ra_collection["RAs_right"])                
                 # print ( "RefSeq in peak and extended peak" )
                 # print ( ra_collection["peak_refseq_ext"].find(ra_collection["peak_refseq"])*' '+ra_collection["peak_refseq"].decode() )
                 # print ( ra_collection["peak_refseq_ext"].decode() )
@@ -158,17 +160,17 @@ def run( args ):
                 #     print ( "unitig aln:", ua["unitig_aln"].decode() )
                 #     print ( "refere aln:", ua["reference_aln"].decode() )
                 
-                #     #if ua["seq"] == b'TGTTTTGTACTGGAGTTGGTCTTGAGTTTCTGCACGTGATACACTAGGTGGTGCTAATTGACTGAGCTGA':
-                #     #    print ("20393773",ua.get_variant_bq_by_ref_pos( 20393773 ))
-                #     #    print ("20393774",ua.get_variant_bq_by_ref_pos( 20393774 ))
-                #     #    print ("20393775",ua.get_variant_bq_by_ref_pos( 20393775 ))
-                #     #    print ("20393776",ua.get_variant_bq_by_ref_pos( 20393776 ))
-                #     #    return
+                #     if ua["seq"] == b'CCCCCCCCAGTAACTGTAACAAATGACGCCAGAGAGACAGACTTTGTCCCGTGTGGCCACAGGGGGTCGCTGGAGAGCGCCGGTCTGGTCTTGCAGGCTCAGGGAGGTCTTCCTCCTGCCTTTCTTTTATCAGCAAAAGCATCCTCTAAGTCGTCAGAAACAACCTTGCTTTGCTTCATAAAAAAATGGAGCAAGAAAATGTAAGAAAAAATCTATTGCTAAG':
+                #        print ("1797867",ua.get_variant_bq_by_ref_pos( 1797867 ))
+                #        print ("1797868",ua.get_variant_bq_by_ref_pos( 1797868 ))
+                #        print ("1797869",ua.get_variant_bq_by_ref_pos( 1797869 ))
+                #        print ("1797870",ua.get_variant_bq_by_ref_pos( 1797870 ))
+                #        print ("1797878",ua.get_variant_bq_by_ref_pos( 1797878 ))
+                #        print ("1797879",ua.get_variant_bq_by_ref_pos( 1797879 ))
+                #        print ("1797880",ua.get_variant_bq_by_ref_pos( 1797880 ))
+                #        print ("1797881",ua.get_variant_bq_by_ref_pos( 1797881 ))
 
-                # unitig_collection.get_PosReadsInfo_ref_pos( 
                 # print ( "---end of peak---" )
-                # continue
-
                 # ra_collection.filter_RAs_w_unitigs( unitigs )
             
             s = ra_collection["peak_refseq"]

@@ -297,6 +297,7 @@ cdef class RACollection:
 
         start = min( self.RAs_left, self.left )
         end = max( self.RAs_right, self.right )
+        #print ("left",start,"right",end)
         peak_refseq_ext = bytearray( b'N' * ( end - start ) )
 
         # for treatment.
@@ -322,7 +323,7 @@ cdef class RACollection:
             object read
             bytearray read_refseq
 
-        start = self.RAs_left
+        start = min( self.RAs_left, self.left )
 
         prev_r = ralist[0]["lpos"]
 
@@ -512,6 +513,7 @@ cdef class RACollection:
 
         """
         cdef:
+            long start, end
             list target_alns, reference_alns
             list RAlists_T = []
             list RAlists_C = []
@@ -529,6 +531,8 @@ cdef class RACollection:
 
         ( target_alns, reference_alns ) = alns
 
+        start = min( self.left, self.RAs_left )
+        end = max( self.right, self.RAs_right )
         
         for i in range( len(unitig_list) ):
             RAlists_T.append([])         # for each unitig, there is another list of RAs
@@ -568,8 +572,8 @@ cdef class RACollection:
             left_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.lstrip(b'-'))
             right_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.rstrip(b'-'))
 
-            tmp_lpos = self.RAs_left - left_padding_ref
-            tmp_rpos = self.RAs_right - right_padding_ref
+            tmp_lpos = start - left_padding_ref
+            tmp_rpos = end - right_padding_ref
             for j in range( left_padding_unitig ):
                 if tmp_reference_aln[ j ] != b'-':
                     tmp_lpos += 1
