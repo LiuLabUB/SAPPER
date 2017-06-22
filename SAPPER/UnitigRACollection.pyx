@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-14 15:45:04 Tao Liu>
+# Time-stamp: <2017-06-22 16:17:18 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -186,13 +186,13 @@ cdef class UnitigRAs:
         
         for ra in self.RAlists[0]:        #treatment
             ra_seq = ra["SEQ"]
-            ra_pos = index_unitig - self.seq.find( ra_seq )
+            ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
             if ra_pos < ra["l"] and ra_pos >= 0:
                 bq_list_t.append( ra["binaryqual"][ra_pos] )
 
         for ra in self.RAlists[1]:        #treatment
             ra_seq = ra["SEQ"]
-            ra_pos = index_unitig - self.seq.find( ra_seq )
+            ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
             if ra_pos < ra["l"] and ra_pos >= 0:
                 bq_list_c.append( ra["binaryqual"][ra_pos] )                
 
