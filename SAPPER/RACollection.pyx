@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 16:08:59 Tao Liu>
+# Time-stamp: <2017-07-19 16:02:18 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -30,73 +30,118 @@ from SAPPER.UnitigRACollection import UnitigRAs, UnitigCollection
 #from SAPPER.Alignment import SWalign
 
 from cpython cimport bool
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 import numpy as np
 cimport numpy as np
 from numpy cimport uint32_t, uint64_t, int32_t, int64_t
 
+from libc.stdlib cimport malloc, free, realloc
+
 cdef extern from "stdlib.h":
     ctypedef unsigned int size_t
     size_t strlen(char *s)
-    void *malloc(size_t size)
+    #void *malloc(size_t size)
     void *calloc(size_t n, size_t size)
-    void free(void *ptr)
+    #void free(void *ptr)
     int strcmp(char *a, char *b)
     char * strcpy(char *a, char *b)
     long atol(char *bytes)
     int atoi(char *bytes)
 
 
-# --- fermi functions ---
+# --- fermi-lite functions ---
+#define MAG_F_AGGRESSIVE 0x20 // pop variant bubbles (not default)
+#define MAG_F_POPOPEN    0x40 // aggressive tip trimming (default)
+#define MAG_F_NO_SIMPL   0x80 // skip bubble simplification (default)
 
-cdef extern from "kstring.h":
-    ctypedef struct kstring_t:
-        uint32_t l, m
-        char *s
-
-cdef extern from "priv.h":
-    int ksa_bwt64(unsigned char *T, int64_t n, int k)
-
-cdef extern from "mag.h":
-    ctypedef struct magopt_t:
-        int flag, max_arc, n_iter, min_ovlp, min_elen, min_ensr, min_insr, max_bdist, max_bvtx, min_merge_len
-        float min_dratio0, min_dratio1
-        float max_bcov, max_bfrac
-    ctypedef struct ku128_t:
-        uint64_t x, y
-    ctypedef struct ku64_v:
-        size_t n, m
-        uint64_t *a
-    ctypedef struct ku128_v:
-        size_t n, m
-        ku128_t *a
-    ctypedef struct magv_t:
-        int len, nsr            #length; number supporting reads
-        uint32_t max_len        # allocated seq/cov size
-        uint64_t k[2]           # bi-interval
-        ku128_v nei[2]          # neighbors
+cdef extern from "fml.h":
+    ctypedef struct bseq1_t:
+        int32_t l_seq
         char *seq
-        char *cov               # sequence and coverage
-        void *ptr               # additional information
-    ctypedef struct magv_v:
-        size_t n, m
-        magv_t *a
-    ctypedef struct mag_t:
-        magv_v v
-        float rdist             # read distance
-        int min_ovlp            # minimum overlap seen from the graph
-        void *h
+        char *qual # NULL-terminated strings; length expected to match $l_seq
 
-    magopt_t *mag_init_opt()
-    void mag_g_clean(mag_t *g, const magopt_t *opt)
-    void mag_g_print(const mag_t *g)
-    void mag_g_destroy(mag_t *g)
-    void mag_v_write(const magv_t *p, kstring_t *out);
+    ctypedef struct magopt_t:
+        int flag, min_ovlp, min_elen, min_ensr, min_insr, max_bdist, max_bdiff, max_bvtx, min_merge_len, trim_len, trim_depth
+        float min_dratio1, max_bcov, max_bfrac
+
+    ctypedef struct fml_opt_t:
+        int n_threads        # number of threads; don't use multi-threading for small data sets
+        int ec_k             # k-mer length for error correction; 0 for auto estimate
+        int min_cnt, max_cnt # both occ threshold in ec and tip threshold in cleaning lie in [min_cnt,max_cnt]
+        int min_asm_ovlp     # min overlap length during assembly
+        int min_merge_len    # during assembly, don't explicitly merge an overlap if shorter than this value
+        magopt_t mag_opt     # graph cleaning options
+
+    ctypedef struct fml_ovlp_t:
+        uint32_t len_, from_, id_, to_ 
+        #unit32_t from  # $from and $to: 0 meaning overlapping 5'-end; 1 overlapping 3'-end
+        #uint32_t id
+        #uint32_t to    # $id: unitig number
+
+    ctypedef struct fml_utg_t:
+        int32_t len      # length of sequence
+        int32_t nsr      # number of supporting reads
+        char *seq        # unitig sequence
+        char *cov        # cov[i]-33 gives per-base coverage at i
+        int n_ovlp[2]    # number of 5'-end [0] and 3'-end [1] overlaps
+        fml_ovlp_t *ovlp # overlaps, of size n_ovlp[0]+n_ovlp[1]
+
+    void fml_opt_init(fml_opt_t *opt)
+    fml_utg_t* fml_assemble(const fml_opt_t *opt, int n_seqs, bseq1_t *seqs, int *n_utg)
+    void fml_utg_destroy(int n_utg, fml_utg_t *utg)
+    void fml_utg_print(int n_utgs, const fml_utg_t *utg)
+
+# cdef extern from "kstring.h":
+#     ctypedef struct kstring_t:
+#         uint32_t l, m
+#         char *s
+
+# cdef extern from "priv.h":
+#     int ksa_bwt64(unsigned char *T, int64_t n, int k)
+
+# cdef extern from "mag.h":
+#     ctypedef struct magopt_t:
+#         int flag, max_arc, n_iter, min_ovlp, min_elen, min_ensr, min_insr, max_bdist, max_bvtx, min_merge_len
+#         float min_dratio0, min_dratio1
+#         float max_bcov, max_bfrac
+#     ctypedef struct ku128_t:
+#         uint64_t x, y
+#     ctypedef struct ku64_v:
+#         size_t n, m
+#         uint64_t *a
+#     ctypedef struct ku128_v:
+#         size_t n, m
+#         ku128_t *a
+#     ctypedef struct magv_t:
+#         int len, nsr            #length; number supporting reads
+#         uint32_t max_len        # allocated seq/cov size
+#         uint64_t k[2]           # bi-interval
+#         ku128_v nei[2]          # neighbors
+#         char *seq
+#         char *cov               # sequence and coverage
+#         void *ptr               # additional information
+#     ctypedef struct magv_v:
+#         size_t n, m
+#         magv_t *a
+#     ctypedef struct mag_t:
+#         magv_v v
+#         float rdist             # read distance
+#         int min_ovlp            # minimum overlap seen from the graph
+#         void *h
+
+#     magopt_t *mag_init_opt()
+#     void mag_g_clean(mag_t *g, const magopt_t *opt)
+#     void mag_g_print(const mag_t *g)
+#     void mag_g_destroy(mag_t *g)
+#     void mag_v_write(const magv_t *p, kstring_t *out);
     
-cdef extern from "fermi.h":
-    int fm6_api_correct(int kmer, int64_t l, char *_seq, char *_qual)
-    mag_t *fm6_api_unitig(int min_match, int64_t l, char *seq)
-# --- end of fermi functions ---
+# cdef extern from "fermi.h":
+#    int fm6_api_correct(int kmer, int64_t l, char *_seq, char *_qual)
+#    mag_t *fm6_api_unitig(int min_match, int64_t l, char *seq)
+
+
+# --- end of fermi-lite functions ---
 
 # --- smith-waterman alignment functions ---
 
@@ -401,20 +446,23 @@ cdef class RACollection:
         """A wrapper function to call Fermi unitig building functions.
         """
         cdef:
+            fml_opt_t *opt
+            int c, n_seqs
+            int * n_utg
+            bseq1_t *seqs
+            fml_utg_t *utg
+            fml_utg_t p
+
             int unitig_k, merge_min_len
             bytes tmps
             bytes tmpq
             int ec_k = -1
             int64_t l
-            mag_t *g
-            magv_t p
-            magopt_t *opt
             bytes seq  #contains sequences of ALL reads, separated by '\x00';
             bytes qual #contains quality string of ALL reads, separated by '\x00';
             char * cseq
             char * cqual
-            int i
-            kstring_t out
+            int i, j
             bytes tmpunitig
             bytes unitig                 #final unitig
             list unitig_list             # contain list of sequences in bytes format
@@ -424,50 +472,160 @@ cdef class RACollection:
 
         unitig_k=int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
         merge_min_len=int(self.RAlists[0][0]["l"]*0.75)+1;
-        
+
+        n_seqs = len(self.RAlists[0]) + len(self.RAlists[1])
+
         # prepare seq and qual, note, we only extract SEQ according to the +
         # strand of reference sequence.
+        seqs = <bseq1_t *> malloc( n_seqs * sizeof(bseq1_t) ) # we rely on fermi-lite to free this mem
+        #print ("haha1")
+        
+        i = 0
         for ra in self.RAlists[0]:
             tmps = ra["SEQ"]
             tmpq = ra["QUAL"]
-            seq += tmps + b'\x00'
-            qual+= tmpq + b'\x00'
+            l = len(tmps)
+
+            cseq = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
+            cqual = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
+            for j in range(l):
+                cseq[ j ] = tmps[ j ]
+                cqual[ j ] = tmpq[ j ]
+            cseq[ j ] = b'\x00'
+            cqual[ j ]= b'\x00'
+
+            seqs[ i ].seq = cseq
+            seqs[ i ].qual = cqual
+            seqs[ i ].l_seq = len(tmps)
+            i += 1
 
         for ra in self.RAlists[1]:
             tmps = ra["SEQ"]
             tmpq = ra["QUAL"]
-            seq += tmps + b'\x00'
-            qual+= tmpq + b'\x00'
-            
-        l = len( seq )
-        cseq = seq
-        cqual = qual
+            l = len(tmps)
 
-        # correct seq with qual
-        fm6_api_correct(ec_k, l, cseq, cqual)
-        # assemble unitigs
-        g = fm6_api_unitig(unitig_k, l, cseq)
-        opt = mag_init_opt()
-        opt.flag |= 0x10 #MOG_F_CLEAN
+            cseq = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
+            cqual = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
+            for j in range(l):
+                cseq[ j ] = tmps[ j ]
+                cqual[ j ] = tmpq[ j ]
+            cseq[ j ] = b'\x00'
+            cqual[ j ]= b'\x00'
+
+            seqs[ i ].seq = cseq
+            seqs[ i ].qual = cqual
+            seqs[ i ].l_seq = len(tmps)
+            i += 1
+        
+        opt = <fml_opt_t *> PyMem_Malloc( sizeof(fml_opt_t) )
+        opt.ec_k = -1
+        opt.min_asm_ovlp = unitig_k
         opt.min_merge_len = merge_min_len
-        # clean
-        mag_g_clean(g, opt)
-        free(opt)
+        #print ("haha2")
 
+        n_utg = <int *> PyMem_Malloc( sizeof(int) )
+        #print ("haha3")
+
+        fml_opt_init(opt)
+        #print ("haha3.1")
+        utg = fml_assemble(opt, n_seqs, seqs, n_utg)
+        #print ("haha4")        
         # get results
-
         unitig_list = []
-        for i in range( g.v.n ):
-            p = g.v.a[ i ]
+        for i in range( n_utg[0] ):
+            p = utg[ i ]
             if (p.len < 0):
                 continue
-            unitig = b''
-            for j in range( p.len ):
-                unitig += [b'A',b'C',b'G',b'T',b'N'][int(p.seq[j]) - 1]
-            unitig_list.append( unitig )
+            #unitig = b''
+            #for j in range( p.len ):
+            #    unitig += [b'A',b'C',b'G',b'T',b'N'][int(p.seq[j]) - 1]
+            #unitig_list.append( unitig )
+            unitig_list.append( p.seq )
 
-        mag_g_destroy(g)
+        #print ("haha5")
+        fml_utg_destroy(n_utg[0], utg)
+
+        #PyMem_Free( seqs )
+        #print ("haha6")
+        PyMem_Free( opt )
+        PyMem_Free( n_utg )
+        #del seqs
+        #del opt
+        #del n_utg
+
         return unitig_list
+
+    # cpdef list fermi_assemble( self, float fermiOverlapMinRatio ):
+    #     """A wrapper function to call Fermi unitig building functions.
+    #     """
+    #     cdef:
+    #         int unitig_k, merge_min_len
+    #         bytes tmps
+    #         bytes tmpq
+    #         int ec_k = -1
+    #         int64_t l
+    #         mag_t *g
+    #         magv_t p
+    #         magopt_t *opt
+    #         bytes seq  #contains sequences of ALL reads, separated by '\x00';
+    #         bytes qual #contains quality string of ALL reads, separated by '\x00';
+    #         char * cseq
+    #         char * cqual
+    #         int i
+    #         kstring_t out
+    #         bytes tmpunitig
+    #         bytes unitig                 #final unitig
+    #         list unitig_list             # contain list of sequences in bytes format
+            
+    #     seq = b''
+    #     qual = b''
+
+    #     unitig_k=int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
+    #     merge_min_len=int(self.RAlists[0][0]["l"]*0.75)+1;
+        
+    #     # prepare seq and qual, note, we only extract SEQ according to the +
+    #     # strand of reference sequence.
+    #     for ra in self.RAlists[0]:
+    #         tmps = ra["SEQ"]
+    #         tmpq = ra["QUAL"]
+    #         seq += tmps + b'\x00'
+    #         qual+= tmpq + b'\x00'
+
+    #     for ra in self.RAlists[1]:
+    #         tmps = ra["SEQ"]
+    #         tmpq = ra["QUAL"]
+    #         seq += tmps + b'\x00'
+    #         qual+= tmpq + b'\x00'
+            
+    #     l = len( seq )
+    #     cseq = seq
+    #     cqual = qual
+
+    #     # correct seq with qual
+    #     fm6_api_correct(ec_k, l, cseq, cqual)
+    #     # assemble unitigs
+    #     g = fm6_api_unitig(unitig_k, l, cseq)
+    #     opt = mag_init_opt()
+    #     opt.flag |= 0x10 #MOG_F_CLEAN
+    #     opt.min_merge_len = merge_min_len
+    #     # clean
+    #     mag_g_clean(g, opt)
+    #     free(opt)
+
+    #     # get results
+
+    #     unitig_list = []
+    #     for i in range( g.v.n ):
+    #         p = g.v.a[ i ]
+    #         if (p.len < 0):
+    #             continue
+    #         unitig = b''
+    #         for j in range( p.len ):
+    #             unitig += [b'A',b'C',b'G',b'T',b'N'][int(p.seq[j]) - 1]
+    #         unitig_list.append( unitig )
+
+    #     mag_g_destroy(g)
+    #     return unitig_list
 
     cpdef tuple align_unitig_to_REFSEQ ( self, list unitig_list ):
         """Note: we use smith waterman, but we don't use linear gap
