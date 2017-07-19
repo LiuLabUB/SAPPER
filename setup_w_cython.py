@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Time-stamp: <2017-06-15 16:08:51 Tao Liu>
+# Time-stamp: <2017-07-18 15:10:07 Tao Liu>
 
 """Description: 
 
@@ -48,7 +48,8 @@ def main():
 
     ext_modules = [Extension("SAPPER.PeakIO",["SAPPER/PeakIO.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    Extension("SAPPER.ReadAlignment",["SAPPER/ReadAlignment.pyx",],libraries=["m"],include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
-                   Extension("SAPPER.RACollection",["SAPPER/RACollection.pyx","fermi/bcr.c","fermi/bprope6.c","fermi/bubble.c","fermi/build.c","fermi/cmd.c","fermi/cmp.c","fermi/correct.c","fermi/exact.c","fermi/ksa.c","fermi/ksw.c","fermi/mag.c","fermi/merge.c","fermi/rld.c","fermi/ropebwt.c","fermi/scaf.c","fermi/seq.c","fermi/seqsort.c","fermi/smem.c","fermi/sub.c","fermi/unitig.c","fermi/utils.c", "SAPPER/swalign.c"],libraries=["m","z"], include_dirs=numpy_include_dir+["./","./fermi/","./SAPPER/"], extra_compile_args=extra_c_args),
+                   #Extension("SAPPER.RACollection",["SAPPER/RACollection.pyx","fermi/bcr.c","fermi/bprope6.c","fermi/bubble.c","fermi/build.c","fermi/cmd.c","fermi/cmp.c","fermi/correct.c","fermi/exact.c","fermi/ksa.c","fermi/ksw.c","fermi/mag.c","fermi/merge.c","fermi/rld.c","fermi/ropebwt.c","fermi/scaf.c","fermi/seq.c","fermi/seqsort.c","fermi/smem.c","fermi/sub.c","fermi/unitig.c","fermi/utils.c", "SAPPER/swalign.c"],libraries=["m","z"], include_dirs=numpy_include_dir+["./","./fermi/","./SAPPER/"], extra_compile_args=extra_c_args),
+                   Extension("SAPPER.RACollection",["SAPPER/RACollection.pyx","fermi-lite/bfc.c","fermi-lite/bseq.c","fermi-lite/bubble.c","fermi-lite/htab.c","fermi-lite/ksw.c","fermi-lite/kthread.c","fermi-lite/mag.c","fermi-lite/misc.c","fermi-lite/mrope.c","fermi-lite/rld0.c","fermi-lite/rle.c","fermi-lite/rope.c","fermi-lite/unitig.c", "SAPPER/swalign.c"],libraries=["m","z"], include_dirs=numpy_include_dir+["./","./fermi-lite/","./SAPPER/"], extra_compile_args=extra_c_args),
                    Extension("SAPPER.UnitigRACollection",["SAPPER/UnitigRACollection.pyx"],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    #Extension("SAPPER.Alignment",["SAPPER/Alignment.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    Extension("SAPPER.PosReadsInfo",["SAPPER/PosReadsInfo.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
