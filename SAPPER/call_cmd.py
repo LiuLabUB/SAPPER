@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 17:33:48 Tao Liu>
+# Time-stamp: <2017-07-20 11:58:13 Tao Liu>
 
 """Description: sapper call
 
@@ -159,18 +159,31 @@ def run( args ):
             # note, when we extract reads from BAM within a peak
             # region, we assume BAM should be sorted and the BAM
             # should be generated from "samtools view -L" process.
-            #t0 = time()
+
+            # print ( "---begin of peak---")
+            print ( "Peak:", chrom.decode(), peak["start"], peak["end"])
+
+            # t0 = time()
             ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
             ra_collection.remove_outliers( percent = 5 )
+
+            # print ( "Reads in Peak:")
+            # print ( ra_collection.get_FASTQ().decode() )
+
             if not fermiOff:
                 # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
+
+                print ( " Assemble using fermi-lite")
                 unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
+                if unitigs == []:
+                    continue              #pass this peak if there is no unitig from assembler
+
+                # print ("unitigs:",unitigs)
+
+                print ( " Re-align reads with unitigs")
                 (unitig_alns, reference_alns) = ra_collection.align_unitig_to_REFSEQ( unitigs )
                 unitig_collection = ra_collection.remap_RAs_w_unitigs( unitigs, (unitig_alns, reference_alns) )                
 
-                # print ( "---begin of peak---")
-                # print ( "Peak:" )
-                # print ( chrom.decode(), peak["start"], peak["end"])
                 # print ( ra_collection["left"], ra_collection["right"])
                 # print ( ra_collection["RAs_left"], ra_collection["RAs_right"])                
                 # print ( "RefSeq in peak and extended peak" )
@@ -197,6 +210,7 @@ def run( args ):
             #t_get_ra += time() - t0
             # multiprocessing the following part
 
+            print ( " Call varants")
             if NP > 1:
                 # divide right-left into NP parts
                 window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )

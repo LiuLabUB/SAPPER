@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-19 16:02:18 Tao Liu>
+# Time-stamp: <2017-07-20 11:58:22 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -458,8 +458,6 @@ cdef class RACollection:
             bytes tmpq
             int ec_k = -1
             int64_t l
-            bytes seq  #contains sequences of ALL reads, separated by '\x00';
-            bytes qual #contains quality string of ALL reads, separated by '\x00';
             char * cseq
             char * cqual
             int i, j
@@ -467,18 +465,17 @@ cdef class RACollection:
             bytes unitig                 #final unitig
             list unitig_list             # contain list of sequences in bytes format
             
-        seq = b''
-        qual = b''
-
         unitig_k=int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
-        merge_min_len=int(self.RAlists[0][0]["l"]*0.75)+1;
+        merge_min_len=int(self.RAlists[0][0]["l"]*0.5)+1;
 
         n_seqs = len(self.RAlists[0]) + len(self.RAlists[1])
+
+        # print n_seqs
 
         # prepare seq and qual, note, we only extract SEQ according to the +
         # strand of reference sequence.
         seqs = <bseq1_t *> malloc( n_seqs * sizeof(bseq1_t) ) # we rely on fermi-lite to free this mem
-        #print ("haha1")
+        # print ("haha1")
         
         i = 0
         for ra in self.RAlists[0]:
@@ -490,7 +487,7 @@ cdef class RACollection:
             cqual = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
             for j in range(l):
                 cseq[ j ] = tmps[ j ]
-                cqual[ j ] = tmpq[ j ]
+                cqual[ j ] = tmpq[ j ] + 33
             cseq[ j ] = b'\x00'
             cqual[ j ]= b'\x00'
 
@@ -508,7 +505,7 @@ cdef class RACollection:
             cqual = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
             for j in range(l):
                 cseq[ j ] = tmps[ j ]
-                cqual[ j ] = tmpq[ j ]
+                cqual[ j ] = tmpq[ j ] + 33
             cseq[ j ] = b'\x00'
             cqual[ j ]= b'\x00'
 
@@ -518,18 +515,20 @@ cdef class RACollection:
             i += 1
         
         opt = <fml_opt_t *> PyMem_Malloc( sizeof(fml_opt_t) )
-        opt.ec_k = -1
+        opt.ec_k = 0 #-1
         opt.min_asm_ovlp = unitig_k
         opt.min_merge_len = merge_min_len
-        #print ("haha2")
+        opt.mag_opt.max_bdiff = merge_min_len
+        #opt.mag_opt.flag = 0x80 #MAG_F_NO_SIMPL only
+        # print ("haha2")
 
         n_utg = <int *> PyMem_Malloc( sizeof(int) )
-        #print ("haha3")
+        # print ("haha3")
 
         fml_opt_init(opt)
-        #print ("haha3.1")
+        # print ("haha3.1")
         utg = fml_assemble(opt, n_seqs, seqs, n_utg)
-        #print ("haha4")        
+        # print ("haha4")        
         # get results
         unitig_list = []
         for i in range( n_utg[0] ):
@@ -542,16 +541,11 @@ cdef class RACollection:
             #unitig_list.append( unitig )
             unitig_list.append( p.seq )
 
-        #print ("haha5")
+        # print ("haha5")
         fml_utg_destroy(n_utg[0], utg)
 
-        #PyMem_Free( seqs )
-        #print ("haha6")
         PyMem_Free( opt )
         PyMem_Free( n_utg )
-        #del seqs
-        #del opt
-        #del n_utg
 
         return unitig_list
 
@@ -663,6 +657,10 @@ cdef class RACollection:
             
         return ( target_alns, reference_alns )
 
+    cpdef tuple filter_unitig_with_bad_aln ( self, list unitig_list, list target_alns, list reference_alns, float gratio = 0.25  ):
+        """Remove unitigs that has too much gaps (both on target and reference) during alignments. 
+        """
+        pass
 
     cpdef object remap_RAs_w_unitigs ( self, list unitig_list, tuple alns ):
         """unitig_list and tuple_alns are in the same order!
