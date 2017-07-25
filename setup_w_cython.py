@@ -58,7 +58,7 @@ def main():
                    ]
 
     setup(name="SAPPER",
-          version="1.0.0.20170520",
+          version="1.0.1.20170720",
           description="de novo Variant caller for ChIP-Seq",
           author='Tao Liu',
           author_email='tliu4@buffalo.edu',

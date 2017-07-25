@@ -1,4 +1,4 @@
-SAPPER_VERSION = "1.0.0"
+SAPPER_VERSION = "1.0.1"
 BUFFER_SIZE = 100000                   # np array will increase at step of 1 million items
 
 from array import array

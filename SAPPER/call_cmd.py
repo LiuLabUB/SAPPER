@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-20 11:58:13 Tao Liu>
+# Time-stamp: <2017-07-21 14:10:00 Tao Liu>
 
 """Description: sapper call
 
@@ -176,6 +176,7 @@ def run( args ):
                 print ( " Assemble using fermi-lite")
                 unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
                 if unitigs == []:
+                    print ( " failed to assemble unitigs")
                     continue              #pass this peak if there is no unitig from assembler
 
                 # print ("unitigs:",unitigs)
@@ -189,9 +190,9 @@ def run( args ):
                 # print ( "RefSeq in peak and extended peak" )
                 # print ( ra_collection["peak_refseq_ext"].find(ra_collection["peak_refseq"])*' '+ra_collection["peak_refseq"].decode() )
                 # print ( ra_collection["peak_refseq_ext"].decode() )
+
                 # print ( "Assembled unitigs collection:")
                 # print ( unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
-                
                 # for (i, ua) in enumerate(unitig_collection["URAs_list"]):
                 #     print ("Unitig",i)
                 #     print ( ua["chrom"].decode(), ua["lpos"], ua["rpos"], ua["count"] )
@@ -239,35 +240,26 @@ def run( args ):
                 for i in range( ra_collection["left"], ra_collection["right"] ):
                     ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
 
+                    # skip if ref_nt is N
+                    if ref_nt == b'N':
+                        continue
+
                     #t0 = time()
                     if not fermiOff:
                         PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
                     else:
                         PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
-                    #t_get_pri += time() - t0
+                    if PRI.raw_read_depth() == 0: # skip if coverage is 0
+                        continue
+                    PRI.update_top_alleles( top2allelesminr )
+                    PRI.call_GT()
+                    PRI.apply_GQ_cutoff()
+                    if not PRI.filterflag():
+                        ovcf.write( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
+                    # else:
+                    #     if i == 62380026:
+                    #         print ( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
 
-                    #if PRI.raw_read_depth() == 0: # skip if coverage is 0
-                    #    return None
-                    #t0 = time()
-                    #PRI.update_top_nts( top2allelesminr )
-                    #t_call_top2alleles += time() - t0
-
-                    #t0 = time()
-                    #PRI.compute_lnL()
-                    #t_call_lnL += time() - t0
-
-                    #t0 = time()
-                    #PRI.compute_GQ()
-                    #t_call_GQ += time() - t0
-
-                    #if not PRI.filterflag():
-                    #    #t0 = time()
-                    #    result=PRI.to_vcf()
-                    #    #t_call_to_vcf += time() - t0
-                    result  = call_variants_at_given_pos( PRI, top2allelesminr )
-                    #t_call += time() - t0
-                    if result:
-                        ovcf.write( "\t".join( ( chrom.decode(), str(i+1), ".", result ) ) + "\n" )
 
     #print ("time to read RAcollection from BAM:",t_get_ra)
     #print ("time to get reads information for each position:",t_get_pri)
@@ -281,6 +273,9 @@ def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
         ref_nt = chr(s[ i-collection["left"] ] ).encode()
+        if ref_nt == b'N':
+            continue
+
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
         if PRI.raw_read_depth() == 0: # skip if coverage is 0
             continue

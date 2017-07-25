@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-20 11:58:22 Tao Liu>
+# Time-stamp: <2017-07-24 16:26:32 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -91,6 +91,7 @@ cdef extern from "fml.h":
     fml_utg_t* fml_assemble(const fml_opt_t *opt, int n_seqs, bseq1_t *seqs, int *n_utg)
     void fml_utg_destroy(int n_utg, fml_utg_t *utg)
     void fml_utg_print(int n_utgs, const fml_utg_t *utg)
+    bseq1_t *bseq_read(const char *fn, int *n)
 
 # cdef extern from "kstring.h":
 #     ctypedef struct kstring_t:
@@ -321,7 +322,7 @@ cdef class RACollection:
                 n_edits_list.append( read["n_edits"] )
 
         n_edits_list.sort()
-        print ( n_edits_list )
+        # print ( n_edits_list )
         c = Counter( n_edits_list )
         print( c )
 
@@ -464,10 +465,8 @@ cdef class RACollection:
             bytes tmpunitig
             bytes unitig                 #final unitig
             list unitig_list             # contain list of sequences in bytes format
+            int * n
             
-        unitig_k=int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
-        merge_min_len=int(self.RAlists[0][0]["l"]*0.5)+1;
-
         n_seqs = len(self.RAlists[0]) + len(self.RAlists[1])
 
         # print n_seqs
@@ -475,60 +474,112 @@ cdef class RACollection:
         # prepare seq and qual, note, we only extract SEQ according to the +
         # strand of reference sequence.
         seqs = <bseq1_t *> malloc( n_seqs * sizeof(bseq1_t) ) # we rely on fermi-lite to free this mem
-        # print ("haha1")
         
         i = 0
         for ra in self.RAlists[0]:
             tmps = ra["SEQ"]
             tmpq = ra["QUAL"]
             l = len(tmps)
-
             cseq = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
             cqual = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
             for j in range(l):
                 cseq[ j ] = tmps[ j ]
                 cqual[ j ] = tmpq[ j ] + 33
-            cseq[ j ] = b'\x00'
-            cqual[ j ]= b'\x00'
+            cseq[ l ] = b'\x00'
+            cqual[ l ]= b'\x00'
 
             seqs[ i ].seq = cseq
             seqs[ i ].qual = cqual
             seqs[ i ].l_seq = len(tmps)
             i += 1
+            
+            # print "@",ra["readname"].decode()
+            # print cseq.decode()
+            # print "+"
+            # print cqual.decode()
 
         for ra in self.RAlists[1]:
             tmps = ra["SEQ"]
             tmpq = ra["QUAL"]
             l = len(tmps)
-
             cseq = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
             cqual = <char *>malloc( (l+1)*sizeof(char))# we rely on fermi-lite to free this mem
             for j in range(l):
                 cseq[ j ] = tmps[ j ]
                 cqual[ j ] = tmpq[ j ] + 33
-            cseq[ j ] = b'\x00'
-            cqual[ j ]= b'\x00'
+            cseq[ l ] = b'\x00'
+            cqual[ l ]= b'\x00'
 
             seqs[ i ].seq = cseq
             seqs[ i ].qual = cqual
             seqs[ i ].l_seq = len(tmps)
             i += 1
-        
-        opt = <fml_opt_t *> PyMem_Malloc( sizeof(fml_opt_t) )
-        opt.ec_k = 0 #-1
-        opt.min_asm_ovlp = unitig_k
-        opt.min_merge_len = merge_min_len
-        opt.mag_opt.max_bdiff = merge_min_len
-        #opt.mag_opt.flag = 0x80 #MAG_F_NO_SIMPL only
-        # print ("haha2")
+            # print "@",ra["readname"].decode()
+            # print cseq.decode()
+            # print "+"
+            # print cqual.decode()
 
+        # if self.RAlists[1]:
+        #     unitig_k=int(min(self.RAlists[0][0]["l"],self.RAlists[1][0]["l"])*fermiOverlapMinRatio)
+
+        #     merge_min_len=int(min(self.RAlists[0][0]["l"],self.RAlists[1][0]["l"])*0.5)
+        # else:
+        #     unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
+
+        #     merge_min_len=int(self.RAlists[0][0]["l"]*0.5)
+
+        unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
+        merge_min_len=int(self.RAlists[0][0]["l"]*0.5)
+
+        opt = <fml_opt_t *> PyMem_Malloc( sizeof(fml_opt_t) )
         n_utg = <int *> PyMem_Malloc( sizeof(int) )
-        # print ("haha3")
 
         fml_opt_init(opt)
-        # print ("haha3.1")
+        # k-mer length for error correction (0 for auto; -1 to disable)
+        opt.ec_k = -1
+
+        # min overlap length during initial assembly
+        opt.min_asm_ovlp = unitig_k
+
+        # minimum length to merge, during assembly, don't explicitly merge an overlap if shorter than this value
+        opt.min_merge_len = merge_min_len
+
+        # there are more 'options' for mag clean:
+        # flag, min_ovlp, min_elen, min_ensr, min_insr, max_bdist, max_bdiff, max_bvtx, min_merge_len, trim_len, trim_depth, min_dratio1, max_bcov, max_bfrac
+        # min_elen (300) will be adjusted
+        # min_ensr (4), min_insr (3) will be computed
+        # min_merge_len (0) will be updated using opt.min_merge_len
+
+        # We can adjust: flag (0x40|0x80), min_ovlp (0), min_dratio1 (0.7), max_bdiff (50), max_bdist (512), max_bvtx (64), trim_len (0), trim_depth (6), max_bcov (10.), max_bfrac (0.15)
+
+        # 0x20: MAG_F_AGGRESSIVE pop variant bubbles
+        # 0x40: MAG_F_POPOPEN aggressive tip trimming
+        # 0x80: MAG_F_NO_SIMPL skip bubble simplification
+        opt.mag_opt.flag = 0x80
+
+        # mag_opt.min_ovlp
+        #opt.mag_opt.min_ovlp = unitig_k
+
+        # drop an overlap if its length is below maxOvlpLen*FLOAT
+        #opt.mag_opt.min_dratio1 = 0.7
+
+        # retain a bubble if one side is longer than the other side by >INT-bp
+        #opt.mag_opt.max_bdiff = 10#merge_min_len
+
+        # trim_len:
+        # trim_depth: Parameter used to trim the open end/tip. If trim_len == 0, do nothing
+
+        # max_bdist: 
+        # max_bvtx: Parameter used to simply bubble while 0x80 flag is set.
+        #opt.mag_opt.max_bdist = 1024
+        #opt.mag_opt.max_bvtx = 128
+
+        # max_bcov:
+        # max_bfrac: Parameter used when aggressive bubble removal is not used. Bubble will be removed if its average coverage lower than max_bcov and fraction (cov1/(cov1+cov2)) is lower than max_bfrac
+        #opt.mag_opt.max_bcov = 10.
+        #opt.mag_opt.max_bfrac = 0.01
+
         utg = fml_assemble(opt, n_seqs, seqs, n_utg)
-        # print ("haha4")        
         # get results
         unitig_list = []
         for i in range( n_utg[0] ):
@@ -541,7 +592,6 @@ cdef class RACollection:
             #unitig_list.append( unitig )
             unitig_list.append( p.seq )
 
-        # print ("haha5")
         fml_utg_destroy(n_utg[0], utg)
 
         PyMem_Free( opt )
@@ -624,23 +674,30 @@ cdef class RACollection:
     cpdef tuple align_unitig_to_REFSEQ ( self, list unitig_list ):
         """Note: we use smith waterman, but we don't use linear gap
         penalty at this time.
+
+        Also, if unitig is mapped to - strand, we will revcomp the
+        unitig. So the unitig_list will be changed in this case.  
         """
+    
         cdef:
             bytes unitig
             seq_pair_t problem
+            align_t * results
             char * tmp
             bytes target
             bytes reference
-            bytes target_aln
-            bytes reference_aln
+            bytes target_aln_f, target_aln_r
+            bytes reference_aln_f, reference_aln_r
+            double score_f, score_r
             list target_alns = []
             list reference_alns = []
+            int i
 
         reference = copy(self.peak_refseq_ext+b'\x00')
 
-        for unitig in unitig_list:
+        for i in range( len(unitig_list) ):
+            unitig = unitig_list[ i ]
             target = copy(unitig + b'\x00')
-
             # we use swalign.c for local alignment (without affine gap
             # penalty). Will revise later.
             problem.a = target
@@ -648,12 +705,39 @@ cdef class RACollection:
             problem.b = reference
             problem.blen = len( self.peak_refseq_ext )
             results = smith_waterman( &problem )
-            target_aln = results.seqs.a
-            reference_aln = results.seqs.b
+            target_aln_f = results.seqs.a
+            reference_aln_f = results.seqs.b
+            score_f = results.score
+            free( results.seqs.a )
+            free( results.seqs.b )
+            free( results )
+            # end of local alignment
+            
+            # try reverse complement
+            target = copy(unitig[::-1] + b'\x00')
+            target = target.translate( __DNACOMPLEMENT__ )
+            problem.a = target
+            problem.alen = len( unitig )
+            problem.b = reference
+            problem.blen = len( self.peak_refseq_ext )
+            results = smith_waterman( &problem )
+            target_aln_r = results.seqs.a
+            reference_aln_r = results.seqs.b
+            score_r = results.score
+            free( results.seqs.a )
+            free( results.seqs.b )
+            free( results )
             # end of local alignment
 
-            target_alns.append( target_aln )
-            reference_alns.append( reference_aln )
+            if score_f > score_r:
+                target_alns.append( target_aln_f )
+                reference_alns.append( reference_aln_f )
+            else:
+                target_alns.append( target_aln_r )
+                reference_alns.append( reference_aln_r )
+                # we will revcomp unitig
+                unitig = unitig[::-1]
+                unitig_list[ i ] = unitig.translate( __DNACOMPLEMENT__ )
             
         return ( target_alns, reference_alns )
 
@@ -674,7 +758,7 @@ cdef class RACollection:
             list RAlists_T = []
             list RAlists_C = []
             object tmp_ra
-            bytes tmp_ra_seq
+            bytes tmp_ra_seq, tmp_ra_seq_r
             bytes tmp_unitig_seq
             bytes tmp_reference_seq
             bytes tmp_unitig_aln
@@ -684,6 +768,7 @@ cdef class RACollection:
             long left_padding_unitig, right_padding_unitig
             list ura_list = []
             object unitig_collection
+            int flag = 0
 
         ( target_alns, reference_alns ) = alns
 
@@ -695,20 +780,41 @@ cdef class RACollection:
             RAlists_C.append([])
 
         # assign RAs to unitigs
+        flag = 0
         for tmp_ra in self.RAlists[0]:
             tmp_ra_seq = tmp_ra["SEQ"]
+            tmp_ra_seq_r = tmp_ra_seq[::-1]
+            tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
             for i in range( len(unitig_list) ):
                 unitig = unitig_list[ i ]
                 if tmp_ra_seq in unitig:
+                    flag = 1
                     RAlists_T[ i ].append( tmp_ra )
                     break
+                #if tmp_ra_seq_r in unitig:
+                #    flag = 1
+                #    RAlists_T[ i ].append( tmp_ra )
+                #    break
+            if flag == 0:
+                print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
+
+        flag = 0
         for tmp_ra in self.RAlists[1]:
             tmp_ra_seq = tmp_ra["SEQ"]
+            tmp_ra_seq_r = tmp_ra_seq[::-1]
+            tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
             for i in range( len(unitig_list) ):
                 unitig = unitig_list[ i ]
                 if tmp_ra_seq in unitig:
+                    flag = 1
                     RAlists_C[ i ].append( tmp_ra )
                     break
+                #if tmp_ra_seq_r in unitig:
+                #    flag = 1
+                #    RAlists_T[ i ].append( tmp_ra )
+                #    break
+            if flag == 0:
+                print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
 
         # create UnitigCollection
         for i in range( len( unitig_list ) ):

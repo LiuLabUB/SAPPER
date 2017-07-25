@@ -279,25 +279,16 @@ fml_utg_t *fml_assemble(const fml_opt_t *opt0, int n_seqs, bseq1_t *seqs, int *n
 	fml_utg_t *utg;
 	fml_opt_t opt = *opt0;
 	float kcov;
-	//printf("hehe1!\n");
 	fml_opt_adjust(&opt, n_seqs, seqs);
-	//printf("hehe2!\n");
 	if (opt.ec_k >= 0) fml_correct(&opt, n_seqs, seqs);
-	//printf("hehe3!\n");
 	kcov = fml_fltuniq(&opt, n_seqs, seqs);
-	//printf("hehe4!\n");
 	e = fml_seq2fmi(&opt, n_seqs, seqs);
-	//printf("hehe5!\n");
 	g = fml_fmi2mag(&opt, e);
-	//printf("hehe6!\n");
 	opt.mag_opt.min_ensr = opt.mag_opt.min_ensr > kcov * MAG_MIN_NSR_COEF? opt.mag_opt.min_ensr : (int)(kcov * MAG_MIN_NSR_COEF + .499);
 	opt.mag_opt.min_ensr = opt.mag_opt.min_ensr < opt0->max_cnt? opt.mag_opt.min_ensr : opt0->max_cnt;
 	opt.mag_opt.min_ensr = opt.mag_opt.min_ensr > opt0->min_cnt? opt.mag_opt.min_ensr : opt0->min_cnt;
 	opt.mag_opt.min_insr = opt.mag_opt.min_ensr - 1;
-	//printf("hehe7!\n");
 	fml_mag_clean(&opt, g);
-	//printf("hehe8!\n");
 	utg = fml_mag2utg(g, n_utg);
-	//printf("hehe9!\n");
 	return utg;
 }
