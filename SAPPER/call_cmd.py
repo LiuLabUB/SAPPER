@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-25 16:05:57 Tao Liu>
+# Time-stamp: <2017-07-26 10:31:15 Tao Liu>
 
 """Description: sapper call
 
@@ -77,16 +77,16 @@ VCFHEADER="""##fileformat=VCFv4.1
 ##INFO=<ID=DP2T,Number=.,Type=String,Description="Read depth of top2 allele in ChIP-seq data">
 ##INFO=<ID=DP1C,Number=.,Type=String,Description="Read depth of top1 allele in control data">
 ##INFO=<ID=DP2C,Number=.,Type=String,Description="Read depth of top2 allele in control data">
-##INFO=<ID=DBIC,Number=.,Type=Float,Description="Difference of BIC of selected model and alternative model">
+##INFO=<ID=DBIC,Number=.,Type=Float,Description="Difference of BIC of selected model vs second best alternative model">
 ##INFO=<ID=BICHOMOMAJOR,Number=1,Type=Integer,Description="BIC of homozygous with major allele model">
 ##INFO=<ID=BICHOMOMINOR,Number=1,Type=Integer,Description="BIC of homozygous with minor allele model">
 ##INFO=<ID=BICHETERNOAS,Number=1,Type=Integer,Description="BIC of heterozygous with no allele-specific model">
 ##INFO=<ID=BICHETERAS,Number=1,Type=Integer,Description="BIC of heterozygous with allele-specific model">
 ##INFO=<ID=AR,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##FORMAT=<ID=DP,Number=1,Type=Integer,Description="read depth after filtering">
-##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality score">
-##FORMAT=<ID=PL,Number=3,Type=Integer,Description="Phred-scaled genotype likelihoods for 00, 01, 11 genotype">"""
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth after filtering bad reads">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality score, max 99">
+##FORMAT=<ID=PL,Number=3,Type=Integer,Description="Normalized, Phred-scaled genotype likelihoods for 00, 01, 11 genotype">"""
 
 # ------------------------------------
 # Main function

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-25 17:17:50 Tao Liu>
+# Time-stamp: <2017-07-26 12:03:01 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -57,7 +57,7 @@ cpdef tuple CalModel_Homo( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray[int
     for i in range( top2_bq_C.shape[0] ):
         lnL += log( exp(-top2_bq_C[ i ]*LN10_tenth) )        
 
-    BIC = -2*lnL                # no free variable
+    BIC = -2*lnL                # no free variable, no penalty
     return (lnL, BIC)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -100,7 +100,16 @@ cpdef tuple CalModel_Heter_noAS( np.ndarray[int32_t, ndim=1] top1_bq_T,np.ndarra
 
     tn = tn_C + tn_T
 
-    BIC += 2* log(tn) # only k_T and k_C are free variables. We penalize the model more even if control data is few.
+    # we penalize big model depending on the number of reads/samples
+    if tn_T == 0:
+        BIC += log( tn_C )
+    elif tn_C == 0:
+        BIC += log( tn_T )
+    else:
+        BIC += log( tn_T ) + log( tn_C )
+
+    # BIC += 2* log(tn) # only k_T and k_C are free variables. We penalize the model more even if control data is few.
+
     return ( lnL, BIC )
 
 
@@ -149,11 +158,15 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
 
     tn = tn_C + tn_T
 
-    #if(tn_T==0) BIC=-2*lnL_T-2*lnL_C+log(double(tn_C));
-    #else if(tn_C==0) BIC=-2*lnL_T-2*lnL_C+2*log(double(tn_T));
-    #else BIC=-2*lnL_T-2*lnL_C+2*log(double(tn_T))+log(double(tn_C));
+    # we penalize big model depending on the number of reads/samples
+    if tn_T == 0:
+        BIC += log( tn_C )
+    elif tn_C == 0:
+        BIC += 2 * log( tn_T )
+    else:
+        BIC += 2 * log( tn_T ) + log( tn_C )
     
-    BIC += 3*log(tn)
+    #BIC += 3*log(tn)
     return (lnL, BIC)
 
 

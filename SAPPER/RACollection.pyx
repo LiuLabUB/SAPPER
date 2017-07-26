@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-25 12:28:52 Tao Liu>
+# Time-stamp: <2017-07-26 11:20:05 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -478,8 +478,15 @@ cdef class RACollection:
 
         #     merge_min_len=int(self.RAlists[0][0]["l"]*0.5)
 
+        # overlap to make initial assembly, default 33. Here we set a minimum value of 30
         unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
-        merge_min_len=int(self.RAlists[0][0]["l"]*0.5)
+        if self.RAlists[0][0]["l"] >= 36:
+            unitig_k = max( 30, unitig_k )
+        #unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
+
+        # minimum overlap to merge, default 0
+        # merge_min_len= max( 25, int(self.RAlists[0][0]["l"]*0.5) )
+        # merge_min_len= int(self.RAlists[0][0]["l"]*0.5)
 
         opt = <fml_opt_t *> PyMem_Malloc( sizeof(fml_opt_t) )
         n_utg = <int *> PyMem_Malloc( sizeof(int) )
