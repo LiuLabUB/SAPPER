@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-24 16:26:32 Tao Liu>
+# Time-stamp: <2017-07-25 12:28:52 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -27,7 +27,6 @@ from SAPPER.ReadAlignment import ReadAlignment
 from SAPPER.PosReadsInfo import PosReadsInfo
 from SAPPER.PeakIO import PeakIO
 from SAPPER.UnitigRACollection import UnitigRAs, UnitigCollection
-#from SAPPER.Alignment import SWalign
 
 from cpython cimport bool
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
@@ -92,55 +91,6 @@ cdef extern from "fml.h":
     void fml_utg_destroy(int n_utg, fml_utg_t *utg)
     void fml_utg_print(int n_utgs, const fml_utg_t *utg)
     bseq1_t *bseq_read(const char *fn, int *n)
-
-# cdef extern from "kstring.h":
-#     ctypedef struct kstring_t:
-#         uint32_t l, m
-#         char *s
-
-# cdef extern from "priv.h":
-#     int ksa_bwt64(unsigned char *T, int64_t n, int k)
-
-# cdef extern from "mag.h":
-#     ctypedef struct magopt_t:
-#         int flag, max_arc, n_iter, min_ovlp, min_elen, min_ensr, min_insr, max_bdist, max_bvtx, min_merge_len
-#         float min_dratio0, min_dratio1
-#         float max_bcov, max_bfrac
-#     ctypedef struct ku128_t:
-#         uint64_t x, y
-#     ctypedef struct ku64_v:
-#         size_t n, m
-#         uint64_t *a
-#     ctypedef struct ku128_v:
-#         size_t n, m
-#         ku128_t *a
-#     ctypedef struct magv_t:
-#         int len, nsr            #length; number supporting reads
-#         uint32_t max_len        # allocated seq/cov size
-#         uint64_t k[2]           # bi-interval
-#         ku128_v nei[2]          # neighbors
-#         char *seq
-#         char *cov               # sequence and coverage
-#         void *ptr               # additional information
-#     ctypedef struct magv_v:
-#         size_t n, m
-#         magv_t *a
-#     ctypedef struct mag_t:
-#         magv_v v
-#         float rdist             # read distance
-#         int min_ovlp            # minimum overlap seen from the graph
-#         void *h
-
-#     magopt_t *mag_init_opt()
-#     void mag_g_clean(mag_t *g, const magopt_t *opt)
-#     void mag_g_print(const mag_t *g)
-#     void mag_g_destroy(mag_t *g)
-#     void mag_v_write(const magv_t *p, kstring_t *out);
-    
-# cdef extern from "fermi.h":
-#    int fm6_api_correct(int kmer, int64_t l, char *_seq, char *_qual)
-#    mag_t *fm6_api_unitig(int min_match, int64_t l, char *seq)
-
 
 # --- end of fermi-lite functions ---
 
@@ -561,7 +511,7 @@ cdef class RACollection:
         #opt.mag_opt.min_ovlp = unitig_k
 
         # drop an overlap if its length is below maxOvlpLen*FLOAT
-        #opt.mag_opt.min_dratio1 = 0.7
+        opt.mag_opt.min_dratio1 = 0.5
 
         # retain a bubble if one side is longer than the other side by >INT-bp
         #opt.mag_opt.max_bdiff = 10#merge_min_len
@@ -598,78 +548,6 @@ cdef class RACollection:
         PyMem_Free( n_utg )
 
         return unitig_list
-
-    # cpdef list fermi_assemble( self, float fermiOverlapMinRatio ):
-    #     """A wrapper function to call Fermi unitig building functions.
-    #     """
-    #     cdef:
-    #         int unitig_k, merge_min_len
-    #         bytes tmps
-    #         bytes tmpq
-    #         int ec_k = -1
-    #         int64_t l
-    #         mag_t *g
-    #         magv_t p
-    #         magopt_t *opt
-    #         bytes seq  #contains sequences of ALL reads, separated by '\x00';
-    #         bytes qual #contains quality string of ALL reads, separated by '\x00';
-    #         char * cseq
-    #         char * cqual
-    #         int i
-    #         kstring_t out
-    #         bytes tmpunitig
-    #         bytes unitig                 #final unitig
-    #         list unitig_list             # contain list of sequences in bytes format
-            
-    #     seq = b''
-    #     qual = b''
-
-    #     unitig_k=int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
-    #     merge_min_len=int(self.RAlists[0][0]["l"]*0.75)+1;
-        
-    #     # prepare seq and qual, note, we only extract SEQ according to the +
-    #     # strand of reference sequence.
-    #     for ra in self.RAlists[0]:
-    #         tmps = ra["SEQ"]
-    #         tmpq = ra["QUAL"]
-    #         seq += tmps + b'\x00'
-    #         qual+= tmpq + b'\x00'
-
-    #     for ra in self.RAlists[1]:
-    #         tmps = ra["SEQ"]
-    #         tmpq = ra["QUAL"]
-    #         seq += tmps + b'\x00'
-    #         qual+= tmpq + b'\x00'
-            
-    #     l = len( seq )
-    #     cseq = seq
-    #     cqual = qual
-
-    #     # correct seq with qual
-    #     fm6_api_correct(ec_k, l, cseq, cqual)
-    #     # assemble unitigs
-    #     g = fm6_api_unitig(unitig_k, l, cseq)
-    #     opt = mag_init_opt()
-    #     opt.flag |= 0x10 #MOG_F_CLEAN
-    #     opt.min_merge_len = merge_min_len
-    #     # clean
-    #     mag_g_clean(g, opt)
-    #     free(opt)
-
-    #     # get results
-
-    #     unitig_list = []
-    #     for i in range( g.v.n ):
-    #         p = g.v.a[ i ]
-    #         if (p.len < 0):
-    #             continue
-    #         unitig = b''
-    #         for j in range( p.len ):
-    #             unitig += [b'A',b'C',b'G',b'T',b'N'][int(p.seq[j]) - 1]
-    #         unitig_list.append( unitig )
-
-    #     mag_g_destroy(g)
-    #     return unitig_list
 
     cpdef tuple align_unitig_to_REFSEQ ( self, list unitig_list ):
         """Note: we use smith waterman, but we don't use linear gap

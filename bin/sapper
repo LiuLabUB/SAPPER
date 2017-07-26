@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Time-stamp: <2017-07-21 16:01:45 Tao Liu>
+# Time-stamp: <2017-07-25 14:12:34 Tao Liu>
 
 """Description: SAPPER main executable.
 
@@ -116,11 +116,15 @@ To run SAPPER:
                                help = "Set verbose level of runtime message. 0: only show critical message, 1: show additional warning message, 2: show process information, 3: show debug messages. DEFAULT:2" )
     # group for parameters
     group_para = argparser_call.add_argument_group( "Variant calling arguments" )
-    group_para.add_argument( "-A", "--fermi-off", dest = "fermiOff", action = "store_true",
+    group_para.add_argument( "-g", "--gq-hetero", dest = "GQCutoffHetero", type = float,
+                             help = "Genotype Quality score (-10log10((L00+L11)/(L01+L00+L11))) cutoff for Heterozygous allele type. Default:20, or probability of error 10^-2.", default = 20 )
+    group_para.add_argument( "-G", "--gq-homo", dest = "GQCutoffHomo", type = float,
+                             help = "Genotype Quality score (-10log10((L00+L01)/(L01+L00+L11))) cutoff for Homozygous allele (not the same as reference) type. Default:20, or probability of error 10^-2.", default = 20 )
+    group_para.add_argument( "--fermi-off", dest = "fermiOff", action = "store_true",
                              help = "When set, local assembly through Fermi will be turned off. Prediction is purely based original reads alignment. Default: False", default = False )
-    group_para.add_argument( "-p", "--fermi-mratio", dest = "fermiOverlapMinRatio", type = float,
+    group_para.add_argument( "--fermi-mratio", dest = "fermiOverlapMinRatio", type = float,
                              help = "The minimal ratio of a read to be overlapped during local assembly. Must be a float between 0 and 1. Note: if the read length is short (<70bps), please set a higher ratio such as 0.8, otherwise there may be errors during local assembly! Default:0.5 which means a half of the read.", default = 0.5 )
-    group_para.add_argument( "-q", "--top2alleles-mratio", dest = "top2allelesMinRatio", type = float,
+    group_para.add_argument( "--top2alleles-mratio", dest = "top2allelesMinRatio", type = float,
                              help = "The reads for the top 2 most frequent alleles at a loci shouldn't be too few comparing to total reads mapped. The minimum ratio is set by this optoin. Must be a float between 0.5 and 1.  Default:0.8 which means at least 80%% of reads contain the top 2 alleles.", default = 0.8 )
     # group for misc
     group_misc = argparser_call.add_argument_group( "Misc arguments" )

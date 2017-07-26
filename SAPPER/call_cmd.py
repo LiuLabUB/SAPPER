@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-21 14:10:00 Tao Liu>
+# Time-stamp: <2017-07-25 16:05:57 Tao Liu>
 
 """Description: sapper call
 
@@ -77,14 +77,16 @@ VCFHEADER="""##fileformat=VCFv4.1
 ##INFO=<ID=DP2T,Number=.,Type=String,Description="Read depth of top2 allele in ChIP-seq data">
 ##INFO=<ID=DP1C,Number=.,Type=String,Description="Read depth of top1 allele in control data">
 ##INFO=<ID=DP2C,Number=.,Type=String,Description="Read depth of top2 allele in control data">
-##INFO=<ID=GQHOMO,Number=1,Type=Integer,Description="Genotype quality of homozygous with major allele model">
-##INFO=<ID=GQHETERNOAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with no allele-specific model">
-##INFO=<ID=GQHETERAS,Number=1,Type=Integer,Description="Genotype quality of heterozygous with allele-specific model">
-##INFO=<ID=GQHETERASsig,Number=1,Type=Integer,Description="Genotype quality of allele-specific significance compared with no allele-specific model">
+##INFO=<ID=DBIC,Number=.,Type=Float,Description="Difference of BIC of selected model and alternative model">
+##INFO=<ID=BICHOMOMAJOR,Number=1,Type=Integer,Description="BIC of homozygous with major allele model">
+##INFO=<ID=BICHOMOMINOR,Number=1,Type=Integer,Description="BIC of homozygous with minor allele model">
+##INFO=<ID=BICHETERNOAS,Number=1,Type=Integer,Description="BIC of heterozygous with no allele-specific model">
+##INFO=<ID=BICHETERAS,Number=1,Type=Integer,Description="BIC of heterozygous with allele-specific model">
 ##INFO=<ID=AR,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="read depth after filtering">
-##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality score">"""
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype quality score">
+##FORMAT=<ID=PL,Number=3,Type=Integer,Description="Phred-scaled genotype likelihoods for 00, 01, 11 genotype">"""
 
 # ------------------------------------
 # Main function
@@ -111,6 +113,8 @@ def run( args ):
     peakcfile = args.cfile[0]
     top2allelesminr = args.top2allelesMinRatio
     NP = args.np
+    min_homo_GQ = args.GQCutoffHomo
+    min_heter_GQ = args.GQCutoffHetero
 
     # parameter for assembly
     fermiOverlapMinRatio = args.fermiOverlapMinRatio
@@ -136,10 +140,9 @@ def run( args ):
 
     ovcf = open(args.ofile, "w")
     
-    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:]) ) + "\n" )
+    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["-g",str(min_heter_GQ),"-G",str(min_homo_GQ)]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
-        
 
 
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
@@ -179,33 +182,20 @@ def run( args ):
                     print ( " failed to assemble unitigs")
                     continue              #pass this peak if there is no unitig from assembler
 
-                # print ("unitigs:",unitigs)
-
                 print ( " Re-align reads with unitigs")
                 (unitig_alns, reference_alns) = ra_collection.align_unitig_to_REFSEQ( unitigs )
                 unitig_collection = ra_collection.remap_RAs_w_unitigs( unitigs, (unitig_alns, reference_alns) )                
 
-                # print ( ra_collection["left"], ra_collection["right"])
-                # print ( ra_collection["RAs_left"], ra_collection["RAs_right"])                
-                # print ( "RefSeq in peak and extended peak" )
-                # print ( ra_collection["peak_refseq_ext"].find(ra_collection["peak_refseq"])*' '+ra_collection["peak_refseq"].decode() )
-                # print ( ra_collection["peak_refseq_ext"].decode() )
-
-                # print ( "Assembled unitigs collection:")
-                # print ( unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
+                # print ( " Assembled unitigs collection:")
+                # print ( " ", unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
                 # for (i, ua) in enumerate(unitig_collection["URAs_list"]):
-                #     print ("Unitig",i)
-                #     print ( ua["chrom"].decode(), ua["lpos"], ua["rpos"], ua["count"] )
-                #     print ( "unitig seq:", ua["seq"].decode() )
-                #     print ( "unitig aln:", ua["unitig_aln"].decode() )
-                #     print ( "refere aln:", ua["reference_aln"].decode() )
-                
-                #     if ua["seq"] == b'AAGAAGTCAGAAAAATAATCTATACAGCTTGCATGGTTGGGGAGTTAGGAGAGGCCAAGGCCACGTGCACGTAGAGCAAGAGGTAGAAGAGGCCCGGGGGCTAGAGCGCACCCTGGTGGATAGTGTGAGAATTTCACACTGGCTCAAGCCTTGAAGACCACCCCAGGGGTGCGCCTTAGCAACGCACTTATGCAAGACCCCAACAACTGGCCCTTGAAAGGAGCTTTTCACTG':
-                #         print ("24608458",ua.get_variant_bq_by_ref_pos( 24608458 ))
-                #         print ("24608458",ua.get_variant_bq_by_ref_pos( 24608459 ))
-                #         print ("24608458",ua.get_variant_bq_by_ref_pos( 24608460 ))
+                #     print ("  Unitig",i)
+                #     print ( "  ", ua["chrom"].decode(), ua["lpos"], ua["rpos"], ua["count"] )
+                #     print ( "  unitig seq:", ua["seq"].decode() )
+                #     print ( "  unitig aln:", ua["unitig_aln"].decode() )
+                #     print ( "  refere aln:", ua["reference_aln"].decode() )
 
-                # print ( "---end of peak---" )
+            # print ( "---end of peak---" )
             
             s = ra_collection["peak_refseq"]
             #t_get_ra += time() - t0
@@ -253,13 +243,13 @@ def run( args ):
                         continue
                     PRI.update_top_alleles( top2allelesminr )
                     PRI.call_GT()
-                    PRI.apply_GQ_cutoff()
+                    PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
+                    # if i == 66176154 or i == 66176155:
+                    #    PRI.top12alleles()
+                    #    print ( PRI.to_vcf() )
+                    #    print ( PRI.filterflag() )
                     if not PRI.filterflag():
                         ovcf.write( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
-                    # else:
-                    #     if i == 62380026:
-                    #         print ( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
-
 
     #print ("time to read RAcollection from BAM:",t_get_ra)
     #print ("time to get reads information for each position:",t_get_pri)
@@ -281,17 +271,17 @@ def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr ):
             continue
         PRI.update_top_alleles( top2allelesminr )
         PRI.call_GT()
-        PRI.apply_GQ_cutoff()
+        PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
         if not PRI.filterflag():
             result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
     return result
 
-def call_variants_at_given_pos ( PRI, top2allelesminr ):
-    if PRI.raw_read_depth() == 0: # skip if coverage is 0
-        return None
-    PRI.update_top_alleles( top2allelesminr )
-    PRI.call_GT()
-    PRI.apply_GQ_cutoff()
-    if not PRI.filterflag():
-        return PRI.to_vcf()
-    return None
+# def call_variants_at_given_pos ( PRI, top2allelesminr ):
+#     if PRI.raw_read_depth() == 0: # skip if coverage is 0
+#         return None
+#     PRI.update_top_alleles( top2allelesminr )
+#     PRI.call_GT()
+#     PRI.apply_GQ_cutoff()
+#     if not PRI.filterflag():
+#         return PRI.to_vcf()
+#     return None

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 17:24:06 Tao Liu>
+# Time-stamp: <2017-07-25 17:16:35 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -34,6 +34,7 @@ import numpy as np
 cimport numpy as np
 from numpy cimport uint32_t, uint64_t, int32_t, float32_t
 
+LN10 = 2.3025850929940458
 
 cdef extern from "stdlib.h":
     ctypedef unsigned int size_t
@@ -80,6 +81,8 @@ cdef class PosReadsInfo:
 
         double lnL_homo_major,lnL_heter_AS,lnL_heter_noAS,lnL_homo_minor
         double BIC_homo_major,BIC_heter_AS,BIC_heter_noAS,BIC_homo_minor
+        double PL_00, PL_01, PL_11
+        double deltaBIC
         int heter_noAS_kc, heter_noAS_ki
         int heter_AS_kc, heter_AS_ki
         double heter_AS_alleleratio
@@ -87,7 +90,7 @@ cdef class PosReadsInfo:
         int GQ_homo_major,GQ_heter_noAS,GQ_heter_AS  #phred scale of prob by standard formular
         int GQ_heter_ASsig #phred scale of prob, to measure the difference between AS and noAS
 
-        int GQ
+        double GQ
         
         str GT
         str type
@@ -157,6 +160,13 @@ cdef class PosReadsInfo:
             self.filterout = True
         return
 
+    cpdef apply_deltaBIC_cutoff ( self, float min_delta_BIC = 10 ):
+        if self.filterout:
+            return
+        if self.deltaBIC < min_delta_BIC:
+            self.filterout = True
+        return
+
     cpdef add_T ( self, int read_index, bytes read_allele, int read_bq ):
         if not self.bq_set_T.has_key( read_allele ):
             self.bq_set_T[read_allele] = []
@@ -194,6 +204,7 @@ cdef class PosReadsInfo:
             self.filterout = True
         if self.top1allele == self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
+            self.type = "homo_ref"
             self.filterout = True
         return
 
@@ -221,76 +232,97 @@ cdef class PosReadsInfo:
         if self.filterout:
             return
 
-        #top1_bq_T_l = self.bq_set_T[ self.top1allele ] 
-        #top2_bq_T_l = self.bq_set_T[ self.top2allele ] 
-        #top1_bq_C_l = self.bq_set_C[ self.top1allele ] 
-        #top2_bq_C_l = self.bq_set_C[ self.top2allele ] 
-
-        #top1_bq_T = np.zeros( len(top1_bq_T_l),dtype="int32")
-        #top2_bq_T = np.zeros( len(top2_bq_T_l),dtype="int32")
-        #top1_bq_C = np.zeros( len(top1_bq_C_l),dtype="int32")
-        #top2_bq_C = np.zeros( len(top2_bq_C_l),dtype="int32")
-        #print self.top1allele
-        #print self.top2allele
-        top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
-        top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
-        top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
-        top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
-
-        #for i in range( len(top1_bq_T_l) ):
-        #    top1_bq_T[ i ] = top1_bq_T_l[ i ][ 1 ]
-        #for i in range( len(top2_bq_T_l) ):
-        #    top2_bq_T[ i ] = top2_bq_T_l[ i ][ 1 ]
-        #for i in range( len(top1_bq_C_l) ):
-        #    top1_bq_C[ i ] = top1_bq_C_l[ i ][ 1 ]
-        #for i in range( len(top2_bq_C_l) ):
-        #    top2_bq_C[ i ] = top2_bq_C_l[ i ][ 1 ]
-            
-        (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-        (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
-        (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-        (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-
-        self.GQ_homo_major = 0
-        self.GQ_heter_noAS = 0
-        self.GQ_heter_AS = 0
-        self.GQ_heter_ASsig = 0
-        
-        # assign GQ, GT, and type
-        if self.ref_allele != self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+        if self.top1allele != self.ref_allele and self.n_reads[ self.top2allele ] == 0:
+            # in this case, there is no top2 nt (or socalled minor
+            # allele) in either treatment or control, we should assume
+            # it's a 1/1 genotype. Although we can calculate a
+            # likelihood with allele-ratio 1 in this case, it's not
+            # reasonable to expect it's correct, similar to 0/0
+            # GT. Therefore, we just force GT 1/1 to be true
+            self.PL_00 = 255
+            self.PL_01 = 255
+            self.PL_11 = 0
             self.type = "homo"
-            self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
-            self.GQ = self.GQ_homo_major
             self.GT = "1/1"
+            self.GQ = 99
+            self.deltaBIC = 255
             self.alt_allele = self.top1allele
-        elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
-            self.type = "heter_noAS"
-            self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
-            self.GQ = self.GQ_heter_noAS
-        elif self.BIC_heter_AS < self.BIC_homo_major and self.BIC_heter_AS < self.BIC_homo_minor and self.BIC_heter_AS < self.BIC_heter_noAS:
-            self.type = "heter_AS"
-            self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
-            self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
-            self.GQ = self.GQ_heter_AS
-        elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
-            self.type = "homo_ref"
-            # we do not calculate GQ if type is homo_ref
-            self.GT = "0/0"
-            self.filterout = True
         else:
-            self.type="unsure"
-            self.filterout = True
+            top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
+            top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
+            top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
+            top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
+            (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+            (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
+            (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+            (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
 
-        if self.type.startswith( "heter" ):
-            if self.ref_allele == self.top1allele:
-                self.alt_allele = self.top2allele
-                self.GT = "0/1"
-            elif self.ref_allele == self.top2allele:
+            # assign GQ, GT, and type
+            if self.ref_allele != self.top1allele and self.BIC_homo_major + 2 <= self.BIC_homo_minor and self.BIC_homo_major + 2 <= self.BIC_heter_noAS and self.BIC_homo_major + 2 <= self.BIC_heter_AS:
+                self.type = "homo"
+                self.deltaBIC = min( self.BIC_heter_noAS, self.BIC_heter_AS, self.BIC_homo_minor ) - self.BIC_homo_major
+                self.GT = "1/1"
                 self.alt_allele = self.top1allele
-                self.GT = "0/1"
+
+                self.PL_00 = -10.0 * self.lnL_homo_minor / LN10
+                self.PL_01 = -10.0 * max( self.lnL_heter_noAS, self.lnL_heter_AS ) / LN10
+                self.PL_11 = -10.0 * self.lnL_homo_major / LN10
+
+                self.PL_00 = min( 255, self.PL_00 - self.PL_11 )
+                self.PL_01 = min( 255, self.PL_01 - self.PL_11 )
+                self.PL_11 = 0
+
+                self.GQ = min( 99, min( self.PL_00, self.PL_01 ) )
+                
+            elif self.BIC_heter_noAS + 2 <= self.BIC_homo_major and self.BIC_heter_noAS + 2 <= self.BIC_homo_minor and self.BIC_heter_noAS + 2 <= self.BIC_heter_AS :
+                self.type = "heter_noAS"
+                self.deltaBIC = min( self.BIC_homo_major, self.BIC_homo_minor ) - self.BIC_heter_noAS
+
+                self.PL_00 = -10.0 * self.lnL_homo_minor / LN10
+                self.PL_01 = -10.0 * self.lnL_heter_noAS / LN10
+                self.PL_11 = -10.0 * self.lnL_homo_major / LN10
+
+                self.PL_00 = min( 255, self.PL_00 - self.PL_01 )
+                self.PL_11 = min( 255, self.PL_11 - self.PL_01 )
+                self.PL_01 = 0
+
+                self.GQ = min( 99, min( self.PL_00, self.PL_11 ) )
+                
+            elif self.BIC_heter_AS + 2 <= self.BIC_homo_major and self.BIC_heter_AS + 2 <= self.BIC_homo_minor and self.BIC_heter_AS + 2 <= self.BIC_heter_noAS:
+                self.type = "heter_AS"
+                self.deltaBIC = min( self.BIC_homo_major, self.BIC_homo_minor ) - self.BIC_heter_AS
+
+                self.PL_00 = -10.0 * self.lnL_homo_minor / LN10
+                self.PL_01 = -10.0 * self.lnL_heter_AS / LN10
+                self.PL_11 = -10.0 * self.lnL_homo_major / LN10
+
+                self.PL_00 = min( 255, self.PL_00 - self.PL_01 )
+                self.PL_11 = min( 255, self.PL_11 - self.PL_01 )
+                self.PL_01 = 0
+
+                self.GQ = min( 99, min( self.PL_00, self.PL_11 ) )
+                
+            elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+                self.type = "homo_ref"
+                # we do not calculate GQ if type is homo_ref
+                self.GT = "0/0"
+                self.filterout = True
             else:
-                self.alt_allele = self.top1allele+b','+self.top2allele
-                self.GT = "1/2"
+                self.type="unsure"
+                self.filterout = True
+
+            if self.type.startswith( "heter" ):
+                if self.ref_allele == self.top1allele:
+                    self.alt_allele = self.top2allele
+                    self.GT = "0/1"
+                elif self.ref_allele == self.top2allele:
+                    self.alt_allele = self.top1allele
+                    self.GT = "0/1"
+                else:
+                    self.alt_allele = self.top1allele+b','+self.top2allele
+                    self.GT = "1/2"
+
+            self.deltaBIC = min(255, self.deltaBIC)
 
         tmp_mutation_type = []
         for tmp_alt in self.alt_allele.split(b','):
@@ -301,97 +333,98 @@ cdef class PosReadsInfo:
             else:
                 tmp_mutation_type.append( "SNV" )
         self.mutation_type = ",".join( tmp_mutation_type )
-
-
         return
 
-    cpdef compute_lnL ( self ):
-        """Require update_top_alleles being called.
-        """
-        cdef:
-            np.ndarray[np.int32_t, ndim=1] top1_bq_T
-            np.ndarray[np.int32_t, ndim=1] top2_bq_T
-            np.ndarray[np.int32_t, ndim=1] top1_bq_C
-            np.ndarray[np.int32_t, ndim=1] top2_bq_C
-            int i
-            list top1_bq_T_l
-            list top2_bq_T_l
-            list top1_bq_C_l
-            list top2_bq_C_l
+    # cpdef compute_lnL ( self ):
+    #     """Require update_top_alleles being called.
+    #     """
+    #     cdef:
+    #         np.ndarray[np.int32_t, ndim=1] top1_bq_T
+    #         np.ndarray[np.int32_t, ndim=1] top2_bq_T
+    #         np.ndarray[np.int32_t, ndim=1] top1_bq_C
+    #         np.ndarray[np.int32_t, ndim=1] top2_bq_C
+    #         int i
+    #         list top1_bq_T_l
+    #         list top2_bq_T_l
+    #         list top1_bq_C_l
+    #         list top2_bq_C_l
 
-        if self.filterout:
-            return
+    #     if self.filterout:
+    #         return
 
-        top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
-        top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
-        top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
-        top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
+    #     top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
+    #     top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
+    #     top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
+    #     top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
 
-        (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-        (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
-        (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-        (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+    #     (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+    #     (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
+    #     (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+    #     (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
 
-        return
+    #     return
 
-    cpdef compute_GQ ( self ):
-        cdef:
-            list tmp_mutation_type
-            bytes tmp_alt
+    # cpdef compute_GQ ( self ):
+    #     cdef:
+    #         list tmp_mutation_type
+    #         bytes tmp_alt
 
-        if self.filterout:
-            return
-        self.GQ_homo_major = 0
-        self.GQ_heter_noAS = 0
-        self.GQ_heter_AS = 0
-        self.GQ_heter_ASsig = 0
+    #     if self.filterout:
+    #         return
+    #     self.GQ_homo_major = 0
+    #     self.GQ_heter_noAS = 0
+    #     self.GQ_heter_AS = 0
+    #     self.GQ_heter_ASsig = 0
         
-        # assign GQ, GT, and type
-        if self.ref_allele != self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
-            self.type = "homo"
-            self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
-            self.GQ = self.GQ_homo_major
-            self.GT = "1/1"
-            self.alt_allele = self.top1allele
-        elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
-            self.type = "heter_noAS"
-            self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
-            self.GQ = self.GQ_heter_noAS
-        elif self.BIC_heter_AS < self.BIC_homo_major and self.BIC_heter_AS < self.BIC_homo_minor and self.BIC_heter_AS < self.BIC_heter_noAS:
-            self.type = "heter_AS"
-            self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
-            self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
-            self.GQ = self.GQ_heter_AS
-        elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
-            self.type = "homo_ref"
-            # we do not calculate GQ if type is homo_ref
-            self.GT = "0/0"
-            self.filterout = True
-        else:
-            self.type="unsure"
-            self.filterout = True
+    #     # assign GQ, GT, and type
+    #     if self.ref_allele != self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+    #         self.type = "homo"
+    #         self.deltaBIC = max( self.BIC_heter_noAS, self.BIC_heter_AS ) - self.BIC_homo_major
+    #         self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
+    #         self.GQ = self.GQ_homo_major
+    #         self.GT = "1/1"
+    #         self.alt_allele = self.top1allele
+    #     elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
+    #         self.type = "heter_noAS"
+    #         self.deltaBIC = max( self.BIC_homo_major, self.BIC_homo_minor ) - self.BIC_heter_noAS
+    #         self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
+    #         self.GQ = self.GQ_heter_noAS
+    #     elif self.BIC_heter_AS < self.BIC_homo_major and self.BIC_heter_AS < self.BIC_homo_minor and self.BIC_heter_AS < self.BIC_heter_noAS:
+    #         self.type = "heter_AS"
+    #         self.deltaBIC = max( self.BIC_homo_major, self.BIC_homo_minor ) - self.BIC_heter_AS
+    #         self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
+    #         self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
+    #         self.GQ = self.GQ_heter_AS
+    #     elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
+    #         self.type = "homo_ref"
+    #         # we do not calculate deltaBIC and GQ if type is homo_ref
+    #         self.GT = "0/0"
+    #         self.filterout = True
+    #     else:
+    #         self.type="unsure"
+    #         self.filterout = True
 
-        if self.type.startswith( "heter" ):
-            if self.ref_allele == self.top1allele:
-                self.alt_allele = self.top2allele
-                self.GT = "0/1"
-            elif self.ref_allele == self.top2allele:
-                self.alt_allele = self.top1allele
-                self.GT = "0/1"
-            else:
-                self.alt_allele = self.top1allele+b','+self.top2allele
-                self.GT = "1/2"
+    #     if self.type.startswith( "heter" ):
+    #         if self.ref_allele == self.top1allele:
+    #             self.alt_allele = self.top2allele
+    #             self.GT = "0/1"
+    #         elif self.ref_allele == self.top2allele:
+    #             self.alt_allele = self.top1allele
+    #             self.GT = "0/1"
+    #         else:
+    #             self.alt_allele = self.top1allele+b','+self.top2allele
+    #             self.GT = "1/2"
 
-        tmp_mutation_type = []
-        for tmp_alt in self.alt_allele.split(b','):
-            if tmp_alt == 42: # means '*'
-                tmp_mutation_type.append( "Deletion" )
-            elif len( tmp_alt ) > 1:
-                tmp_mutation_type.append( "Insertion" )
-            else:
-                tmp_mutation_type.append( "SNV" )
-        self.mutation_type = ",".join( tmp_mutation_type )
-        return
+    #     tmp_mutation_type = []
+    #     for tmp_alt in self.alt_allele.split(b','):
+    #         if tmp_alt == 42: # means '*'
+    #             tmp_mutation_type.append( "Deletion" )
+    #         elif len( tmp_alt ) > 1:
+    #             tmp_mutation_type.append( "Insertion" )
+    #         else:
+    #             tmp_mutation_type.append( "SNV" )
+    #     self.mutation_type = ",".join( tmp_mutation_type )
+    #     return
 
     cpdef to_vcf ( self ):
         """Output REF,ALT,QUAL,FILTER,INFO,FORMAT, SAMPLE columns.
@@ -404,14 +437,16 @@ cdef class PosReadsInfo:
         vcf_qual = "%d" % self.GQ
         vcf_filter = "."
 #        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;lnLHOMOMAJOR=%.4f;lnLHOMOMINOR=%.4f;lnLHETERNOAS=%.4f;lnLHETERAS=%.4f;BICHOMOMAJOR=%.4f;BICHOMOMINOR=%.4f;BICHETERNOAS=%.4f;BICHETERAS=%.4f;GQHOMO=%d;GQHETERNOAS=%d;GQHETERAS=%d;GQHETERASsig=%d;AR=%.4f" % \
-        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;GQHOMO=%d;GQHETERNOAS=%d;GQHETERAS=%d;GQHETERASsig=%d;AR=%.4f" % \
+        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;DBIC=%.2f;BICHOMOMAJOR=%d;BICHOMOMINOR=%d;BICHETERNOAS=%d;BICHETERAS=%d;AR=%.4f" % \
             (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 
              self.n_reads_T[self.top1allele], self.top1allele, self.n_reads_T[self.top2allele], self.top2allele,
              self.n_reads_C[self.top1allele], self.top1allele, self.n_reads_C[self.top2allele], self.top2allele,
 #             self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS,
 #             self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS,
-             self.GQ_homo_major, self.GQ_heter_noAS, self.GQ_heter_AS, self.GQ_heter_ASsig, self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele])
+             self.deltaBIC,
+             self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS,self.BIC_heter_AS,
+             self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele])
              )).decode()
-        vcf_format = "GT:DP:GQ"
-        vcf_sample = "%s:%d:%d" % (self.GT, self.raw_read_depth(), self.GQ )
+        vcf_format = "GT:DP:GQ:PL"
+        vcf_sample = "%s:%d:%d:%d,%d,%d" % (self.GT, self.raw_read_depth(), self.GQ, self.PL_00, self.PL_01, self.PL_11)
         return "\t".join( ( vcf_ref, vcf_alt, vcf_qual, vcf_filter, vcf_info, vcf_format, vcf_sample ) )

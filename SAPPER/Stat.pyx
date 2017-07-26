@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-09 16:14:11 Tao Liu>
+# Time-stamp: <2017-07-25 17:17:50 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -75,37 +75,32 @@ cpdef tuple CalModel_Heter_noAS( np.ndarray[int32_t, ndim=1] top1_bq_T,np.ndarra
         int tn_T, tn_C, tn  # total observed NTs
         double lnL_T, lnL_C # log likelihood for treatment and control
 
+    lnL = 0
+    BIC = 0
     #for k_T
     # total oberseved treatment reads from top1 and top2 NTs
     tn_T = top1_bq_T.shape[0] + top2_bq_T.shape[0]
     
     if tn_T == 0:
-        lnL_T = 0
-        k_T = -1
+        raise Exception("Total number of treatment reads is 0!")
     else:
         ( lnL_T, k_T ) = GreedyMaxFunctionNoAS( top1_bq_T.shape[0], top2_bq_T.shape[0], tn_T, top1_bq_T, top2_bq_T )
+        lnL += lnL_T
+        BIC += -2*lnL_T
 
     #for k_C
     tn_C = top1_bq_C.shape[0] + top2_bq_C.shape[0]
 
     if tn_C == 0:
-        lnL_C = 0
-        k_C = -1
+        pass
     else:
         ( lnL_C, k_C )  = GreedyMaxFunctionNoAS( top1_bq_C.shape[0], top2_bq_C.shape[0], tn_C, top1_bq_C, top2_bq_C )
+        lnL += lnL_C
+        BIC += -2*lnL_C
 
     tn = tn_C + tn_T
 
-    #if tn_T == 0:
-    #   BIC = -2*lnL_T - 2*lnL_C + log(double(tn_C))
-    #elif tn_C == 0:
-    #   BIC = -2*lnL_T - 2*lnL_C + log(double(tn_T))
-    #else:
-    #   BIC = -2*lnL_T - 2*lnL_C + log(double(tn_T)) + log(double(tn_C))
-
-    BIC = -2*lnL_T - 2*lnL_C + 2*log(tn) # only k_T and k_C are free variables.
-    lnL = lnL_T + lnL_C
-    
+    BIC += 2* log(tn) # only k_T and k_C are free variables. We penalize the model more even if control data is few.
     return ( lnL, BIC )
 
 
@@ -126,24 +121,31 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
         double lnL_T, lnL_C # log likelihood for treatment and control
         double AS_alleleratio   # allele ratio
 
+    lnL = 0
+    BIC = 0
+
+    assert top2_bq_T.shape[0] + top2_bq_C.shape[0] > 0, "Total number of top2 nt should not be zero while using this function: CalModel_Heter_AS!"
+
     # Treatment
     tn_T = top1_bq_T.shape[0] + top2_bq_T.shape[0]
 
     if tn_T == 0:
-        lnL_T = 0
-        k_T = -1
+        raise Exception("Total number of treatment reads is 0!")
     else:
         ( lnL_T, k_T, AS_alleleratio ) = GreedyMaxFunctionAS( top1_bq_T.shape[0], top2_bq_T.shape[0], tn_T, top1_bq_T, top2_bq_T)
+        lnL += lnL_T
+        BIC += -2*lnL_T
 
     # control
     tn_C = top1_bq_C.shape[0] + top2_bq_C.shape[0]
 
     if tn_C == 0:
-        lnL_C = 0
-        ki = -1
+        pass
     else:
         # We assume control will not have allele preference
         ( lnL_C, k_C ) = GreedyMaxFunctionNoAS ( top1_bq_C.shape[0], top2_bq_C.shape[0], tn_C, top1_bq_C, top2_bq_C)
+        lnL += lnL_C
+        BIC += -2*lnL_C
 
     tn = tn_C + tn_T
 
@@ -151,8 +153,7 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
     #else if(tn_C==0) BIC=-2*lnL_T-2*lnL_C+2*log(double(tn_T));
     #else BIC=-2*lnL_T-2*lnL_C+2*log(double(tn_T))+log(double(tn_C));
     
-    BIC = -2*lnL_T - 2*lnL_C + 3*log(tn)
-    lnL = lnL_T + lnL_C
+    BIC += 3*log(tn)
     return (lnL, BIC)
 
 
@@ -370,7 +371,7 @@ cdef calculate_ln( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndar
     return lnL
 
 cpdef int calculate_GQ ( double lnL1, double lnL2, double lnL3):
-    """GQ = -10*log_{10}(L1/(L1+L2+L3))
+    """GQ1 = -10*log_{10}((L2+L3)/(L1+L2+L3))
        
        
     """
