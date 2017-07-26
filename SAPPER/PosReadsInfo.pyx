@@ -202,6 +202,8 @@ cdef class PosReadsInfo:
         self.top12alleles_ratio = ( self.n_reads[ self.top1allele ] + self.n_reads[ self.top2allele ] ) /  sum( self.n_reads.values() )
         if self.top12alleles_ratio < min_top12alleles_ratio:
             self.filterout = True
+        if self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ] == 0:
+            self.filterout = True
         if self.top1allele == self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.type = "homo_ref"
