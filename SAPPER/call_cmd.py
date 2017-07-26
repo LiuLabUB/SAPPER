@@ -210,9 +210,9 @@ def run( args ):
 
                 # this partial function will only be used in multiprocessing
                 if not fermiOff:
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr)
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
                 else:
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr)
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
 
                 ranges = []
                 
@@ -259,7 +259,7 @@ def run( args ):
     #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr ):
+def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, min_homo_GQ, min_heter_GQ ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
         ref_nt = chr(s[ i-collection["left"] ] ).encode()
