@@ -199,7 +199,7 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
     elif m == 0:                          #no top1 nt
         k0 = m + 1
     elif m == tn:                         #all reads are top1
-        k0 = m - 2
+        k0 = m - 1
     else:
         k0 = m
 
