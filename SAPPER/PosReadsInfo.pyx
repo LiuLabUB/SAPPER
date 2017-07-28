@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-27 16:14:57 Tao Liu>
+# Time-stamp: <2017-07-28 16:18:15 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -114,6 +114,20 @@ cdef class PosReadsInfo:
         self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.n_reads =  { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
 
+    cpdef merge ( self, PosReadsInfo PRI2 ):
+        """Merge two PRIs. No check available.
+
+        """
+        assert self.ref_pos == PRI2.ref_pos
+        assert self.ref_allele == PRI2.ref_allele
+        for b in set( self.n_reads.keys() ).union( set( PRI2.keys() ) ):
+            self.bq_set_T[ b ] = self.bq_set_T.get( b, []).extend( PRI2.bq_set_T.get( b, [] ) )
+            self.bq_set_C[ b ] = self.bq_set_C.get( b, []).extend( PRI2.bq_set_C.get( b, [] ) )
+            self.n_reads_T[ b ] = self.n_reads_T.get( b, 0).extend( PRI2.n_reads_T.get( b, 0 ) )
+            self.n_reads_C[ b ] = self.n_reads_C.get( b, 0).extend( PRI2.n_reads_C.get( b, 0 ) )
+            self.n_reads[ b ] = self.n_reads.get( b, 0).extend( PRI2.n_reads.get( b, 0 ) )
+        return
+
     def __getstate__ ( self ):
         return ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
                  self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
@@ -192,7 +206,7 @@ cdef class PosReadsInfo:
     cpdef raw_read_depth ( self ):
         return sum( self.n_reads.values() )
 
-    cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8, float min_top2allele_count = 2 ):
+    cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_top2allele_count = 2, float max_allowed_ar = 0.95 ):
         """Identify top1 and top2 NT.  the ratio of (top1+top2)/total
         """
         cdef:
@@ -200,9 +214,12 @@ cdef class PosReadsInfo:
 
         [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
 
-        # if top2 allele count is lower than min_top2allele_count, we won't consider this allele at all.
-        # we set values of top2 allele in dictionaries to []
-        if self.n_reads[ self.top2allele ] < min_top2allele_count:
+        # if top2 allele count in ChIP is lower than
+        # min_top2allele_count, or when allele ratio top1/(top1+top2)
+        # is larger than max_allowed_ar in ChIP, we won't consider
+        # this allele at all.  we set values of top2 allele in
+        # dictionaries to [] and ignore top2 allele entirely.
+        if self.n_reads_T[ self.top2allele ] < min_top2allele_count or self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar:
             self.bq_set_T[ self.top2allele ] = []
             self.bq_set_C[ self.top2allele ] = []
             self.n_reads_T[ self.top2allele ] = 0

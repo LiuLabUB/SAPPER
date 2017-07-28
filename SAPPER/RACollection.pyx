@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-27 17:04:22 Tao Liu>
+# Time-stamp: <2017-07-28 16:34:20 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -630,10 +630,10 @@ cdef class RACollection:
         """
         pass
 
-    cpdef object remap_RAs_w_unitigs ( self, list unitig_list, tuple alns ):
+    cpdef list remap_RAs_w_unitigs ( self, list unitig_list, tuple alns ):
         """unitig_list and tuple_alns are in the same order!
 
-        return UnitigCollection object.
+        return UnitigCollection,RACollection objects.
 
         """
         cdef:
@@ -642,7 +642,7 @@ cdef class RACollection:
             list RAlists_T = []
             list RAlists_C = []
             object tmp_ra
-            bytes tmp_ra_seq, tmp_ra_seq_r
+            bytes tmp_ra_seq   #, tmp_ra_seq_r
             bytes tmp_unitig_seq
             bytes tmp_reference_seq
             bytes tmp_unitig_aln
@@ -651,7 +651,8 @@ cdef class RACollection:
             long left_padding_ref, right_padding_ref
             long left_padding_unitig, right_padding_unitig
             list ura_list = []
-            object unitig_collection
+            #object unitig_collection
+            RACollection unmapped_ra_collection
             int flag = 0
 
         ( target_alns, reference_alns ) = alns
@@ -668,8 +669,8 @@ cdef class RACollection:
         for tmp_ra in self.RAlists[0]:
             flag = 0
             tmp_ra_seq = tmp_ra["SEQ"]
-            tmp_ra_seq_r = tmp_ra_seq[::-1]
-            tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
+            #tmp_ra_seq_r = tmp_ra_seq[::-1]
+            #tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
             for i in range( len(unitig_list) ):
                 unitig = unitig_list[ i ]
                 if tmp_ra_seq in unitig:
@@ -681,14 +682,14 @@ cdef class RACollection:
                 #    flag = 1
                 #    RAlists_T[ i ].append( tmp_ra )
                 #    break
-            if flag == 0:
-                print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
+            #if flag == 0:
+            #    print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
 
         for tmp_ra in self.RAlists[1]:
             flag = 0
             tmp_ra_seq = tmp_ra["SEQ"]
-            tmp_ra_seq_r = tmp_ra_seq[::-1]
-            tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
+            #tmp_ra_seq_r = tmp_ra_seq[::-1]
+            #tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
             for i in range( len(unitig_list) ):
                 unitig = unitig_list[ i ]
                 if tmp_ra_seq in unitig:
@@ -700,8 +701,8 @@ cdef class RACollection:
                 #    flag = 1
                 #    RAlists_T[ i ].append( tmp_ra )
                 #    break
-            if flag == 0:
-                print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
+            #if flag == 0:
+            #    print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
 
         # create UnitigCollection
         for i in range( len( unitig_list ) ):
@@ -745,5 +746,5 @@ cdef class RACollection:
 
             ura_list.append( UnitigRAs( self.chrom, tmp_lpos, tmp_rpos, tmp_unitig_aln, tmp_reference_aln, [RAlists_T[i], RAlists_C[i]] ) )
 
-        return UnitigCollection( self.chrom, self.peak, ura_list )
+        return (UnitigCollection( self.chrom, self.peak, ura_list ), unmapped_ra_collection)
                 

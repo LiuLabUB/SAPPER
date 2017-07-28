@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-27 17:01:07 Tao Liu>
+# Time-stamp: <2017-07-28 16:28:11 Tao Liu>
 
 """Description: sapper call
 
@@ -113,6 +113,7 @@ def run( args ):
     peakcfile = args.cfile[0]
     top2allelesminr = args.top2allelesMinRatio
     min_top2allele_count = args.top2alleleMinCount
+    max_allowed_ar = args.maxAR
     NP = args.np
     min_homo_GQ = args.GQCutoffHomo
     min_heter_GQ = args.GQCutoffHetero
@@ -143,7 +144,7 @@ def run( args ):
     tmpcmdstr = ""
     if fermiOn:
         tmpcmdstr = "--fermi-on --fermi-overlap "+str(fermiMinOverlap)
-    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_top2allele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
+    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_top2allele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
 
@@ -187,7 +188,7 @@ def run( args ):
 
                 print ( " Re-align reads with unitigs")
                 (unitig_alns, reference_alns) = ra_collection.align_unitig_to_REFSEQ( unitigs )
-                unitig_collection = ra_collection.remap_RAs_w_unitigs( unitigs, (unitig_alns, reference_alns) )                
+                (unitig_collection, unmapped_ra_collection) = ra_collection.remap_RAs_w_unitigs( unitigs, (unitig_alns, reference_alns) )                
 
                 # print ( " Assembled unitigs collection:")
                 # print ( " ", unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
@@ -213,9 +214,9 @@ def run( args ):
 
                 # this partial function will only be used in multiprocessing
                 if fermiOn:
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range_w_F, chrom=chrom, s=s, u_collection=unitig_collection, ra_collection=unmapped_ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
                 else:
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range_wo_F, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
 
                 ranges = []
                 
@@ -240,11 +241,12 @@ def run( args ):
                     #t0 = time()
                     if fermiOn:
                         PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
+                        PRI.merge( unmapped_ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) )
                     else:
                         PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
                     if PRI.raw_read_depth() == 0: # skip if coverage is 0
                         continue
-                    PRI.update_top_alleles( top2allelesminr, min_top2allele_count )
+                    PRI.update_top_alleles( top2allelesminr, min_top2allele_count, max_allowed_ar )
                     PRI.call_GT()
                     PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
                     # if i == 46213521:
@@ -262,7 +264,26 @@ def run( args ):
     #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
+def call_variants_at_range_w_F ( lr, chrom, s, u_collection, ra_collection, top2allelesminr, max_allowed_ar, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
+    result = ""
+    for i in range( lr[ 0 ], lr[ 1 ] ):
+        ref_nt = chr(s[ i-collection["left"] ] ).encode()
+        if ref_nt == b'N':
+            continue
+
+        PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
+        PRI.merge( ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) )
+        if PRI.raw_read_depth() == 0: # skip if coverage is 0
+            continue
+        PRI.update_top_alleles( top2allelesminr, min_top2allele_count, max_allowed_ar )
+        PRI.call_GT()
+        PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
+        if not PRI.filterflag():
+            result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
+    return result
+
+
+def call_variants_at_range_wo_F ( lr, chrom, s, collection, top2allelesminr, max_allowed_ar, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
         ref_nt = chr(s[ i-collection["left"] ] ).encode()
@@ -272,7 +293,7 @@ def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, min_top2
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
         if PRI.raw_read_depth() == 0: # skip if coverage is 0
             continue
-        PRI.update_top_alleles( top2allelesminr, min_top2allele_count )
+        PRI.update_top_alleles( top2allelesminr, min_top2allele_count, max_allowed_ar )
         PRI.call_GT()
         PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
         if not PRI.filterflag():
