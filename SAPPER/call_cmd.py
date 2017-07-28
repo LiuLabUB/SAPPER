@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-26 10:31:15 Tao Liu>
+# Time-stamp: <2017-07-27 17:01:07 Tao Liu>
 
 """Description: sapper call
 
@@ -85,7 +85,7 @@ VCFHEADER="""##fileformat=VCFv4.1
 ##INFO=<ID=AR,Number=1,Type=Float,Description="Estimated allele ratio of heterozygous with allele-specific model">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth after filtering bad reads">
-##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality score, max 99">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality score">
 ##FORMAT=<ID=PL,Number=3,Type=Integer,Description="Normalized, Phred-scaled genotype likelihoods for 00, 01, 11 genotype">"""
 
 # ------------------------------------
@@ -112,13 +112,14 @@ def run( args ):
     peaktfile = args.tfile[0]
     peakcfile = args.cfile[0]
     top2allelesminr = args.top2allelesMinRatio
+    min_top2allele_count = args.top2alleleMinCount
     NP = args.np
     min_homo_GQ = args.GQCutoffHomo
     min_heter_GQ = args.GQCutoffHetero
 
     # parameter for assembly
-    fermiOverlapMinRatio = args.fermiOverlapMinRatio
-    fermiOff = args.fermiOff
+    fermiMinOverlap = args.fermiMinOverlap
+    fermiOn = args.fermiOn
     
     peakio = open( peakbedfile )
     peaks = PeakIO()
@@ -139,8 +140,10 @@ def run( args ):
     ra_collections = []
 
     ovcf = open(args.ofile, "w")
-    
-    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["-g",str(min_heter_GQ),"-G",str(min_homo_GQ)]) ) + "\n" )
+    tmpcmdstr = ""
+    if fermiOn:
+        tmpcmdstr = "--fermi-on --fermi-overlap "+str(fermiMinOverlap)
+    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_top2allele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
 
@@ -173,11 +176,11 @@ def run( args ):
             # print ( "Reads in Peak:")
             # print ( ra_collection.get_FASTQ().decode() )
 
-            if not fermiOff:
+            if fermiOn:
                 # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
 
                 print ( " Assemble using fermi-lite")
-                unitigs = ra_collection.fermi_assemble( fermiOverlapMinRatio )
+                unitigs = ra_collection.fermi_assemble( fermiMinOverlap )
                 if unitigs == []:
                     print ( " failed to assemble unitigs")
                     continue              #pass this peak if there is no unitig from assembler
@@ -209,10 +212,10 @@ def run( args ):
                 P = mp.Pool( NP )
 
                 # this partial function will only be used in multiprocessing
-                if not fermiOff:
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                if fermiOn:
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
                 else:
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
 
                 ranges = []
                 
@@ -235,16 +238,16 @@ def run( args ):
                         continue
 
                     #t0 = time()
-                    if not fermiOff:
+                    if fermiOn:
                         PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
                     else:
                         PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
                     if PRI.raw_read_depth() == 0: # skip if coverage is 0
                         continue
-                    PRI.update_top_alleles( top2allelesminr )
+                    PRI.update_top_alleles( top2allelesminr, min_top2allele_count )
                     PRI.call_GT()
                     PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
-                    # if i == 66176154 or i == 66176155:
+                    # if i == 46213521:
                     #    PRI.top12alleles()
                     #    print ( PRI.to_vcf() )
                     #    print ( PRI.filterflag() )
@@ -259,7 +262,7 @@ def run( args ):
     #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, min_homo_GQ, min_heter_GQ ):
+def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
         ref_nt = chr(s[ i-collection["left"] ] ).encode()
@@ -269,19 +272,10 @@ def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, min_homo
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
         if PRI.raw_read_depth() == 0: # skip if coverage is 0
             continue
-        PRI.update_top_alleles( top2allelesminr )
+        PRI.update_top_alleles( top2allelesminr, min_top2allele_count )
         PRI.call_GT()
         PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
         if not PRI.filterflag():
             result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
     return result
 
-# def call_variants_at_given_pos ( PRI, top2allelesminr ):
-#     if PRI.raw_read_depth() == 0: # skip if coverage is 0
-#         return None
-#     PRI.update_top_alleles( top2allelesminr )
-#     PRI.call_GT()
-#     PRI.apply_GQ_cutoff()
-#     if not PRI.filterflag():
-#         return PRI.to_vcf()
-#     return None

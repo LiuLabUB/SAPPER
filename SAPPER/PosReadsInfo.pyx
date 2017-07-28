@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-26 11:54:08 Tao Liu>
+# Time-stamp: <2017-07-27 16:14:57 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -192,13 +192,23 @@ cdef class PosReadsInfo:
     cpdef raw_read_depth ( self ):
         return sum( self.n_reads.values() )
 
-    cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8 ):
+    cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8, float min_top2allele_count = 2 ):
         """Identify top1 and top2 NT.  the ratio of (top1+top2)/total
         """
         cdef:
             float r
+
         [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
-        
+
+        # if top2 allele count is lower than min_top2allele_count, we won't consider this allele at all.
+        # we set values of top2 allele in dictionaries to []
+        if self.n_reads[ self.top2allele ] < min_top2allele_count:
+            self.bq_set_T[ self.top2allele ] = []
+            self.bq_set_C[ self.top2allele ] = []
+            self.n_reads_T[ self.top2allele ] = 0
+            self.n_reads_C[ self.top2allele ] = 0
+            self.n_reads[ self.top2allele ] = 0
+
         self.top12alleles_ratio = ( self.n_reads[ self.top1allele ] + self.n_reads[ self.top2allele ] ) /  sum( self.n_reads.values() )
         if self.top12alleles_ratio < min_top12alleles_ratio:
             self.filterout = True
@@ -208,6 +218,7 @@ cdef class PosReadsInfo:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.type = "homo_ref"
             self.filterout = True
+
         return
 
     cpdef top12alleles ( self ):
@@ -234,31 +245,41 @@ cdef class PosReadsInfo:
         if self.filterout:
             return
 
+        top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
+        top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
+        top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
+        top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
+        (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+        (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
+        (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+        (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+             
         if self.top1allele != self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # in this case, there is no top2 nt (or socalled minor
             # allele) in either treatment or control, we should assume
-            # it's a 1/1 genotype. Although we can calculate a
-            # likelihood with allele-ratio 1 in this case, it's not
-            # reasonable to expect it's correct, similar to 0/0
-            # GT. Therefore, we just force GT 1/1 to be true
-            self.PL_00 = 255
-            self.PL_01 = 255
-            self.PL_11 = 0
+            # it's a 1/1 genotype. We will take 1/1 if it passes BIC
+            # test (deltaBIC >=2), and will skip this loci if it can't
+            # pass the test.
+            
+            self.deltaBIC = min( self.BIC_heter_noAS, self.BIC_heter_AS, self.BIC_homo_minor ) - self.BIC_homo_major
+            if self.deltaBIC < 2:
+               self.filterout = True
+               return
+
             self.type = "homo"
             self.GT = "1/1"
-            self.GQ = 99
-            self.deltaBIC = 255
+
+            self.PL_00 = -10.0 * self.lnL_homo_minor / LN10
+            self.PL_01 = -10.0 * max( self.lnL_heter_noAS, self.lnL_heter_AS ) / LN10
+            self.PL_11 = -10.0 * self.lnL_homo_major / LN10
+
+            self.PL_00 = max( 0, self.PL_00 - self.PL_11 )
+            self.PL_01 = max( 0, self.PL_01 - self.PL_11 )
+            self.PL_11 = 0
+
+            self.GQ = min( self.PL_00, self.PL_01 )
             self.alt_allele = self.top1allele
         else:
-            top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
-            top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
-            top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
-            top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
-            (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-            (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
-            (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-            (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-
             # assign GQ, GT, and type
             if self.ref_allele != self.top1allele and self.BIC_homo_major + 2 <= self.BIC_homo_minor and self.BIC_homo_major + 2 <= self.BIC_heter_noAS and self.BIC_homo_major + 2 <= self.BIC_heter_AS:
                 self.type = "homo"
@@ -270,11 +291,11 @@ cdef class PosReadsInfo:
                 self.PL_01 = -10.0 * max( self.lnL_heter_noAS, self.lnL_heter_AS ) / LN10
                 self.PL_11 = -10.0 * self.lnL_homo_major / LN10
 
-                self.PL_00 = min( 255, self.PL_00 - self.PL_11 )
-                self.PL_01 = min( 255, self.PL_01 - self.PL_11 )
+                self.PL_00 = self.PL_00 - self.PL_11
+                self.PL_01 = self.PL_01 - self.PL_11
                 self.PL_11 = 0
 
-                self.GQ = min( 99, min( self.PL_00, self.PL_01 ) )
+                self.GQ = min( self.PL_00, self.PL_01 )
                 
             elif self.BIC_heter_noAS + 2 <= self.BIC_homo_major and self.BIC_heter_noAS + 2 <= self.BIC_homo_minor and self.BIC_heter_noAS + 2 <= self.BIC_heter_AS :
                 self.type = "heter_noAS"
@@ -284,11 +305,11 @@ cdef class PosReadsInfo:
                 self.PL_01 = -10.0 * self.lnL_heter_noAS / LN10
                 self.PL_11 = -10.0 * self.lnL_homo_major / LN10
 
-                self.PL_00 = min( 255, self.PL_00 - self.PL_01 )
-                self.PL_11 = min( 255, self.PL_11 - self.PL_01 )
+                self.PL_00 = self.PL_00 - self.PL_01
+                self.PL_11 = self.PL_11 - self.PL_01
                 self.PL_01 = 0
 
-                self.GQ = min( 99, min( self.PL_00, self.PL_11 ) )
+                self.GQ = min( self.PL_00, self.PL_11 )
                 
             elif self.BIC_heter_AS + 2 <= self.BIC_homo_major and self.BIC_heter_AS + 2 <= self.BIC_homo_minor and self.BIC_heter_AS + 2 <= self.BIC_heter_noAS:
                 self.type = "heter_AS"
@@ -298,11 +319,26 @@ cdef class PosReadsInfo:
                 self.PL_01 = -10.0 * self.lnL_heter_AS / LN10
                 self.PL_11 = -10.0 * self.lnL_homo_major / LN10
 
-                self.PL_00 = min( 255, self.PL_00 - self.PL_01 )
-                self.PL_11 = min( 255, self.PL_11 - self.PL_01 )
+                self.PL_00 = self.PL_00 - self.PL_01
+                self.PL_11 = self.PL_11 - self.PL_01
                 self.PL_01 = 0
 
-                self.GQ = min( 99, min( self.PL_00, self.PL_11 ) )
+                self.GQ = min( self.PL_00, self.PL_11 )
+
+            elif self.BIC_heter_AS + 2 <= self.BIC_homo_major and self.BIC_heter_AS + 2 <= self.BIC_homo_minor:
+                # can't decide if it's noAS or AS
+                self.type = "heter_unsure"
+                self.deltaBIC = min( self.BIC_homo_major, self.BIC_homo_minor ) - max( self.BIC_heter_AS, self.BIC_heter_noAS )
+
+                self.PL_00 = -10.0 * self.lnL_homo_minor / LN10
+                self.PL_01 = -10.0 * max( self.lnL_heter_noAS, self.lnL_heter_AS ) / LN10
+                self.PL_11 = -10.0 * self.lnL_homo_major / LN10
+
+                self.PL_00 = self.PL_00 - self.PL_01
+                self.PL_11 = self.PL_11 - self.PL_01
+                self.PL_01 = 0
+
+                self.GQ = min( self.PL_00, self.PL_11 )
                 
             elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
                 self.type = "homo_ref"
@@ -324,7 +360,7 @@ cdef class PosReadsInfo:
                     self.alt_allele = self.top1allele+b','+self.top2allele
                     self.GT = "1/2"
 
-            self.deltaBIC = min(255, self.deltaBIC)
+            # self.deltaBIC = self.deltaBIC
 
         tmp_mutation_type = []
         for tmp_alt in self.alt_allele.split(b','):

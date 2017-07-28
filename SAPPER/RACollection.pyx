@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-26 11:20:05 Tao Liu>
+# Time-stamp: <2017-07-27 17:04:22 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -393,7 +393,7 @@ cdef class RACollection:
         
         return fastq_text
 
-    cpdef list fermi_assemble( self, float fermiOverlapMinRatio ):
+    cpdef list fermi_assemble( self, int fermiMinOverlap ):
         """A wrapper function to call Fermi unitig building functions.
         """
         cdef:
@@ -479,10 +479,9 @@ cdef class RACollection:
         #     merge_min_len=int(self.RAlists[0][0]["l"]*0.5)
 
         # overlap to make initial assembly, default 33. Here we set a minimum value of 30
-        unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
         if self.RAlists[0][0]["l"] >= 36:
-            unitig_k = max( 30, unitig_k )
-        #unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
+            fermiMinOverlap = max( 30, fermiMinOverlap )
+        #fermiMinOverlap = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
 
         # minimum overlap to merge, default 0
         # merge_min_len= max( 25, int(self.RAlists[0][0]["l"]*0.5) )
@@ -496,10 +495,10 @@ cdef class RACollection:
         opt.ec_k = -1
 
         # min overlap length during initial assembly
-        opt.min_asm_ovlp = unitig_k
+        opt.min_asm_ovlp = fermiMinOverlap
 
         # minimum length to merge, during assembly, don't explicitly merge an overlap if shorter than this value
-        opt.min_merge_len = merge_min_len
+        # opt.min_merge_len = merge_min_len
 
         # there are more 'options' for mag clean:
         # flag, min_ovlp, min_elen, min_ensr, min_insr, max_bdist, max_bdiff, max_bvtx, min_merge_len, trim_len, trim_depth, min_dratio1, max_bcov, max_bfrac
@@ -515,7 +514,7 @@ cdef class RACollection:
         opt.mag_opt.flag = 0x80
 
         # mag_opt.min_ovlp
-        #opt.mag_opt.min_ovlp = unitig_k
+        #opt.mag_opt.min_ovlp = fermiMinOverlap
 
         # drop an overlap if its length is below maxOvlpLen*FLOAT
         opt.mag_opt.min_dratio1 = 0.5
@@ -665,8 +664,9 @@ cdef class RACollection:
             RAlists_C.append([])
 
         # assign RAs to unitigs
-        flag = 0
+
         for tmp_ra in self.RAlists[0]:
+            flag = 0
             tmp_ra_seq = tmp_ra["SEQ"]
             tmp_ra_seq_r = tmp_ra_seq[::-1]
             tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
@@ -675,6 +675,7 @@ cdef class RACollection:
                 if tmp_ra_seq in unitig:
                     flag = 1
                     RAlists_T[ i ].append( tmp_ra )
+                    #print "This read is kept: ", tmp_ra_seq.decode()
                     break
                 #if tmp_ra_seq_r in unitig:
                 #    flag = 1
@@ -683,8 +684,8 @@ cdef class RACollection:
             if flag == 0:
                 print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
 
-        flag = 0
         for tmp_ra in self.RAlists[1]:
+            flag = 0
             tmp_ra_seq = tmp_ra["SEQ"]
             tmp_ra_seq_r = tmp_ra_seq[::-1]
             tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
@@ -693,6 +694,7 @@ cdef class RACollection:
                 if tmp_ra_seq in unitig:
                     flag = 1
                     RAlists_C[ i ].append( tmp_ra )
+                    #print "This read is kept: ", tmp_ra_seq.decode()
                     break
                 #if tmp_ra_seq_r in unitig:
                 #    flag = 1

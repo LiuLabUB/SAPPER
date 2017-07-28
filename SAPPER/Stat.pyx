@@ -133,7 +133,7 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
     lnL = 0
     BIC = 0
 
-    assert top2_bq_T.shape[0] + top2_bq_C.shape[0] > 0, "Total number of top2 nt should not be zero while using this function: CalModel_Heter_AS!"
+    #assert top2_bq_T.shape[0] + top2_bq_C.shape[0] > 0, "Total number of top2 nt should not be zero while using this function: CalModel_Heter_AS!"
 
     # Treatment
     tn_T = top1_bq_T.shape[0] + top2_bq_T.shape[0]
@@ -142,6 +142,7 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
         raise Exception("Total number of treatment reads is 0!")
     else:
         ( lnL_T, k_T, AS_alleleratio ) = GreedyMaxFunctionAS( top1_bq_T.shape[0], top2_bq_T.shape[0], tn_T, top1_bq_T, top2_bq_T)
+        #print lnL_T, k_T, AS_alleleratio
         lnL += lnL_T
         BIC += -2*lnL_T
 
@@ -195,10 +196,10 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
         else:
             k = 1
             return ( dr, 1, 1 )
-    elif m == 0:
+    elif m == 0:                          #no top1 nt
         k0 = m + 1
-    elif m == tn:
-        k0 = m - 1
+    elif m == tn:                         #all reads are top1
+        k0 = m - 2
     else:
         k0 = m
 
@@ -215,7 +216,7 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
         dold = d1l
         kold = k0-1
         rold = float(k0-1)/tn
-        while kold >= 1: #when kold=1 still run, than knew=0 is the final run
+        while kold > 1: #disable: when kold=1 still run, than knew=0 is the final run
             knew = kold - 1
             rnew = float(knew)/tn
 
@@ -241,7 +242,7 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
         dold = d1r
         kold = k0 + 1
         rold = float(k0 + 1)/tn
-        while kold <= tn - 1: #//when kold=tn-1 still run, than knew=tn is the final run
+        while kold < tn - 1: #//disable: when kold=tn-1 still run, than knew=tn is the final run
             knew = kold + 1
             
             rnew = float(knew)/tn
