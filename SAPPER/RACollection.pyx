@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-28 16:34:20 Tao Liu>
+# Time-stamp: <2017-08-02 14:45:54 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -166,9 +166,13 @@ cdef class RACollection:
         self.left = peak["start"]
         self.right = peak["end"]
         self.length =  self.right - self.left
-        self.RAs_left = RAlist_T[0]["lpos"] # initial assignment of RAs_left
-        self.RAs_right = RAlist_T[-1]["rpos"] # initial assignment of RAs_right
-        self.sort()                           # it will set self.sorted = True
+        if RAlist_T:
+            self.RAs_left = RAlist_T[0]["lpos"] # initial assignment of RAs_left
+            self.RAs_right = RAlist_T[-1]["rpos"] # initial assignment of RAs_right
+            self.sort()                           # it will set self.sorted = True
+        else:
+            self.RAs_left = -1
+            self.RAs_right = -1
         # check RAs_left and RAs_right
         for ra in RAlist_T:
             if ra[ "lpos" ] < self.RAs_left:
@@ -222,8 +226,10 @@ cdef class RACollection:
         """Sort RAs according to lpos. Should be used after realignment.
 
         """
-        self.RAlists[ 0 ].sort(key=itemgetter("lpos"))
-        self.RAlists[ 1 ].sort(key=itemgetter("lpos"))
+        if self.RAlists[ 0 ]:
+            self.RAlists[ 0 ].sort(key=itemgetter("lpos"))
+        if self.RAlists[ 1 ]:
+            self.RAlists[ 1 ].sort(key=itemgetter("lpos"))
         self.sorted = True
         return
         
@@ -393,7 +399,7 @@ cdef class RACollection:
         
         return fastq_text
 
-    cpdef list fermi_assemble( self, int fermiMinOverlap ):
+    cdef list fermi_assemble( self, int fermiMinOverlap, int opt_flag = 0x80  ):
         """A wrapper function to call Fermi unitig building functions.
         """
         cdef:
@@ -477,10 +483,6 @@ cdef class RACollection:
         #     unitig_k = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
 
         #     merge_min_len=int(self.RAlists[0][0]["l"]*0.5)
-
-        # overlap to make initial assembly, default 33. Here we set a minimum value of 30
-        if self.RAlists[0][0]["l"] >= 36:
-            fermiMinOverlap = max( 30, fermiMinOverlap )
         #fermiMinOverlap = int(self.RAlists[0][0]["l"]*fermiOverlapMinRatio)
 
         # minimum overlap to merge, default 0
@@ -492,7 +494,7 @@ cdef class RACollection:
 
         fml_opt_init(opt)
         # k-mer length for error correction (0 for auto; -1 to disable)
-        opt.ec_k = -1
+        # opt.ec_k = -1
 
         # min overlap length during initial assembly
         opt.min_asm_ovlp = fermiMinOverlap
@@ -511,7 +513,7 @@ cdef class RACollection:
         # 0x20: MAG_F_AGGRESSIVE pop variant bubbles
         # 0x40: MAG_F_POPOPEN aggressive tip trimming
         # 0x80: MAG_F_NO_SIMPL skip bubble simplification
-        opt.mag_opt.flag = 0x80
+        opt.mag_opt.flag = opt_flag
 
         # mag_opt.min_ovlp
         #opt.mag_opt.min_ovlp = fermiMinOverlap
@@ -555,7 +557,7 @@ cdef class RACollection:
 
         return unitig_list
 
-    cpdef tuple align_unitig_to_REFSEQ ( self, list unitig_list ):
+    cdef tuple align_unitig_to_REFSEQ ( self, list unitig_list ):
         """Note: we use smith waterman, but we don't use linear gap
         penalty at this time.
 
@@ -575,6 +577,7 @@ cdef class RACollection:
             double score_f, score_r
             list target_alns = []
             list reference_alns = []
+            list aln_scores = []
             int i
 
         reference = copy(self.peak_refseq_ext+b'\x00')
@@ -616,49 +619,37 @@ cdef class RACollection:
             if score_f > score_r:
                 target_alns.append( target_aln_f )
                 reference_alns.append( reference_aln_f )
+                aln_scores.append( score_f )
             else:
                 target_alns.append( target_aln_r )
                 reference_alns.append( reference_aln_r )
+                aln_scores.append( score_r )
                 # we will revcomp unitig
                 unitig = unitig[::-1]
                 unitig_list[ i ] = unitig.translate( __DNACOMPLEMENT__ )
             
-        return ( target_alns, reference_alns )
+        return ( target_alns, reference_alns, aln_scores )
 
-    cpdef tuple filter_unitig_with_bad_aln ( self, list unitig_list, list target_alns, list reference_alns, float gratio = 0.25  ):
+    cdef tuple filter_unitig_with_bad_aln ( self, list unitig_list, list target_alns, list reference_alns, float gratio = 0.25  ):
         """Remove unitigs that has too much gaps (both on target and reference) during alignments. 
         """
         pass
 
-    cpdef list remap_RAs_w_unitigs ( self, list unitig_list, tuple alns ):
-        """unitig_list and tuple_alns are in the same order!
+    cdef list remap_RAs_w_unitigs ( self, list unitig_list ):
+        """Remap RAs to unitigs, requiring perfect match.
 
-        return UnitigCollection,RACollection objects.
-
+        Return RAlists_T, RAlists_C, unmapped_racollection.
         """
         cdef:
-            long start, end
-            list target_alns, reference_alns
-            list RAlists_T = []
+            list RAlists_T = [] # lists of list of RAs of ChIP mapped to each unitig
             list RAlists_C = []
-            object tmp_ra
-            bytes tmp_ra_seq   #, tmp_ra_seq_r
-            bytes tmp_unitig_seq
-            bytes tmp_reference_seq
-            bytes tmp_unitig_aln
-            bytes tmp_reference_aln
-            int i, j
-            long left_padding_ref, right_padding_ref
-            long left_padding_unitig, right_padding_unitig
-            list ura_list = []
-            #object unitig_collection
-            RACollection unmapped_ra_collection
+            list unmapped_RAlist_T = [] # list of RAs of ChIP unmappable to unitigs
+            list unmapped_RAlist_C = []
+            #RACollection unmapped_ra_collection
             int flag = 0
-
-        ( target_alns, reference_alns ) = alns
-
-        start = min( self.left, self.RAs_left )
-        end = max( self.right, self.RAs_right )
+            int i
+            object tmp_ra
+            bytes tmp_ra_seq, unitig
         
         for i in range( len(unitig_list) ):
             RAlists_T.append([])         # for each unitig, there is another list of RAs
@@ -669,60 +660,150 @@ cdef class RACollection:
         for tmp_ra in self.RAlists[0]:
             flag = 0
             tmp_ra_seq = tmp_ra["SEQ"]
-            #tmp_ra_seq_r = tmp_ra_seq[::-1]
-            #tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
             for i in range( len(unitig_list) ):
                 unitig = unitig_list[ i ]
                 if tmp_ra_seq in unitig:
                     flag = 1
                     RAlists_T[ i ].append( tmp_ra )
-                    #print "This read is kept: ", tmp_ra_seq.decode()
                     break
-                #if tmp_ra_seq_r in unitig:
-                #    flag = 1
-                #    RAlists_T[ i ].append( tmp_ra )
-                #    break
-            #if flag == 0:
-            #    print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
+            if flag == 0:
+                unmapped_RAlist_T.append( tmp_ra )
+                #print "unmapped:", tmp_ra["SEQ"]
 
         for tmp_ra in self.RAlists[1]:
             flag = 0
             tmp_ra_seq = tmp_ra["SEQ"]
-            #tmp_ra_seq_r = tmp_ra_seq[::-1]
-            #tmp_ra_seq_r = tmp_ra_seq_r.translate( __DNACOMPLEMENT__ )
             for i in range( len(unitig_list) ):
                 unitig = unitig_list[ i ]
                 if tmp_ra_seq in unitig:
                     flag = 1
                     RAlists_C[ i ].append( tmp_ra )
-                    #print "This read is kept: ", tmp_ra_seq.decode()
                     break
-                #if tmp_ra_seq_r in unitig:
-                #    flag = 1
-                #    RAlists_T[ i ].append( tmp_ra )
-                #    break
-            #if flag == 0:
-            #    print "This read can't be mapped to unitig thus will be excluded: ", tmp_ra_seq.decode()
+            if flag == 0:
+                unmapped_RAlist_C.append( tmp_ra )
+                #print "unmapped:", tmp_ra["SEQ"]
+
+        #if unmapped_RAlist_T:
+        #unmapped_ra_collection = RACollection( self.chrom, self.peak, unmapped_RAlist_T, unmapped_RAlist_C )
+        return [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ]
+
+    cdef list add_to_unitig_list ( self, unitig_list, unitigs_2nd ):
+        """
+        """
+        cdef:
+            int i,j
+            int flag
+            bytes u0, u1
+            list new_unitig_list
+
+        new_unitig_list = []
+        
+        for i in range( len(unitigs_2nd) ):
+            flag = 0                      # initial value: can't be found in unitig_list
+            u0 = unitigs_2nd[ i ]
+            for j in range( len( unitig_list ) ):
+                u1 = unitig_list[ j ]
+                if u1.find( u0 ) != -1:
+                    flag = 1
+                    break
+                u1 = u1[::-1].translate(__DNACOMPLEMENT__)
+                if u1.find( u0 ) != -1:
+                    flag = 1
+                    break
+            if not flag:
+                new_unitig_list.append( u0 )
+        new_unitig_list.extend( unitig_list )
+        return new_unitig_list
+
+    
+    cpdef object build_unitig_collection ( self, fermiMinOverlap ):
+        """unitig_list and tuple_alns are in the same order!
+
+        return UnitigCollection object.
+
+        """
+        cdef:
+            long start, end
+            list unitigs_2nd
+            bytes u
+            list target_alns, reference_alns, aln_scores
+            list target_alns_2nd, reference_alns_2nd, aln_scores_2nd
+            list RAlists_T = [] # lists of list of RAs of ChIP mapped to each unitig
+            list RAlists_C = []
+            list unmapped_RAlist_T = []
+            list unmapped_RAlist_C = []             
+            bytes tmp_unitig_seq, tmp_reference_seq
+            bytes tmp_unitig_aln, tmp_reference_aln, 
+            int i, j
+            long left_padding_ref, right_padding_ref
+            long left_padding_unitig, right_padding_unitig
+            list ura_list = []
+            RACollection unmapped_ra_collection
+            int flag = 0
+            int n_unmapped, n_unitigs_0, n_unitigs_1
+
+        # first round of assembly
+        print " First round to assemble unitigs"
+        unitig_list = self.fermi_assemble( fermiMinOverlap, opt_flag = 0x80 )
+        if unitig_list == []:
+            return None
+
+        n_unitigs_0 = -1
+        n_unitigs_1 = len( unitig_list )
+        print " # of Unitigs:", n_unitigs_1
+        print " Map reads to unitigs"
+        ( unitig_alns, reference_alns, aln_scores) = self.align_unitig_to_REFSEQ( unitig_list )
+
+        # assign RAs to unitigs
+        [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
+        #print unmapped_ra_collection.get_FASTQ().decode()
+
+        n_unmapped = len( unmapped_RAlist_T ) + len( unmapped_RAlist_C )
+
+        while len( unmapped_RAlist_T ) > 0 and n_unitigs_1 != n_unitigs_0:
+            # if there are unmapped reads AND we can get more unitigs
+            # from last round of assembly, do assembly again
+            print " # of RAs not mapped, will be assembled again:", n_unmapped
+            n_unitigs_0 = n_unitigs_1
+            # another round of assembly
+            unmapped_ra_collection = RACollection( self.chrom, self.peak, unmapped_RAlist_T, unmapped_RAlist_C )
+            print " extra round to assemble more unitigs"
+            unitigs_2nd = unmapped_ra_collection.fermi_assemble( fermiMinOverlap, opt_flag = 0x80 )
+
+            if unitigs_2nd:
+                unitig_list = self.add_to_unitig_list ( unitig_list, unitigs_2nd )
+                n_unitigs_1 = len( unitig_list )
+                print " # of Unitigs:", n_unitigs_1
+                print " Map reads to unitigs"
+                ( unitig_alns, reference_alns, aln_scores ) = self.align_unitig_to_REFSEQ( unitig_list )
+                [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
+                n_unmapped = len( unmapped_RAlist_T ) + len( unmapped_RAlist_C )
+
+
+        print " Final round: # of RAs not mapped:", n_unmapped
+        #print unmapped_ra_collection.get_FASTQ().decode()
+
+        start = min( self.left, self.RAs_left )
+        end = max( self.right, self.RAs_right )
 
         # create UnitigCollection
         for i in range( len( unitig_list ) ):
             #b'---------------------------AAATAATTTTATGTCCTTCAGTACAAAAAGCAGTTTCAACTAAAACCCAGTAACAAGCTAGCAATTCCTTTTAAATGGTGCTACTTCAAGCTGCAGCCAGGTAGCTTTTTATTACAAAAAATCCCACAGGCAGCCACTAGGTGGCAGTAACAGGCTTTTGCCAGCGGCTCCAGTCAGCATGGCTTGACTGTGTGCTGCAGAAACTTCTTAAATCGTCTGTGTTTGGGACTCGTGGGGCCCCACAGGGCTTTACAAGGGCTTTTTAATTTCCAAAAACATAAAACAAAAAAA--------------'
             #b'GATATAAATAGGATGTTATGAGTTTTCAAATAATTTTATGTCCTTCAGTACAAAAAGCAGTTTCAACTAAAACCCAGTAACAAGCTAGCAATTCCTTTTAAATGGTGCTACTTCAAGCTGCAGCCAGGTAGCTTTTTATTACAAAAA-TCCCACAGGCAGCCACTAGGTGGCAGTAACAGGCTTTTGCCAGCGGCTCCAGTCAGCATGGCTTGACTGTGTGCTGCAGAAACTTCTTAAATCGTCTGTGTTTGGGACTCGTGGGGCCCCACAGGGCTTTACAAGGGCTTTTTAATTTCCAAAAACATAAAACAAAAAAAAATACAAATGTATT'
-            tmp_unitig_aln = alns[ 0 ][ i ]
-            tmp_reference_aln = alns[ 1 ][ i ]
+            tmp_unitig_aln = unitig_alns[ i ]
+            tmp_reference_aln = reference_alns[ i ]
             tmp_unitig_seq = tmp_unitig_aln.replace(b'-',b'')
             tmp_reference_seq = tmp_reference_aln.replace(b'-',b'')
-            
-            # print "tmp unitig aln:", tmp_unitig_aln
-            # print "tmp refere aln:", tmp_reference_aln
-            # print "peak refseqext:", self.peak_refseq_ext
+
+            # print tmp_unitig_aln
+            # print tmp_reference_aln
+            # print tmp_unitig_seq
+            # print tmp_reference_aln
 
             # find the position on self.peak_refseq_ext
             left_padding_ref = self.peak_refseq_ext.find( tmp_reference_seq ) # this number of nts should be skipped on refseq_ext from left
             right_padding_ref = len(self.peak_refseq_ext) - left_padding_ref - len(tmp_reference_seq) # this number of nts should be skipped on refseq_ext from right
             
-            # print "padding ref", (left_padding_ref, right_padding_ref)
-
             #now, decide the lpos and rpos on reference of this unitig
             #first, trim left padding '-'
             left_padding_unitig = len(tmp_unitig_aln) - len(tmp_unitig_aln.lstrip(b'-'))
@@ -738,13 +819,10 @@ cdef class RACollection:
                 if tmp_reference_aln[ -j ] != b'-':
                     tmp_rpos -= 1
 
-            # print "unitig lpos and rpos:", ( tmp_lpos, tmp_rpos )
-
-
             tmp_unitig_aln = tmp_unitig_aln[ left_padding_unitig:(len(tmp_unitig_aln)-right_padding_unitig)]
             tmp_reference_aln = tmp_reference_aln[ left_padding_unitig:(len(tmp_reference_aln)-right_padding_unitig)]
 
             ura_list.append( UnitigRAs( self.chrom, tmp_lpos, tmp_rpos, tmp_unitig_aln, tmp_reference_aln, [RAlists_T[i], RAlists_C[i]] ) )
 
-        return (UnitigCollection( self.chrom, self.peak, ura_list ), unmapped_ra_collection)
+        return UnitigCollection( self.chrom, self.peak, ura_list )
                 

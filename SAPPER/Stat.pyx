@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-26 12:03:01 Tao Liu>
+# Time-stamp: <2017-08-02 16:18:17 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -115,7 +115,7 @@ cpdef tuple CalModel_Heter_noAS( np.ndarray[int32_t, ndim=1] top1_bq_T,np.ndarra
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray[int32_t, ndim=1] top1_bq_C, np.ndarray[int32_t, ndim=1] top2_bq_T, np.ndarray[int32_t, ndim=1] top2_bq_C):
+cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray[int32_t, ndim=1] top1_bq_C, np.ndarray[int32_t, ndim=1] top2_bq_T, np.ndarray[int32_t, ndim=1] top2_bq_C, float max_allowed_ar = 0.99 ):
     """Return (lnL, BIC)
 
     kc
@@ -141,8 +141,8 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
     if tn_T == 0:
         raise Exception("Total number of treatment reads is 0!")
     else:
-        ( lnL_T, k_T, AS_alleleratio ) = GreedyMaxFunctionAS( top1_bq_T.shape[0], top2_bq_T.shape[0], tn_T, top1_bq_T, top2_bq_T)
-        #print lnL_T, k_T, AS_alleleratio
+        ( lnL_T, k_T, AS_alleleratio ) = GreedyMaxFunctionAS( top1_bq_T.shape[0], top2_bq_T.shape[0], tn_T, top1_bq_T, top2_bq_T, max_allowed_ar)
+        #print ">>>",lnL_T, k_T, AS_alleleratio
         lnL += lnL_T
         BIC += -2*lnL_T
 
@@ -173,7 +173,7 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne):
+cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne, float max_allowed_ar = 0.99 ):
     """Return lnL, k and alleleratio in tuple.
 
     Note: I only translate Liqing's C++ code into pyx here. Haven't done any review.
@@ -185,8 +185,9 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
         int k0
         double dl, dr, d0, d1l, d1r
 
+    assert m+n == tn
     btemp = False
-    if tn == 1:
+    if tn == 1:                 # only 1 read; I don't expect this to be run...
         dl=calculate_ln(m,n,tn,me,ne,0,0);
         dr=calculate_ln(m,n,tn,me,ne,1,1);
 
@@ -197,16 +198,16 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
             k = 1
             return ( dr, 1, 1 )
     elif m == 0:                          #no top1 nt
-        k0 = m + 1
+        return ( calculate_ln( m, n, tn, me, ne, 0, m, max_allowed_ar ), m, 1-max_allowed_ar )
+        #k0 = m + 1
     elif m == tn:                         #all reads are top1
-        k0 = m - 1
+        return ( calculate_ln( m, n, tn, me, ne, 1, m, max_allowed_ar ), m, max_allowed_ar )
     else:
         k0 = m
 
-
-    d0  = calculate_ln( m, n, tn, me, ne, float(k0)/tn, k0 )
-    d1l = calculate_ln( m, n, tn, me, ne, float(k0-1)/tn, k0-1 )
-    d1r = calculate_ln( m, n, tn, me, ne, float(k0+1)/tn, k0+1 )
+    d0  = calculate_ln( m, n, tn, me, ne, float(k0)/tn, k0, max_allowed_ar )
+    d1l = calculate_ln( m, n, tn, me, ne, float(k0-1)/tn, k0-1, max_allowed_ar )
+    d1r = calculate_ln( m, n, tn, me, ne, float(k0+1)/tn, k0+1, max_allowed_ar )
 
     if d0 > d1l-1e-8 and d0 > d1r-1e-8:
         k = k0
@@ -220,7 +221,7 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
             knew = kold - 1
             rnew = float(knew)/tn
 
-            dnew = calculate_ln(m,n,tn,me,ne,rnew,knew)
+            dnew = calculate_ln( m,n,tn,me,ne,rnew,knew, max_allowed_ar )
 
             if(dnew-1e-8 < dold) :
                 btemp=True
@@ -247,7 +248,7 @@ cdef tuple GreedyMaxFunctionAS( int m, int n, int tn, np.ndarray[int32_t, ndim=1
             
             rnew = float(knew)/tn
             
-            dnew = calculate_ln(m,n,tn,me,ne,rnew,knew)
+            dnew = calculate_ln( m,n,tn,me,ne,rnew,knew, max_allowed_ar )
             
             if dnew - 1e-8 < dold: 
                 btemp = True
@@ -294,10 +295,15 @@ cdef tuple GreedyMaxFunctionNoAS (int m, int n, int tn, np.ndarray[int32_t, ndim
         else:
             k = 1
             return ( dr, 1 )
-    elif m == 0:
-        k0 = m + 1
-    elif m == tn:
-        k0 = m - 1
+    elif m == 0:                          #no top1 nt
+        return ( calculate_ln( m, n, tn, me, ne, bg_r, m ), m )
+        #k0 = m + 1
+    elif m == tn:                         #all reads are top1
+        return ( calculate_ln( m, n, tn, me, ne, bg_r, m ), m )
+    #elif m == 0:
+    #    k0 = m + 1
+    #elif m == tn:
+    #    k0 = m - 1
     else:
         k0 = m
 
@@ -349,7 +355,7 @@ cdef tuple GreedyMaxFunctionNoAS (int m, int n, int tn, np.ndarray[int32_t, ndim
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef calculate_ln( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne, double r, int k):
+cdef calculate_ln( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndarray[int32_t, ndim=1] ne, double r, int k, float max_allowed_r = 0.99):
     """Calculate log likelihood given quality of top1 and top2, the ratio r and the observed k.
 
     """
@@ -360,13 +366,17 @@ cdef calculate_ln( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndar
 
     lnL = 0
 
-    if r < 1e-6 or r > 1-1e-6:
-        lnL += 0
+    if r > max_allowed_r or r < 1 - max_allowed_r: # r is extremely high or
+        #print "here1"
+        lnL += k*log( max_allowed_r ) + (tn-k)*log( 1- max_allowed_r) #-10000
     else:
-        lnL += k*log( r ) + (tn-k)*log(1-r);
+        lnL += k*log( r ) + (tn-k)*log(1-r)
 
-    if k == 0 or k == tn:
-        lnL += 0
+    if k == 0 or k == tn:       # it's entirely biased toward 1 allele
+        #print "here2"
+        pass
+        #lnL += k*log( max_allowed_r ) #-10000
+        #lnL += -10000
     elif k <= tn/2:
         for i in range( k ):
             lnL += log(float(tn-i)/(k-i))
@@ -374,14 +384,15 @@ cdef calculate_ln( int m, int n, int tn, np.ndarray[int32_t, ndim=1] me, np.ndar
         for i in range( tn-k ):
             lnL += log(float(tn-i)/(tn-k-i))
 
-    for i in range(m):
+    for i in range( m ):
         e = exp( - me[ i ] * LN10_tenth )
         lnL += log((1-e)*(float(k)/tn) + e*(1-float(k)/tn))
     
-    for i in range(n):
+    for i in range( n ):
         e = exp( - ne[ i ] * LN10_tenth )
         lnL += log((1-e)*(1-float(k)/tn) + e*(float(k)/tn))
 
+    #print r,k,lnL
     return lnL
 
 cpdef int calculate_GQ ( double lnL1, double lnL2, double lnL3):

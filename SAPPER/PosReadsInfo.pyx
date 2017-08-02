@@ -1,4 +1,4 @@
-# Time-stamp: <2017-07-28 16:18:15 Tao Liu>
+# Time-stamp: <2017-08-02 16:17:39 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -120,12 +120,12 @@ cdef class PosReadsInfo:
         """
         assert self.ref_pos == PRI2.ref_pos
         assert self.ref_allele == PRI2.ref_allele
-        for b in set( self.n_reads.keys() ).union( set( PRI2.keys() ) ):
+        for b in set( self.n_reads.keys() ).union( set( PRI2.n_reads.keys() ) ):
             self.bq_set_T[ b ] = self.bq_set_T.get( b, []).extend( PRI2.bq_set_T.get( b, [] ) )
             self.bq_set_C[ b ] = self.bq_set_C.get( b, []).extend( PRI2.bq_set_C.get( b, [] ) )
-            self.n_reads_T[ b ] = self.n_reads_T.get( b, 0).extend( PRI2.n_reads_T.get( b, 0 ) )
-            self.n_reads_C[ b ] = self.n_reads_C.get( b, 0).extend( PRI2.n_reads_C.get( b, 0 ) )
-            self.n_reads[ b ] = self.n_reads.get( b, 0).extend( PRI2.n_reads.get( b, 0 ) )
+            self.n_reads_T[ b ] = self.n_reads_T.get( b, 0) + PRI2.n_reads_T.get( b, 0 )
+            self.n_reads_C[ b ] = self.n_reads_C.get( b, 0) + PRI2.n_reads_C.get( b, 0 )
+            self.n_reads[ b ] = self.n_reads.get( b, 0) + PRI2.n_reads.get( b, 0 )
         return
 
     def __getstate__ ( self ):
@@ -243,7 +243,7 @@ cdef class PosReadsInfo:
         print ("Top1allele",self.top1allele, "Treatment", self.bq_set_T[self.top1allele], "Control", self.bq_set_C[self.top1allele])
         print ("Top2allele",self.top2allele, "Treatment", self.bq_set_T[self.top2allele], "Control", self.bq_set_C[self.top2allele])
     
-    cpdef call_GT ( self ):
+    cpdef call_GT ( self, float max_allowed_ar = 0.99 ):
         """Require update_top_alleles being called.
         """
         cdef:
@@ -262,6 +262,9 @@ cdef class PosReadsInfo:
         if self.filterout:
             return
 
+        # if self.ref_pos == 66176155:
+        #     print "---"
+
         top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
         top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
         top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
@@ -269,7 +272,11 @@ cdef class PosReadsInfo:
         (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
         (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
         (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-        (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
+        (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C, max_allowed_ar )
+
+        # if self.ref_pos == 66176155:
+        #     print self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS
+        #     print self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS
              
         if self.top1allele != self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # in this case, there is no top2 nt (or socalled minor
