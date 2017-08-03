@@ -212,9 +212,9 @@ def run( args ):
 
                 # this partial function will only be used in multiprocessing
                 if not fermiOff:
-                    p_call_variants_at_range =  partial(call_variants_at_range_w_F, chrom=chrom, s=s, u_collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
                 else:
-                    p_call_variants_at_range =  partial(call_variants_at_range_wo_F, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
 
                 ranges = []
                 
@@ -262,7 +262,7 @@ def run( args ):
     #print ("time to convert to vcf:",t_call_to_vcf)
     return
 
-def call_variants_at_range_w_F ( lr, chrom, s, u_collection, top2allelesminr, max_allowed_ar, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
+def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, max_allowed_ar, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
         ref_nt = chr(s[ i-collection["left"] ] ).encode()
