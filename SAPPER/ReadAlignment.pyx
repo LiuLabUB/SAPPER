@@ -395,6 +395,7 @@ cdef class ReadAlignment:
 
         """
         cdef:
+           int i, m, n
            int res, p, op, op_l
            bytearray refseq
            bytes p_refseq, p_seq
@@ -423,20 +424,34 @@ cdef class ReadAlignment:
         seq_array = bytearray( b'' )
         bq_array = bytearray( b'' )
 
-        #if ref_pos == 17255842 and self.lpos == 17255842:
-        #    print( self.lpos, self.rpos, refseq, p_refseq )
-
-        for i in self.cigar:
+        for m in range( len(self.cigar) ):
+            i = self.cigar[ m ]
             op = i & 15
             op_l = i >> 4
             if op in [0, 7, 8]:         # M = X alignment match (match or mismatch)
-                if res < op_l:
+                if res < op_l - 1:
                     p += res
                     # find the position, now get the ref
                     seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ] )
                     bq_array.append( self.binaryqual[ p ] )
-                    if seq_array == p_refseq:
-                        seq_array = bytearray( b'=' )
+                    break
+                elif res == op_l - 1:
+                    p += res
+                    seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ] )
+                    bq_array.append( self.binaryqual[ p ] )
+                    # now add any insertion later on
+                    # get next cigar
+                    if m + 1 == len( self.cigar ):
+                        break
+                    i = self.cigar[ m + 1 ]
+                    op = i & 15
+                    op_l = i >> 4
+                    if op == 1:           #insertion
+                        for n in range( op_l ):
+                            p += 1
+                            seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ] )
+                            bq_array.append( self.binaryqual[ p ] )
+                        #print self.SEQ, seq_array
                     break
                 else:
                     # go to the next cigar code
@@ -446,26 +461,28 @@ cdef class ReadAlignment:
                 if res < op_l:
                     # find the position, however ...
                     # position located in a region in reference that not exists in query
-                    seq_array.append( b'-' )
+                    seq_array.append( b'*' )
                     bq_array.append( 93 )   #assign 93 for deletion
                     break
                 else:
                     # go to the next cigar code
                     res -= op_l
             elif op == 1 :      # Insertion
-                if res == 0:    # no residue left, so return a chunk of inserted sequence
-                    # first, add the insertion point
-                    seq_array = bytearray( b'~' )
-                    bq_array.append( self.binaryqual[ p ] )
-                    # then add the inserted seq
-                    for i in range( op_l ):
-                        p += 1
-                        seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ]  ) 
-                        bq_array.append( self.binaryqual[ p ] )
-
-                    break
-                else:
-                    p += op_l
+                p += op_l
+                # if res == 0:    # no residue left, so return a chunk of inserted sequence
+                    
+                #     print "shouldn't run this code"
+                #     # first, add the insertion point
+                #     seq_array = bytearray( b'~' )
+                #     bq_array.append( self.binaryqual[ p ] )
+                #     # then add the inserted seq
+                #     for i in range( op_l ):
+                #         p += 1
+                #         seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ]  ) 
+                #         bq_array.append( self.binaryqual[ p ] )
+                #     break
+                # else:
+                #     p += op_l
             elif op == 4 :      # Softclip. If it's Softclip, we'd better not return the extra seq
                 p += op_l
 

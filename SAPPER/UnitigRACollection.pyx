@@ -190,7 +190,7 @@ cdef class UnitigRAs:
             if ra_pos < ra["l"] and ra_pos >= 0:
                 bq_list_t.append( ra["binaryqual"][ra_pos] )
 
-        for ra in self.RAlists[1]:        #treatment
+        for ra in self.RAlists[1]:        #control
             ra_seq = ra["SEQ"]
             ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
             if ra_pos < ra["l"] and ra_pos >= 0:

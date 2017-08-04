@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-02 16:17:39 Tao Liu>
+# Time-stamp: <2017-08-03 16:20:48 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -207,6 +207,7 @@ cdef class PosReadsInfo:
         return sum( self.n_reads.values() )
 
     cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_top2allele_count = 2, float max_allowed_ar = 0.95 ):
+    #cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8 ):
         """Identify top1 and top2 NT.  the ratio of (top1+top2)/total
         """
         cdef:

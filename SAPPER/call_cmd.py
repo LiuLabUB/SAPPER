@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-02 15:46:56 Tao Liu>
+# Time-stamp: <2017-08-03 16:19:39 Tao Liu>
 
 """Description: sapper call
 
@@ -147,6 +147,7 @@ def run( args ):
     else:
         tmpcmdstr = " --fermi-off "
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_top2allele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
+    #ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
 
@@ -154,13 +155,16 @@ def run( args ):
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
     # to get time
-    t_get_ra = 0
-    t_get_pri = 0
-    t_call_top2alleles = 0
-    t_call_lnL = 0
-    t_call_GQ = 0
-    t_call_to_vcf = 0
-    t0 = time()
+    t_total = 0
+    t_prepare_ra = 0
+    t_assemble = 0
+    #t_call_top2alleles = 0
+    #t_call_lnL = 0
+    t_call_variants = 0
+    t_call_GT = 0
+    #t_call_to_vcf = 0
+
+    t_total_0 = time()
 
     for chrom in tbam.get_chromosomes():
         peaks_chr = peaks.get_data_from_chrom( chrom )
@@ -172,9 +176,10 @@ def run( args ):
             # print ( "---begin of peak---")
             print ( "Peak:", chrom.decode(), peak["start"], peak["end"])
 
-            # t0 = time()
+            t0 = time()
             ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
             ra_collection.remove_outliers( percent = 5 )
+            t_prepare_ra += time() - t0
 
             # print ( "Reads in Peak:")
             # print ( ra_collection.get_FASTQ().decode() )
@@ -182,11 +187,13 @@ def run( args ):
             if not fermiOff:
                 # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
 
+                t0 = time()
                 print ( " Assemble using fermi-lite")
                 unitig_collection = ra_collection.build_unitig_collection( fermiMinOverlap )
                 if not unitig_collection:
                     print ( " failed to assemble unitigs")
                     continue              #pass this peak if there is no unitig from assembler
+                t_assemble += time() - t0
 
                 # print ( " Assembled unitigs mapped to: 1. chromosome; 2. peak start; 3. peak end; 4. unitig mapped leftmost; 5. unitig mapped rightmost; 6. # of RAs to unitigs")
                 # print ( " ", unitig_collection["chrom"].decode(), unitig_collection["left"], unitig_collection["right"], unitig_collection["URAs_left"], unitig_collection["URAs_right"], unitig_collection["count"] )
@@ -200,9 +207,9 @@ def run( args ):
             # print ( "---end of peak---" )
             
             s = ra_collection["peak_refseq"]
-            #t_get_ra += time() - t0
             # multiprocessing the following part
 
+            t_call_variants_0 = time()
             print ( " Call varants")
             if NP > 1:
                 # divide right-left into NP parts
@@ -213,8 +220,10 @@ def run( args ):
                 # this partial function will only be used in multiprocessing
                 if not fermiOff:
                     p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    #p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
                 else:
                     p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_top2allele_count = min_top2allele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
+                    #p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ)
 
                 ranges = []
                 
@@ -239,30 +248,37 @@ def run( args ):
                     #t0 = time()
                     if not fermiOff:
                         PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
-                        #PRI.merge( unmapped_ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) )
                     else:
                         PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
                     if PRI.raw_read_depth() == 0: # skip if coverage is 0
                         continue
                     PRI.update_top_alleles( top2allelesminr, min_top2allele_count, max_allowed_ar )
+                    #PRI.update_top_alleles( top2allelesminr )
+                    t0 = time()
                     PRI.call_GT( max_allowed_ar )
+                    t_call_GT += time() - t0
                     PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
-                    # if i == 66176137:
-                    #    PRI.top12alleles()
-                    #    print ( PRI.to_vcf() )
-                    #    print ( PRI.filterflag() )
+                    if i == 66176137:
+                       PRI.top12alleles()
+                       print ( PRI.to_vcf() )
+                       print ( PRI.filterflag() )
                     if not PRI.filterflag():
                         ovcf.write( "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n" )
+            t_call_variants += time() - t_call_variants_0
+    t_total += time() - t_total_0
 
-    #print ("time to read RAcollection from BAM:",t_get_ra)
-    #print ("time to get reads information for each position:",t_get_pri)
-    #print ("time to call top2 NTs:",t_call_top2alleles)
-    #print ("time to compute lnL:",t_call_lnL)
-    #print ("time to compute GQ:",t_call_GQ)
-    #print ("time to convert to vcf:",t_call_to_vcf)
+    print ("time to retrieve read alignment information from BAM:",t_prepare_ra,"(",round( 100 * t_prepare_ra/t_total, 2),"% )")
+    if not fermiOff:
+        print ("time to assemble unitigs of peaks:",t_assemble,"(",round( 100 * t_assemble/t_total, 2),"% )")
+    print ("time to call variants:", t_call_variants,"(",round( 100 * t_call_variants/t_total, 2),"% )")
+    if not NP > 1:
+        print ("     to call Genotype: (not available for multiprocessing)",t_call_GT,"(",round( 100 * t_call_GT/t_total, 2),"% )")
+    print ("total running time:", t_total)
+
     return
 
 def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, max_allowed_ar, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
+#def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, max_allowed_ar, min_homo_GQ, min_heter_GQ ):
     result = ""
     for i in range( lr[ 0 ], lr[ 1 ] ):
         ref_nt = chr(s[ i-collection["left"] ] ).encode()
@@ -270,31 +286,14 @@ def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, max_allo
             continue
 
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt )
-        #PRI.merge( ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) )
         if PRI.raw_read_depth() == 0: # skip if coverage is 0
             continue
         PRI.update_top_alleles( top2allelesminr, min_top2allele_count, max_allowed_ar )
+        #PRI.update_top_alleles( top2allelesminr )
         PRI.call_GT( max_allowed_ar )
         PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
         if not PRI.filterflag():
             result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
     return result
 
-
-def call_variants_at_range_wo_F ( lr, chrom, s, collection, top2allelesminr, max_allowed_ar, min_top2allele_count, min_homo_GQ, min_heter_GQ ):
-    result = ""
-    for i in range( lr[ 0 ], lr[ 1 ] ):
-        ref_nt = chr(s[ i-collection["left"] ] ).encode()
-        if ref_nt == b'N':
-            continue
-
-        PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt ) 
-        if PRI.raw_read_depth() == 0: # skip if coverage is 0
-            continue
-        PRI.update_top_alleles( top2allelesminr, min_top2allele_count, max_allowed_ar )
-        PRI.call_GT( max_allowed_ar )
-        PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
-        if not PRI.filterflag():
-            result += "\t".join( ( chrom.decode(), str(i+1), ".", PRI.to_vcf() ) ) + "\n"
-    return result
 
