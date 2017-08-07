@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Time-stamp: <2017-08-03 16:12:28 Tao Liu>
+# Time-stamp: <2017-08-07 16:36:32 Tao Liu>
 
 """Description: SAPPER main executable.
 
@@ -120,6 +120,8 @@ To run SAPPER:
                              help = "Genotype Quality score (-10log10((L00+L11)/(L01+L00+L11))) cutoff for Heterozygous allele type. Default:0, or there is no cutoff on GQ.", default = 0 )
     group_para.add_argument( "-G", "--gq-homo", dest = "GQCutoffHomo", type = float,
                              help = "Genotype Quality score (-10log10((L00+L01)/(L01+L00+L11))) cutoff for Homozygous allele (not the same as reference) type. Default:0, or ther is no cutoff on GQ.", default = 0 )
+    group_para.add_argument( "-Q", dest = "Q", type = int,
+                             help = "Only consider bases with quality score greater than this value. Default: 20, which means Q20 or 0.01 error rate.", default = 20 )
     group_para.add_argument( "--fermi-off", dest = "fermiOff", action = "store_true",
                              help = "When set, local assembly through Fermi will be turned off. Variants will be called based on original alignment. Suggest to be turned on while processing low depth or short read length data. Default: False", default = False )
     group_para.add_argument( "--fermi-overlap", dest = "fermiMinOverlap", type = int,

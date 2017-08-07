@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-22 16:17:18 Tao Liu>
+# Time-stamp: <2017-08-07 16:30:03 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -121,10 +121,10 @@ cdef class UnitigRAs:
         (self.RAlists, self.seq, self.unitig_aln, self.reference_aln, self.chrom, self.lpos, self.rpos, self.unitig_length, self.reference_length, self.aln_length ) = state
 
 
-    cpdef tuple get_variant_bq_by_ref_pos( self, long ref_pos ):
+    cdef tuple get_variant_bq_by_ref_pos( self, long ref_pos ):
         """
         
-        return ( s, bq_list_t, bq_list_c ) 
+        return ( s, bq_list_t, bq_list_c, strand_list_t, strand_list_c ) 
         """
         cdef:
             long i
@@ -135,6 +135,8 @@ cdef class UnitigRAs:
             bytes s
             list bq_list_t = []
             list bq_list_c = []
+            list strand_list_t = []
+            list strand_list_c = []
             bytes ra_seq
             long ra_pos
 
@@ -161,21 +163,17 @@ cdef class UnitigRAs:
 
         # index_aln should be the position on aln
         s = self.unitig_aln[ index_aln:index_aln+1 ]
-        #print self.unitig_aln[ index_aln:index_aln+1 ]
-        #print self.reference_aln[ index_aln:index_aln+1 ]
         # find the index on unitig
         index_unitig = len( self.unitig_aln[:index_aln+1].replace(b'-',b'') )
-        #index_unitig = -1
-        #for i in range( self.aln_length ):
-        #    if self.unitig_aln[ i ] != b'-':
-        #        index_unitig += 1
 
         if s == b'-':                     #deletion
             for ra in self.RAlists[ 0 ]:
                 bq_list_t.append(  93 )
+                strand_list_t.append( ra["strand"] )
             for ra in self.RAlists[ 1 ]:
                 bq_list_c.append(  93 )
-            return (bytearray(b'*'), bq_list_t, bq_list_c)
+                strand_list_c.append( ra["strand"] )
+            return ( bytearray(b'*'), bq_list_t, bq_list_c, strand_list_t, strand_list_c )
 
         if index_aln < self.aln_length - 1:
             for i in range( index_aln + 1, self.aln_length ):
@@ -189,14 +187,16 @@ cdef class UnitigRAs:
             ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
             if ra_pos < ra["l"] and ra_pos >= 0:
                 bq_list_t.append( ra["binaryqual"][ra_pos] )
+                strand_list_t.append( ra["strand"] )
 
         for ra in self.RAlists[1]:        #control
             ra_seq = ra["SEQ"]
             ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
             if ra_pos < ra["l"] and ra_pos >= 0:
                 bq_list_c.append( ra["binaryqual"][ra_pos] )                
+                strand_list_c.append( ra["strand"] )
 
-        return (bytearray(s), bq_list_t, bq_list_c )
+        return (bytearray(s), bq_list_t, bq_list_c, strand_list_t, strand_list_c )
 
 cdef class UnitigCollection:
     """A collection of ReadAlignment objects and the corresponding
@@ -265,7 +265,7 @@ cdef class UnitigCollection:
         self.sorted = True
         return
         
-    cpdef object get_PosReadsInfo_ref_pos ( self, long ref_pos, bytes ref_nt ):
+    cpdef object get_PosReadsInfo_ref_pos ( self, long ref_pos, bytes ref_nt, int Q=20 ):
         """Generate a PosReadsInfo object for a given reference genome
         position.
 
@@ -274,7 +274,7 @@ cdef class UnitigCollection:
         """
         cdef:
             bytearray s, bq
-            list bq_list_t, bq_list_c
+            list bq_list_t, bq_list_c, strand_list_t, strand_list_c
             object ura
             int i
 
@@ -282,10 +282,10 @@ cdef class UnitigCollection:
         for i in range( len( self.URAs_list ) ):
             ura = self.URAs_list[ i ]
             if ura[ "lpos" ] <= ref_pos and ura[ "rpos" ] > ref_pos:
-                ( s, bq_list_t, bq_list_c ) = ura.get_variant_bq_by_ref_pos( ref_pos )
+                ( s, bq_list_t, bq_list_c, strand_list_t, strand_list_c ) = ura.get_variant_bq_by_ref_pos( ref_pos )
                 for i in range( len(bq_list_t) ):
-                    posreadsinfo_p.add_T( i, bytes(s), bq_list_t[i] )
+                    posreadsinfo_p.add_T( i, bytes(s), bq_list_t[i], strand_list_t[i], Q=Q )
                 for i in range( len(bq_list_c) ):
-                    posreadsinfo_p.add_C( i, bytes(s), bq_list_c[i] )
+                    posreadsinfo_p.add_C( i, bytes(s), bq_list_c[i], strand_list_c[i], Q=Q )
 
         return posreadsinfo_p

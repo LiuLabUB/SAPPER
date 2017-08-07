@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-14 11:16:32 Tao Liu>
+# Time-stamp: <2017-08-04 12:31:23 Tao Liu>
 
 """Module for SAPPER ReadAlignment class
 
@@ -486,7 +486,7 @@ cdef class ReadAlignment:
             elif op == 4 :      # Softclip. If it's Softclip, we'd better not return the extra seq
                 p += op_l
 
-        return ( seq_array, bq_array )
+        return ( seq_array, bq_array, self.strand )
         # last position ?
         #raise Exception("Not expected to see this")
 

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-03 16:20:48 Tao Liu>
+# Time-stamp: <2017-08-07 16:01:20 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -27,6 +27,7 @@ from collections import Counter
 
 from SAPPER.Constants import *
 from SAPPER.Stat import CalModel_Homo, CalModel_Heter_noAS, CalModel_Heter_AS, calculate_GQ, calculate_GQ_heterASsig
+from SAPPER.Prob import binomial_cdf
 
 from cpython cimport bool
 
@@ -75,6 +76,8 @@ cdef class PosReadsInfo:
         dict n_reads_C
         dict n_reads
 
+        list n_strand #[{A:[], C:[], G:[], T:[], N:[]},{A:[], C:[], G:[], T:[], N:[]}] for total appearance on plus strand and minus strand for ChIP sample only
+
         bytes top1allele
         bytes top2allele
         float top12alleles_ratio
@@ -113,6 +116,8 @@ cdef class PosReadsInfo:
         self.n_reads_T = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.n_reads =  { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
+        self.n_strand = [ { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }, { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 } ]
+        self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
 
     cpdef merge ( self, PosReadsInfo PRI2 ):
         """Merge two PRIs. No check available.
@@ -130,7 +135,7 @@ cdef class PosReadsInfo:
 
     def __getstate__ ( self ):
         return ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
-                 self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
+                 self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads, self.n_strand,
                  self.top1allele, self.top2allele, self.top12alleles_ratio,
                  self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
                  self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
@@ -147,7 +152,7 @@ cdef class PosReadsInfo:
 
     def __setstate__ ( self, state ):
         ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
-          self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads,
+          self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads, self.n_strand,
           self.top1allele, self.top2allele, self.top12alleles_ratio,
           self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
           self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
@@ -181,27 +186,41 @@ cdef class PosReadsInfo:
             self.filterout = True
         return
 
-    cpdef add_T ( self, int read_index, bytes read_allele, int read_bq ):
+    cpdef add_T ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
+        """ Strand 0: plus, 1: minus
+
+        Q is the quality cutoff. By default, only consider Q20 or read_bq > 20.
+        """
+        if read_bq <= Q:
+            return
         if not self.bq_set_T.has_key( read_allele ):
             self.bq_set_T[read_allele] = []
             self.bq_set_C[read_allele] = []
             self.n_reads_T[read_allele] = 0
             self.n_reads_C[read_allele] = 0
             self.n_reads[read_allele] = 0
+            self.n_strand[ 0 ][ read_allele ] = 0
+            self.n_strand[ 1 ][ read_allele ] = 0
         self.bq_set_T[read_allele].append( read_bq )
         self.n_reads_T[ read_allele ] += 1
         self.n_reads[ read_allele ] += 1
+        self.n_strand[ strand ][ read_allele ] += 1
 
-    cpdef add_C ( self, int read_index, bytes read_allele, int read_bq ):
+    cpdef add_C ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
+        if read_bq <= Q:
+            return
         if not self.bq_set_C.has_key( read_allele ):
             self.bq_set_T[read_allele] = []
             self.bq_set_C[read_allele] = []
             self.n_reads_T[read_allele] = 0
             self.n_reads_C[read_allele] = 0
             self.n_reads[read_allele] = 0
+            self.n_strand[ 0 ][ read_allele ] = 0
+            self.n_strand[ 1 ][ read_allele ] = 0
         self.bq_set_C[read_allele].append( read_bq )
         self.n_reads_C[ read_allele ] += 1
         self.n_reads[ read_allele ] += 1
+        #self.n_strand[ strand ][ read_allele ] += 1
 
     cpdef raw_read_depth ( self ):
         return sum( self.n_reads.values() )
@@ -236,7 +255,6 @@ cdef class PosReadsInfo:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.type = "homo_ref"
             self.filterout = True
-
         return
 
     cpdef top12alleles ( self ):
@@ -384,6 +402,19 @@ cdef class PosReadsInfo:
                 else:
                     self.alt_allele = self.top1allele+b','+self.top2allele
                     self.GT = "1/2"
+                # strand bias filter
+                # calculate SB score
+                SBscore = self.SB_score( self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ] )
+                #SBscore = 0
+                if SBscore >= 1:
+                    print "disgard variant at", self.ref_pos, "type", self.type, "a/b/c/d:", self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ]
+                    self.filterout = True
+                # if self.ref_allele == self.top1allele：
+                #     self.n_strand[ 0 ][ self.top1allele ] + self.n_strand[ 1 ][ self.top1allele ]
+                #     if and self.n_strand[ 0 ][ self.top2allele ] == 0 or self.n_strand[ 1 ][ self.top2allele ] == 0:
+                #         self.filterout = True
+                #         print self.ref_pos
+
 
             # self.deltaBIC = self.deltaBIC
 
@@ -398,6 +429,65 @@ cdef class PosReadsInfo:
         self.mutation_type = ",".join( tmp_mutation_type )
         return
 
+    cdef float SB_score( self, int a, int b, int c, int d ):
+        """ calculate score for filtering variants with strange strand biases.
+
+        a: top1/major allele plus strand
+        b: top2/minor allele plus strand
+        c: top1/major allele minus strand
+        d: top2/minor allele minus strand
+
+        Return a float value so that if this value >= 1, the variant will be filtered out.
+        """
+        cdef:
+            float score
+            double p
+            double p1_l, p1_r
+            double p2_l, p2_r
+            double top2_sb, top1_sb
+
+        #if a == 5 and b == 2 and c == 13 and d == 10:
+        #    print "here"
+            
+        if a+b == 0 or c+d == 0:
+            # if major allele and minor allele both bias to the same strand, allow it
+            return 0.0
+
+        # Rule:
+        # if there is bias in top2 allele then bias in top1 allele should not be significantly smaller than it.
+        # or there is no significant bias (0.5) in top2 allele.
+        
+        print a, b, c, d
+        p1_l = binomial_cdf( a, (a+c), 0.5, lower=True )      # alternative: less than 0.5
+        p1_r = binomial_cdf( c, (a+c), 0.5, lower=True )   #              greater than 0.5
+        p2_l = binomial_cdf( b, (b+d), 0.5, lower=True )      # alternative: less than 0.5
+        p2_r = binomial_cdf( d, (b+d), 0.5, lower=True )   #              greater than 0.5
+        print p1_l, p1_r, p2_l, p2_r
+
+        # if p1_l < 0.05 and p2_l < 0.05:
+        #     # both top1 and top2 allele bias to minus strand
+        #     p = binomial_cdf( b, (b + d), float(a)/(a+c), lower=True ) # see if top2 plus strand ratio is less than ratio of top1. If so, reject
+        #     print p
+        #     if p < 0.05:
+        #         return 1.0
+        #     else:
+        #         return 0.0
+        # elif p1_r < 0.05 and p2_r < 0.05:
+        #     # both top1 and top2 allele bias to plus strand
+        #     p = binomial_cdf( d, (b + d), float(c)/(a+c), lower=True ) # see if top2 minus strand ratio is less than ratio of top1. If so, reject
+        #     print p
+        #     if p < 0.05:
+        #         return 1.0
+        #     else:
+        #         return 0.0
+        if (p1_l < 0.05 and p2_r < 0.05) or (p1_r < 0.05 and p2_l < 0.05):
+            return 1.0
+        else:
+            # can't decide
+            return 0.0
+
+        #    print "done"
+    
     # cpdef compute_lnL ( self ):
     #     """Require update_top_alleles being called.
     #     """
@@ -500,10 +590,11 @@ cdef class PosReadsInfo:
         vcf_qual = "%d" % self.GQ
         vcf_filter = "."
 #        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;lnLHOMOMAJOR=%.4f;lnLHOMOMINOR=%.4f;lnLHETERNOAS=%.4f;lnLHETERAS=%.4f;BICHOMOMAJOR=%.4f;BICHOMOMINOR=%.4f;BICHETERNOAS=%.4f;BICHETERAS=%.4f;GQHOMO=%d;GQHETERNOAS=%d;GQHETERAS=%d;GQHETERASsig=%d;AR=%.4f" % \
-        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;DBIC=%.2f;BICHOMOMAJOR=%.2f;BICHOMOMINOR=%.2f;BICHETERNOAS=%.2f;BICHETERAS=%.2f;AR=%.2f" % \
+        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;SB=%d,%d,%d,%d;DBIC=%.2f;BICHOMOMAJOR=%.2f;BICHOMOMINOR=%.2f;BICHETERNOAS=%.2f;BICHETERAS=%.2f;AR=%.2f" % \
             (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 
              self.n_reads_T[self.top1allele], self.top1allele, self.n_reads_T[self.top2allele], self.top2allele,
              self.n_reads_C[self.top1allele], self.top1allele, self.n_reads_C[self.top2allele], self.top2allele,
+             self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ],
 #             self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS,
 #             self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS,
              self.deltaBIC,
@@ -513,3 +604,36 @@ cdef class PosReadsInfo:
         vcf_format = "GT:DP:GQ:PL"
         vcf_sample = "%s:%d:%d:%d,%d,%d" % (self.GT, self.raw_read_depth(), self.GQ, self.PL_00, self.PL_01, self.PL_11)
         return "\t".join( ( vcf_ref, vcf_alt, vcf_qual, vcf_filter, vcf_info, vcf_format, vcf_sample ) )
+
+
+
+cdef long factorial( int n):
+    cdef:
+        int x, y
+    if n < 2: return 1
+    return reduce(lambda x, y: x*y, xrange(2, int(n)+1))
+
+cdef double binomial_test_less( int s, int n, double p ):
+    cdef:
+        double x
+        int a, b
+        double prob
+        
+    x = 1.0 - p
+
+    a = n - s
+    b = s + 1
+
+    c = a + b - 1
+
+    prob = 0.0
+
+    for j in xrange(a, c + 1):
+        prob += factorial(c) / (factorial(j)*factorial(c-j)) \
+                * x**j * (1 - x)**(c-j)
+
+    return prob
+
+
+cdef double binomial_test_greater( int s, int n, double p ):
+    return binomial_test_less( n-s, n, 1-p )

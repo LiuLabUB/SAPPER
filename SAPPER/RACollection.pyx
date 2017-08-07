@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-03 16:33:19 Tao Liu>
+# Time-stamp: <2017-08-07 16:29:31 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -346,7 +346,7 @@ cdef class RACollection:
         seq[ ind: ind_r  ] = read_refseq
         return seq
                 
-    cpdef get_PosReadsInfo_ref_pos ( self, long ref_pos, bytes ref_nt ):
+    cpdef get_PosReadsInfo_ref_pos ( self, long ref_pos, bytes ref_nt, int Q=20 ):
         """Generate a PosReadsInfo object for a given reference genome
         position.
 
@@ -356,6 +356,7 @@ cdef class RACollection:
         cdef:
             bytearray s
             bytearray bq
+            int strand
             object ra
             list bq_list_t = []
             list bq_list_c = []
@@ -367,32 +368,16 @@ cdef class RACollection:
         for i in range( len( self.RAlists[ 0 ] ) ):
             ra = self.RAlists[ 0 ][ i ]
             if ra[ "lpos" ] <= ref_pos and ra[ "rpos" ] > ref_pos:
-                ( s, bq ) = ra.get_variant_bq_by_ref_pos( ref_pos )
-                posreadsinfo_p.add_T( i, bytes( s ), bq[ 0 ] )
-                # if s == b'-':           # deletion
-                #     posreadsinfo_p.add_T( i, b'*', 93 )
-                # elif len( s ) == 1:
-                #     posreadsinfo_p.add_T( i, bytes( s ), bq[ 0 ] )
-                # else:                     #insertion
-                #     posreadsinfo_p.add_T( i, bytes( s ), bq[ 0 ] )
-                # else:  # others
-                #     posreadsinfo_p.add_T( i, bytes( s ), bq[ 0 ] )
+                ( s, bq, strand ) = ra.get_variant_bq_by_ref_pos( ref_pos )
+                posreadsinfo_p.add_T( i, bytes( s ), bq[ 0 ], strand, Q=Q )
 
         #Control group
         for i in range( len( self.RAlists[ 1 ] ) ):
             ra = self.RAlists[ 1 ][ i ]
             if ra[ "lpos" ] <= ref_pos and ra[ "rpos" ] > ref_pos:
-                ( s, bq ) = ra.get_variant_bq_by_ref_pos( ref_pos )
-                posreadsinfo_p.add_C( i, bytes( s ), bq[ 0 ] )                 
-                # if s == b'=':
-                #     posreadsinfo_p.add_C( i, ref_nt, bq[0] )
-                # elif s == b'-':           # deletion
-                #     posreadsinfo_p.add_C( i, b'*', 93 )
-                # elif len( s ) > 1:                        # insertion
-                #     s [ 0 ] = ref_nt[ 0 ]
-                #     posreadsinfo_p.add_C( i, bytes( s ), bq[ 0 ] )
-                # else:  # others
-                #     posreadsinfo_p.add_C( i, bytes( s ), bq[ 0 ] )
+                ( s, bq, strand ) = ra.get_variant_bq_by_ref_pos( ref_pos )
+                posreadsinfo_p.add_C( i, bytes( s ), bq[ 0 ], strand, Q=Q )
+
         return posreadsinfo_p
 
     cpdef bytearray get_FASTQ ( self ):
