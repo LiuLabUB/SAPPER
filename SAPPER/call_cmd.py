@@ -109,8 +109,8 @@ def run( args ):
 
     """
     peakbedfile = args.peakbed
-    peaktfile = args.tfile[0]
-    peakcfile = args.cfile[0]
+    peaktfile = args.tfile
+    peakcfile = args.cfile
     top2allelesminr = args.top2allelesMinRatio
     min_top2allele_count = args.top2alleleMinCount
     max_allowed_ar = args.maxAR
@@ -135,12 +135,15 @@ def run( args ):
     chrs = peaks.get_chr_names()
 
     tbam = BAMParser( peaktfile )
-    cbam = BAMParser( peakcfile )
-
-    assert tbam.get_chromosomes() == cbam.get_chromosomes(), Exception("Treatment and Control BAM files have different orders of sorted chromosomes! Please check BAM Headers and re-sort BAM files.")
+    if peakcfile:
+        cbam = BAMParser( peakcfile )
+        assert tbam.get_chromosomes() == cbam.get_chromosomes(), Exception("Treatment and Control BAM files have different orders of sorted chromosomes! Please check BAM Headers and re-sort BAM files.")
+    else:
+        cbam = None
 
     ra_collections = []
 
+    # prepare and write header of output file (.vcf)
     ovcf = open(args.ofile, "w")
     tmpcmdstr = ""
     if not fermiOff:
@@ -151,8 +154,6 @@ def run( args ):
     #ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
-
-
     ovcf.write ( "\t".join( ("#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT","SAMPLE") ) + "\n" )
 
     # to get time
@@ -178,7 +179,10 @@ def run( args ):
             print ( "Peak:", chrom.decode(), peak["start"], peak["end"])
 
             t0 = time()
-            ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
+            if cbam:
+                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
+            else:
+                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ) )
             ra_collection.remove_outliers( percent = 5 )
             t_prepare_ra += time() - t0
 

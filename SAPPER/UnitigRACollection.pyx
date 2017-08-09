@@ -121,7 +121,7 @@ cdef class UnitigRAs:
         (self.RAlists, self.seq, self.unitig_aln, self.reference_aln, self.chrom, self.lpos, self.rpos, self.unitig_length, self.reference_length, self.aln_length ) = state
 
 
-    cdef tuple get_variant_bq_by_ref_pos( self, long ref_pos ):
+    cpdef tuple get_variant_bq_by_ref_pos( self, long ref_pos ):
         """
         
         return ( s, bq_list_t, bq_list_c, strand_list_t, strand_list_c ) 

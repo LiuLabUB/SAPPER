@@ -1,4 +1,4 @@
-# Time-stamp: <2013-09-15 21:55:17 Tao Liu>
+# Time-stamp: <2017-08-08 15:39:33 Tao Liu>
 
 """Module Description
 
@@ -430,7 +430,7 @@ cpdef double binomial_cdf ( long x, long a, double b, bool lower=True ):
     if lower:
         return _binomial_cdf_f (x,a,b)
     else:
-        return _binomial_cdf_r (x,a,b)
+        return _binomial_cdf_f (a-x,a,1-b)
 
 cpdef double binomial_sf ( long x, long a, double b, bool lower=True ):
     """ BINOMIAL_SF compute the binomial survival function (1-CDF)
@@ -441,7 +441,7 @@ cpdef double binomial_sf ( long x, long a, double b, bool lower=True ):
     if lower:
         return 1.0 - _binomial_cdf_f (x,a,b)
     else:
-        return 1.0 - _binomial_cdf_r (x,a,b)
+        return 1.0 - _binomial_cdf_f (a-x,a,1-b)
 
 cpdef pduplication (np.ndarray[np.float64_t] pmf, int N_obs):
     """return the probability of a duplicate fragment given a pmf
@@ -454,58 +454,58 @@ cpdef pduplication (np.ndarray[np.float64_t] pmf, int N_obs):
         sf += binomial_sf(2, N_obs, p)
     return sf / <float>n
 
-cdef double _binomial_cdf_r ( long x, long a, double b ):
-    """ Binomial CDF for upper tail.
+# cdef double _binomial_cdf_r ( long x, long a, double b ):
+#     """ Binomial CDF for upper tail.
 
-    """
-    if x < 0:
-        return 1
-    elif a < x:
-        return 0
-    elif b == 0:
-        return 0
-    elif b == 1:
-        return 1
+#     """
+#     if x < 0:
+#         return 1
+#     elif a < x:
+#         return 0
+#     elif b == 0:
+#         return 0
+#     elif b == 1:
+#         return 1
 
-    cdef long argmax=int(a*b)
-    cdef double seedpdf
-    cdef double cdf = 0
-    cdef double pdf
-    cdef long i
+#     cdef long argmax=int(a*b)
+#     cdef double seedpdf
+#     cdef double cdf = 0
+#     cdef double pdf
+#     cdef long i
 
-    #print "_b_c_r", argmax, x, a, b
+#     #print "_b_c_r", argmax, x, a, b
     
-    if x<argmax:
-        seedpdf=binomial_pdf(argmax,a,b)
-        pdf=seedpdf
-        cdf = pdf
-        for i in range(argmax-1,x,-1):
-            pdf/=(a-i)*b/(1-b)/(i+1)
-            if pdf==0.0: break
-            cdf += pdf
+#     if x<argmax:
+#         seedpdf=binomial_pdf(argmax,a,b)
+#         pdf=seedpdf
+#         cdf = pdf
+#         for i in range(argmax-1,x,-1):
+#             pdf/=(a-i)*b/(1-b)/(i+1)
+#             if pdf==0.0: break
+#             cdf += pdf
             
-        pdf = seedpdf
-        i = argmax
-        while True:
-            pdf*=(a-i)*b/(1-b)/(i+1)
-            if pdf==0.0: break
-            cdf+=pdf
-            i+=1
-        cdf=min(1,cdf)
-        cdf = float("%.10e" %cdf)
-        return cdf
-    else:
-        pdf=binomial_pdf(x+1,a,b)
-        cdf = pdf
-        i = x+1
-        while True:
-            pdf*=(a-i)*b/(1-b)/(i+1)
-            if pdf==0.0: break
-            cdf += pdf
-            i+=1
-        cdf=min(1,cdf)
-        cdf = float("%.10e" %cdf)
-        return cdf
+#         pdf = seedpdf
+#         i = argmax
+#         while True:
+#             pdf*=(a-i)*b/(1-b)/(i+1)
+#             if pdf==0.0: break
+#             cdf+=pdf
+#             i+=1
+#         cdf=min(1,cdf)
+#         cdf = float("%.10e" %cdf)
+#         return cdf
+#     else:
+#         pdf=binomial_pdf(x+1,a,b)
+#         cdf = pdf
+#         i = x+1
+#         while True:
+#             pdf*=(a-i)*b/(1-b)/(i+1)
+#             if pdf==0.0: break
+#             cdf += pdf
+#             i+=1
+#         cdf=min(1,cdf)
+#         cdf = float("%.10e" %cdf)
+#         return cdf
 
 
 cdef double _binomial_cdf_f ( long x, long a, double b ):

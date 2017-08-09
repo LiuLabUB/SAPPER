@@ -104,10 +104,10 @@ To run SAPPER:
     group_input = argparser_call.add_argument_group( "Input files arguments" )
     group_input.add_argument( "-b", "--peak", dest = "peakbed", type = str, required =True,
                               help = "Peak regions in BED format, sorted by coordinates. REQUIRED." )
-    group_input.add_argument( "-t", "--treatment", dest = "tfile", type = str, required = True, nargs = "+",
-                              help = "ChIP-seq treatment files in BAM format, containing only records in peak regions, sorted by coordinates. If multiple files are given as '-t A B C', then they will all be read and pooled together. Check instruction on how to make the file using samtools. REQUIRED." )
-    group_input.add_argument( "-c", "--control", dest = "cfile", type = str, required = True, nargs = "+",
-                              help = "Control filse in BAM format, containing only records in peak regions, sorted by coordinates. If multiple files are given as '-c A B C', they will be pooled to estimate ChIP-seq background noise. Check instruction on how to make the file using samtools. REQUIRED")
+    group_input.add_argument( "-t", "--treatment", dest = "tfile", type = str, required = True, 
+                              help = "ChIP-seq treatment files in BAM format, containing only records in peak regions, sorted by coordinates. I. Check instruction on how to make the file using samtools. REQUIRED." )
+    group_input.add_argument( "-c", "--control", dest = "cfile", type = str, required = False, 
+                              help = "Control filse in BAM format, containing only records in peak regions, sorted by coordinates. Check instruction on how to make the file using samtools. ")
     # group for output files
     group_output = argparser_call.add_argument_group( "Output arguments" )
     group_output.add_argument( "-o", "--ofile", dest = "ofile", type = str, required = True,

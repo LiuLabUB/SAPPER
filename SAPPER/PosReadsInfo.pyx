@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-07 16:01:20 Tao Liu>
+# Time-stamp: <2017-08-08 15:42:01 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -119,7 +119,7 @@ cdef class PosReadsInfo:
         self.n_strand = [ { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }, { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 } ]
         self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
 
-    cpdef merge ( self, PosReadsInfo PRI2 ):
+    cpdef void merge ( self, PosReadsInfo PRI2 ):
         """Merge two PRIs. No check available.
 
         """
@@ -167,10 +167,10 @@ cdef class PosReadsInfo:
           self.hasfermiinfor,
           self.fermiNTs ) = state
 
-    cpdef filterflag ( self ):
+    cpdef bool filterflag ( self ):
         return self.filterout
 
-    cpdef apply_GQ_cutoff ( self, int min_homo_GQ = 50, int min_heter_GQ = 100 ):
+    cpdef void apply_GQ_cutoff ( self, int min_homo_GQ = 50, int min_heter_GQ = 100 ):
         if self.filterout:
             return
         if self.type.startswith('homo') and self.GQ < min_homo_GQ:
@@ -179,14 +179,14 @@ cdef class PosReadsInfo:
             self.filterout = True
         return
 
-    cpdef apply_deltaBIC_cutoff ( self, float min_delta_BIC = 10 ):
+    cpdef void apply_deltaBIC_cutoff ( self, float min_delta_BIC = 10 ):
         if self.filterout:
             return
         if self.deltaBIC < min_delta_BIC:
             self.filterout = True
         return
 
-    cpdef add_T ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
+    cpdef void add_T ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
         """ Strand 0: plus, 1: minus
 
         Q is the quality cutoff. By default, only consider Q20 or read_bq > 20.
@@ -206,7 +206,7 @@ cdef class PosReadsInfo:
         self.n_reads[ read_allele ] += 1
         self.n_strand[ strand ][ read_allele ] += 1
 
-    cpdef add_C ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
+    cpdef void add_C ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
         if read_bq <= Q:
             return
         if not self.bq_set_C.has_key( read_allele ):
@@ -222,10 +222,10 @@ cdef class PosReadsInfo:
         self.n_reads[ read_allele ] += 1
         #self.n_strand[ strand ][ read_allele ] += 1
 
-    cpdef raw_read_depth ( self ):
+    cpdef int raw_read_depth ( self ):
         return sum( self.n_reads.values() )
 
-    cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_top2allele_count = 2, float max_allowed_ar = 0.95 ):
+    cpdef void update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_top2allele_count = 2, float max_allowed_ar = 0.95 ):
     #cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8 ):
         """Identify top1 and top2 NT.  the ratio of (top1+top2)/total
         """
@@ -257,12 +257,12 @@ cdef class PosReadsInfo:
             self.filterout = True
         return
 
-    cpdef top12alleles ( self ):
+    cpdef void top12alleles ( self ):
         print ( self.ref_pos, self.ref_allele)
         print ("Top1allele",self.top1allele, "Treatment", self.bq_set_T[self.top1allele], "Control", self.bq_set_C[self.top1allele])
         print ("Top2allele",self.top2allele, "Treatment", self.bq_set_T[self.top2allele], "Control", self.bq_set_C[self.top2allele])
     
-    cpdef call_GT ( self, float max_allowed_ar = 0.99 ):
+    cpdef void call_GT ( self, float max_allowed_ar = 0.99 ):
         """Require update_top_alleles being called.
         """
         cdef:
@@ -446,9 +446,6 @@ cdef class PosReadsInfo:
             double p2_l, p2_r
             double top2_sb, top1_sb
 
-        #if a == 5 and b == 2 and c == 13 and d == 10:
-        #    print "here"
-            
         if a+b == 0 or c+d == 0:
             # if major allele and minor allele both bias to the same strand, allow it
             return 0.0
@@ -464,122 +461,14 @@ cdef class PosReadsInfo:
         p2_r = binomial_cdf( d, (b+d), 0.5, lower=True )   #              greater than 0.5
         print p1_l, p1_r, p2_l, p2_r
 
-        # if p1_l < 0.05 and p2_l < 0.05:
-        #     # both top1 and top2 allele bias to minus strand
-        #     p = binomial_cdf( b, (b + d), float(a)/(a+c), lower=True ) # see if top2 plus strand ratio is less than ratio of top1. If so, reject
-        #     print p
-        #     if p < 0.05:
-        #         return 1.0
-        #     else:
-        #         return 0.0
-        # elif p1_r < 0.05 and p2_r < 0.05:
-        #     # both top1 and top2 allele bias to plus strand
-        #     p = binomial_cdf( d, (b + d), float(c)/(a+c), lower=True ) # see if top2 minus strand ratio is less than ratio of top1. If so, reject
-        #     print p
-        #     if p < 0.05:
-        #         return 1.0
-        #     else:
-        #         return 0.0
         if (p1_l < 0.05 and p2_r < 0.05) or (p1_r < 0.05 and p2_l < 0.05):
+            # we reject loci where the significant biases are inconsistent between top1 and top2 alleles.
             return 1.0
         else:
             # can't decide
             return 0.0
 
-        #    print "done"
-    
-    # cpdef compute_lnL ( self ):
-    #     """Require update_top_alleles being called.
-    #     """
-    #     cdef:
-    #         np.ndarray[np.int32_t, ndim=1] top1_bq_T
-    #         np.ndarray[np.int32_t, ndim=1] top2_bq_T
-    #         np.ndarray[np.int32_t, ndim=1] top1_bq_C
-    #         np.ndarray[np.int32_t, ndim=1] top2_bq_C
-    #         int i
-    #         list top1_bq_T_l
-    #         list top2_bq_T_l
-    #         list top1_bq_C_l
-    #         list top2_bq_C_l
-
-    #     if self.filterout:
-    #         return
-
-    #     top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
-    #     top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
-    #     top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
-    #     top2_bq_C = np.array( self.bq_set_C[ self.top2allele ], dtype="int32" )
-
-    #     (self.lnL_homo_major, self.BIC_homo_major) = CalModel_Homo( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-    #     (self.lnL_homo_minor, self.BIC_homo_minor) = CalModel_Homo( top2_bq_T, top2_bq_C, top1_bq_T, top1_bq_C )
-    #     (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-    #     (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
-
-    #     return
-
-    # cpdef compute_GQ ( self ):
-    #     cdef:
-    #         list tmp_mutation_type
-    #         bytes tmp_alt
-
-    #     if self.filterout:
-    #         return
-    #     self.GQ_homo_major = 0
-    #     self.GQ_heter_noAS = 0
-    #     self.GQ_heter_AS = 0
-    #     self.GQ_heter_ASsig = 0
-        
-    #     # assign GQ, GT, and type
-    #     if self.ref_allele != self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
-    #         self.type = "homo"
-    #         self.deltaBIC = max( self.BIC_heter_noAS, self.BIC_heter_AS ) - self.BIC_homo_major
-    #         self.GQ_homo_major = calculate_GQ( self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS )
-    #         self.GQ = self.GQ_homo_major
-    #         self.GT = "1/1"
-    #         self.alt_allele = self.top1allele
-    #     elif self.BIC_heter_noAS < self.BIC_homo_major and self.BIC_heter_noAS < self.BIC_homo_minor and self.BIC_heter_noAS < self.BIC_heter_AS+1e-8 :
-    #         self.type = "heter_noAS"
-    #         self.deltaBIC = max( self.BIC_homo_major, self.BIC_homo_minor ) - self.BIC_heter_noAS
-    #         self.GQ_heter_noAS= calculate_GQ( self.lnL_heter_noAS, self.lnL_homo_major, self.lnL_homo_minor)
-    #         self.GQ = self.GQ_heter_noAS
-    #     elif self.BIC_heter_AS < self.BIC_homo_major and self.BIC_heter_AS < self.BIC_homo_minor and self.BIC_heter_AS < self.BIC_heter_noAS:
-    #         self.type = "heter_AS"
-    #         self.deltaBIC = max( self.BIC_homo_major, self.BIC_homo_minor ) - self.BIC_heter_AS
-    #         self.GQ_heter_AS = calculate_GQ( self.lnL_heter_AS, self.lnL_homo_major, self.lnL_homo_minor)
-    #         self.GQ_heter_ASsig = calculate_GQ_heterASsig( self.lnL_heter_AS, self.lnL_heter_noAS )
-    #         self.GQ = self.GQ_heter_AS
-    #     elif self.ref_allele == self.top1allele and self.BIC_homo_major < self.BIC_homo_minor and self.BIC_homo_major < self.BIC_heter_noAS and self.BIC_homo_major < self.BIC_heter_AS:
-    #         self.type = "homo_ref"
-    #         # we do not calculate deltaBIC and GQ if type is homo_ref
-    #         self.GT = "0/0"
-    #         self.filterout = True
-    #     else:
-    #         self.type="unsure"
-    #         self.filterout = True
-
-    #     if self.type.startswith( "heter" ):
-    #         if self.ref_allele == self.top1allele:
-    #             self.alt_allele = self.top2allele
-    #             self.GT = "0/1"
-    #         elif self.ref_allele == self.top2allele:
-    #             self.alt_allele = self.top1allele
-    #             self.GT = "0/1"
-    #         else:
-    #             self.alt_allele = self.top1allele+b','+self.top2allele
-    #             self.GT = "1/2"
-
-    #     tmp_mutation_type = []
-    #     for tmp_alt in self.alt_allele.split(b','):
-    #         if tmp_alt == 42: # means '*'
-    #             tmp_mutation_type.append( "Deletion" )
-    #         elif len( tmp_alt ) > 1:
-    #             tmp_mutation_type.append( "Insertion" )
-    #         else:
-    #             tmp_mutation_type.append( "SNV" )
-    #     self.mutation_type = ",".join( tmp_mutation_type )
-    #     return
-
-    cpdef to_vcf ( self ):
+    cpdef str to_vcf ( self ):
         """Output REF,ALT,QUAL,FILTER,INFO,FORMAT, SAMPLE columns.
         """
         cdef:
@@ -589,14 +478,11 @@ cdef class PosReadsInfo:
         vcf_alt = self.alt_allele.decode()
         vcf_qual = "%d" % self.GQ
         vcf_filter = "."
-#        vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;lnLHOMOMAJOR=%.4f;lnLHOMOMINOR=%.4f;lnLHETERNOAS=%.4f;lnLHETERAS=%.4f;BICHOMOMAJOR=%.4f;BICHOMOMINOR=%.4f;BICHETERNOAS=%.4f;BICHETERAS=%.4f;GQHOMO=%d;GQHETERNOAS=%d;GQHETERAS=%d;GQHETERASsig=%d;AR=%.4f" % \
         vcf_info = (b"M=%s;MT=%s;DPT=%d;DPC=%d;DP1T=%d%s;DP2T=%d%s;DP1C=%d%s;DP2C=%d%s;SB=%d,%d,%d,%d;DBIC=%.2f;BICHOMOMAJOR=%.2f;BICHOMOMINOR=%.2f;BICHETERNOAS=%.2f;BICHETERAS=%.2f;AR=%.2f" % \
             (self.type.encode(), self.mutation_type.encode(), sum( self.n_reads_T.values() ), sum( self.n_reads_C.values() ), 
              self.n_reads_T[self.top1allele], self.top1allele, self.n_reads_T[self.top2allele], self.top2allele,
              self.n_reads_C[self.top1allele], self.top1allele, self.n_reads_C[self.top2allele], self.top2allele,
              self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ],
-#             self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS,
-#             self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS,
              self.deltaBIC,
              self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS,self.BIC_heter_AS,
              self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele])
@@ -606,34 +492,3 @@ cdef class PosReadsInfo:
         return "\t".join( ( vcf_ref, vcf_alt, vcf_qual, vcf_filter, vcf_info, vcf_format, vcf_sample ) )
 
 
-
-cdef long factorial( int n):
-    cdef:
-        int x, y
-    if n < 2: return 1
-    return reduce(lambda x, y: x*y, xrange(2, int(n)+1))
-
-cdef double binomial_test_less( int s, int n, double p ):
-    cdef:
-        double x
-        int a, b
-        double prob
-        
-    x = 1.0 - p
-
-    a = n - s
-    b = s + 1
-
-    c = a + b - 1
-
-    prob = 0.0
-
-    for j in xrange(a, c + 1):
-        prob += factorial(c) / (factorial(j)*factorial(c-j)) \
-                * x**j * (1 - x)**(c-j)
-
-    return prob
-
-
-cdef double binomial_test_greater( int s, int n, double p ):
-    return binomial_test_less( n-s, n, 1-p )
