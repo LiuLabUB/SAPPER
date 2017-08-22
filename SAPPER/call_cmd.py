@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-07 16:28:17 Tao Liu>
+# Time-stamp: <2017-08-09 14:20:07 Tao Liu>
 
 """Description: sapper call
 
@@ -118,6 +118,7 @@ def run( args ):
     min_homo_GQ = args.GQCutoffHomo
     min_heter_GQ = args.GQCutoffHetero
     minQ = args.Q
+    maxDuplicate = args.maxDuplicate
 
     # parameter for assembly
     fermiMinOverlap = args.fermiMinOverlap
@@ -150,7 +151,7 @@ def run( args ):
         tmpcmdstr = " --fermi-overlap "+str(fermiMinOverlap)
     else:
         tmpcmdstr = " --fermi-off "
-    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_top2allele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
+    ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["-Q", str(minQ), "-D", str(maxDuplicate), "--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_top2allele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     #ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
@@ -180,9 +181,9 @@ def run( args ):
 
             t0 = time()
             if cbam:
-                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"]) )
+                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate) )
             else:
-                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"] ) )
+                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate ) )
             ra_collection.remove_outliers( percent = 5 )
             t_prepare_ra += time() - t0
 

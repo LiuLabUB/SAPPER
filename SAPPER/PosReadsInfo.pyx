@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-08 15:42:01 Tao Liu>
+# Time-stamp: <2017-08-10 16:36:18 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -281,9 +281,6 @@ cdef class PosReadsInfo:
         if self.filterout:
             return
 
-        # if self.ref_pos == 66176155:
-        #     print "---"
-
         top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
         top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
         top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
@@ -293,9 +290,11 @@ cdef class PosReadsInfo:
         (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
         (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C, max_allowed_ar )
 
-        # if self.ref_pos == 66176155:
-        #     print self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS
-        #     print self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS
+        if self.ref_pos == 71078525:
+            print "---"
+            print len( top1_bq_T ), len( top1_bq_C ), len( top2_bq_T ), len( top2_bq_C )
+            print self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS
+            print self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS
              
         if self.top1allele != self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # in this case, there is no top2 nt (or socalled minor
@@ -404,7 +403,8 @@ cdef class PosReadsInfo:
                     self.GT = "1/2"
                 # strand bias filter
                 # calculate SB score
-                SBscore = self.SB_score( self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ] )
+                print "calculate SB score for ", self.ref_pos
+                SBscore = self.SB_score_ChIP( self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ] )
                 #SBscore = 0
                 if SBscore >= 1:
                     print "disgard variant at", self.ref_pos, "type", self.type, "a/b/c/d:", self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ]
@@ -429,8 +429,49 @@ cdef class PosReadsInfo:
         self.mutation_type = ",".join( tmp_mutation_type )
         return
 
-    cdef float SB_score( self, int a, int b, int c, int d ):
+    cdef float SB_score_ChIP( self, int a, int b, int c, int d ):
         """ calculate score for filtering variants with strange strand biases.
+
+        a: top1/major allele plus strand
+        b: top2/minor allele plus strand
+        c: top1/major allele minus strand
+        d: top2/minor allele minus strand
+
+        Return a float value so that if this value >= 1, the variant will be filtered out.
+        """
+        cdef:
+            float score
+            double p
+            double p1_l, p1_r
+            double p2_l, p2_r
+            double top2_sb, top1_sb
+
+        if a+b == 0 or c+d == 0:
+            # if major allele and minor allele both bias to the same strand, allow it
+            return 0.0
+
+        # Rule:
+        # if there is bias in top2 allele then bias in top1 allele should not be significantly smaller than it.
+        # or there is no significant bias (0.5) in top2 allele.
+        
+        print a, b, c, d
+        p1_l = binomial_cdf( a, (a+c), 0.5, lower=True )      # alternative: less than 0.5
+        p1_r = binomial_cdf( c, (a+c), 0.5, lower=True )   #              greater than 0.5
+        p2_l = binomial_cdf( b, (b+d), 0.5, lower=True )      # alternative: less than 0.5
+        p2_r = binomial_cdf( d, (b+d), 0.5, lower=True )   #              greater than 0.5
+        print p1_l, p1_r, p2_l, p2_r
+
+        if (p1_l < 0.05 and p2_r < 0.05) or (p1_r < 0.05 and p2_l < 0.05):
+            # we reject loci where the significant biases are inconsistent between top1 and top2 alleles.
+            return 1.0
+        else:
+            # can't decide
+            return 0.0
+
+    cdef float SB_score_ATAC( self, int a, int b, int c, int d ):
+        """ calculate score for filtering variants with strange strand biases.
+
+        ATAC-seq version
 
         a: top1/major allele plus strand
         b: top2/minor allele plus strand

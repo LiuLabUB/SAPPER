@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-02 16:18:17 Tao Liu>
+# Time-stamp: <2017-08-09 13:40:52 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -108,8 +108,6 @@ cpdef tuple CalModel_Heter_noAS( np.ndarray[int32_t, ndim=1] top1_bq_T,np.ndarra
     else:
         BIC += log( tn_T ) + log( tn_C )
 
-    # BIC += 2* log(tn) # only k_T and k_C are free variables. We penalize the model more even if control data is few.
-
     return ( lnL, BIC )
 
 
@@ -167,7 +165,6 @@ cpdef tuple CalModel_Heter_AS( np.ndarray[int32_t, ndim=1] top1_bq_T, np.ndarray
     else:
         BIC += 2 * log( tn_T ) + log( tn_C )
     
-    #BIC += 3*log(tn)
     return (lnL, BIC)
 
 

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-07 16:29:31 Tao Liu>
+# Time-stamp: <2017-08-09 14:10:10 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -361,6 +361,7 @@ cdef class RACollection:
             list bq_list_t = []
             list bq_list_c = []
             int i
+            int pos
 
         posreadsinfo_p = PosReadsInfo( ref_pos, ref_nt )
 
@@ -368,14 +369,14 @@ cdef class RACollection:
         for i in range( len( self.RAlists[ 0 ] ) ):
             ra = self.RAlists[ 0 ][ i ]
             if ra[ "lpos" ] <= ref_pos and ra[ "rpos" ] > ref_pos:
-                ( s, bq, strand ) = ra.get_variant_bq_by_ref_pos( ref_pos )
+                ( s, bq, strand, pos ) = ra.get_variant_bq_by_ref_pos( ref_pos )
                 posreadsinfo_p.add_T( i, bytes( s ), bq[ 0 ], strand, Q=Q )
 
         #Control group
         for i in range( len( self.RAlists[ 1 ] ) ):
             ra = self.RAlists[ 1 ][ i ]
             if ra[ "lpos" ] <= ref_pos and ra[ "rpos" ] > ref_pos:
-                ( s, bq, strand ) = ra.get_variant_bq_by_ref_pos( ref_pos )
+                ( s, bq, strand, pos ) = ra.get_variant_bq_by_ref_pos( ref_pos )
                 posreadsinfo_p.add_C( i, bytes( s ), bq[ 0 ], strand, Q=Q )
 
         return posreadsinfo_p

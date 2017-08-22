@@ -1,4 +1,4 @@
-# Time-stamp: <2017-06-15 17:30:32 Tao Liu>
+# Time-stamp: <2017-08-09 14:29:15 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -257,7 +257,7 @@ cdef class BAMParser:
         """
         return self.rlengths
 
-    cpdef get_reads_in_region ( self, bytes chrom, int left, int right ):
+    cpdef get_reads_in_region ( self, bytes chrom, int left, int right, int maxDuplicate = 1 ):
         """Get reads in a given region. Initial call will start at
         'self.SOA', but will keep incrementing.
 
@@ -268,11 +268,16 @@ cdef class BAMParser:
             int m = 0
             int entrylength, fpos, strand, chrid
             list readslist
+            int cur_duplicates = 0
+            object read
+            object previous_read
         
         readslist = []
         fread = self.fhd.read
         fseek = self.fhd.seek
         ftell = self.fhd.tell
+        cur_duplicates = 0
+        previous_read = None
         while True:
             try:
                 entrylength = unpack( '<i', fread( 4 ) )[ 0 ]
@@ -283,7 +288,15 @@ cdef class BAMParser:
             if read != None:
                 if read["chrom"] == chrom and read["lpos"] < right and read["rpos"] > left:
                     # an overlap is found
-                    readslist.append( read )
+                    if previous_read != None and previous_read["lpos"] == read["lpos"] and previous_read["rpos"] == read["rpos"] \
+                            and previous_read["strand"] ==  read["strand"] and previous_read["cigar"] == read["cigar"]:
+                        cur_duplicates += 1
+                    else:
+                        cur_duplicates = 1
+                    if cur_duplicates <= maxDuplicate:
+                        readslist.append( read )
+                    previous_read = read
+
                 elif read["chrom"] != chrom or read["lpos"] > right:
                     # pass the region, rewind, then trigger 'break'
                     fseek( ftell()-entrylength-4 )

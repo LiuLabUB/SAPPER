@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-04 12:31:23 Tao Liu>
+# Time-stamp: <2017-08-09 14:34:14 Tao Liu>
 
 """Module for SAPPER ReadAlignment class
 
@@ -397,6 +397,7 @@ cdef class ReadAlignment:
         cdef:
            int i, m, n
            int res, p, op, op_l
+           int pos
            bytearray refseq
            bytes p_refseq, p_seq
            bytearray seq_array
@@ -430,13 +431,16 @@ cdef class ReadAlignment:
             op_l = i >> 4
             if op in [0, 7, 8]:         # M = X alignment match (match or mismatch)
                 if res < op_l - 1:
+                    # in the range of a CIGAR operator
                     p += res
                     # find the position, now get the ref
+                    pos = p
                     seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ] )
                     bq_array.append( self.binaryqual[ p ] )
                     break
                 elif res == op_l - 1:
                     p += res
+                    pos = p
                     seq_array.append( __BAMDNACODE__[ (self.binaryseq[ p//2 ] >> ( (1-p%2)*4 ) ) & 15 ] )
                     bq_array.append( self.binaryqual[ p ] )
                     # now add any insertion later on
@@ -461,6 +465,7 @@ cdef class ReadAlignment:
                 if res < op_l:
                     # find the position, however ...
                     # position located in a region in reference that not exists in query
+                    pos = p
                     seq_array.append( b'*' )
                     bq_array.append( 93 )   #assign 93 for deletion
                     break
@@ -470,7 +475,6 @@ cdef class ReadAlignment:
             elif op == 1 :      # Insertion
                 p += op_l
                 # if res == 0:    # no residue left, so return a chunk of inserted sequence
-                    
                 #     print "shouldn't run this code"
                 #     # first, add the insertion point
                 #     seq_array = bytearray( b'~' )
@@ -486,7 +490,7 @@ cdef class ReadAlignment:
             elif op == 4 :      # Softclip. If it's Softclip, we'd better not return the extra seq
                 p += op_l
 
-        return ( seq_array, bq_array, self.strand )
+        return ( seq_array, bq_array, self.strand, pos )
         # last position ?
         #raise Exception("Not expected to see this")
 
