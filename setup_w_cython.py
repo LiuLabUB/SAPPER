@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Time-stamp: <2017-07-18 15:10:07 Tao Liu>
+# Time-stamp: <2017-09-27 14:42:03 Tao Liu>
 
 """Description: 
 
@@ -53,13 +53,14 @@ def main():
                    Extension("SAPPER.UnitigRACollection",["SAPPER/UnitigRACollection.pyx"],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    #Extension("SAPPER.Alignment",["SAPPER/Alignment.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    Extension("SAPPER.PosReadsInfo",["SAPPER/PosReadsInfo.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
+                   Extension("SAPPER.PeakVariants",["SAPPER/PeakVariants.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),                 
                    Extension("SAPPER.Stat",["SAPPER/Stat.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    Extension("SAPPER.Prob",["SAPPER/Prob.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    Extension("SAPPER.BAM",["SAPPER/BAM.pyx",],libraries=["m"], include_dirs=numpy_include_dir, extra_compile_args=extra_c_args),
                    ]
 
     setup(name="SAPPER",
-          version="1.0.1.20170808",
+          version="1.0.1.20170928",
           description="de novo Variant caller for ChIP-Seq",
           author='Tao Liu',
           author_email='tliu4@buffalo.edu',

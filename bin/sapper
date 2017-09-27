@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Time-stamp: <2017-08-09 14:32:30 Tao Liu>
+# Time-stamp: <2017-09-27 14:41:34 Tao Liu>
 
 """Description: SAPPER main executable.
 
@@ -123,15 +123,17 @@ To run SAPPER:
     group_para.add_argument( "-Q", dest = "Q", type = int, default = 20,
                              help = "Only consider bases with quality score greater than this value. Default: 20, which means Q20 or 0.01 error rate." )
     group_para.add_argument( "-D", dest = "maxDuplicate", type = int, default = 1,
-                             help = "Maximum duplicated reads allowed per mapping position, mapping strand and the same CIGAR code. Default: 1. When sequencing depth is high, to set a higher value might help evaluate the correct allele ratio." )
+                             help = "Maximum duplicated reads allowed per mapping position, mapping strand and the same CIGAR code. Default: 1. When sequencing depth is high, to set a higher value might help evaluate the correct allele ratio.")
+    group_para.add_argument( "-F", "--fermi", dest = "fermi", type = str, default = "auto",
+                             help = "Option to control when to apply local assembly through Fermi. By default (set as 'auto'), while SAPPER detects any INDEL variant in a peak region, it will utilize Fermi to recover the actual DNA sequences to refine the read alignments. If set as 'on', Fermi will be always invoked. It can increase specificity however sensivity and speed will be significantly lower. If set as 'off', Fermi won't be invoked at all. If so, speed and sensitivity can be higher but specificity will be significantly lower. Default: auto" )
     group_para.add_argument( "--fermi-off", dest = "fermiOff", action = "store_true",
                              help = "When set, local assembly through Fermi will be turned off. Variants will be called based on original alignment. Suggest to be turned on while processing low depth or short read length data. Default: False", default = False )
     group_para.add_argument( "--fermi-overlap", dest = "fermiMinOverlap", type = int,
                              help = "The minimal overlap for fermi to initially assemble two reads. Must be between 1 and read length. A longer fermiMinOverlap is needed while read length is small (e.g. 30 for 36bp read, but 33 for 100bp read may work). Default:30", default = 30 )
     group_para.add_argument( "--top2alleles-mratio", dest = "top2allelesMinRatio", type = float,
-                             help = "The reads for the top 2 most frequent alleles at a loci shouldn't be too few comparing to total reads mapped. The minimum ratio is set by this optoin. Must be a float between 0.5 and 1.  Default:0.8 which means at least 80%% of reads contain the top 2 alleles.", default = 0.8 )
-    group_para.add_argument( "--top2allele-count", dest = "top2alleleMinCount", type = int,
-                             help = "The count of the 2nd most frequent allele at a loci shouldn't be too few. By default, we require at least two reads support the 2nd most frequent allele. Default:2", default = 2 )
+                             help = "The reads for the top 2 most frequent alleles (e.g. a ref allele and an alternative allele) at a loci shouldn't be too few comparing to total reads mapped. The minimum ratio is set by this optoin. Must be a float between 0.5 and 1.  Default:0.8 which means at least 80%% of reads contain the top 2 alleles.", default = 0.8 )
+    group_para.add_argument( "--altallele-count", dest = "altalleleMinCount", type = int,
+                             help = "The count of the alternative (non-reference) allele at a loci shouldn't be too few. By default, we require at least two reads support the alternative allele. Default:2", default = 2 )
     group_para.add_argument( "--max-ar", dest = "maxAR", type = float,
                              help = "The maximum Allele-Ratio allowed while calculating likelihood for allele-specific binding. If we allow higher maxAR, we may mistakenly assign some homozygous loci as heterozygous. Default:0.95", default = 0.95 )
     # group for misc

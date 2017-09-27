@@ -1,6 +1,6 @@
-# Time-stamp: <2017-08-10 16:36:18 Tao Liu>
+# Time-stamp: <2017-09-27 14:14:00 Tao Liu>
 
-"""Module for SAPPER BAMParser class
+"""Module for SAPPER PosReadsInfo class.
 
 Copyright (c) 2017 Tao Liu <tliu4@buffalo.edu>
 
@@ -17,17 +17,10 @@ with the distribution).
 # ------------------------------------
 # python modules
 # ------------------------------------
-import logging
-import struct
-from struct import unpack
-import gzip
-import io
-from collections import Counter
-
-
 from SAPPER.Constants import *
 from SAPPER.Stat import CalModel_Homo, CalModel_Heter_noAS, CalModel_Heter_AS, calculate_GQ, calculate_GQ_heterASsig
 from SAPPER.Prob import binomial_cdf
+from SAPPER.PeakVariants import Variant
 
 from cpython cimport bool
 
@@ -225,7 +218,7 @@ cdef class PosReadsInfo:
     cpdef int raw_read_depth ( self ):
         return sum( self.n_reads.values() )
 
-    cpdef void update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_top2allele_count = 2, float max_allowed_ar = 0.95 ):
+    cpdef void update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_altallele_count = 2, float max_allowed_ar = 0.95 ):
     #cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8 ):
         """Identify top1 and top2 NT.  the ratio of (top1+top2)/total
         """
@@ -234,12 +227,18 @@ cdef class PosReadsInfo:
 
         [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
 
+        if self.ref_pos == 6178940:
+            print self.n_reads
+
         # if top2 allele count in ChIP is lower than
-        # min_top2allele_count, or when allele ratio top1/(top1+top2)
+        # min_altallele_count, or when allele ratio top1/(top1+top2)
         # is larger than max_allowed_ar in ChIP, we won't consider
         # this allele at all.  we set values of top2 allele in
         # dictionaries to [] and ignore top2 allele entirely.
-        if self.n_reads_T[ self.top2allele ] < min_top2allele_count or self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar:
+ 
+        # max(self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top2allele ]) < min_altallele_count
+
+        if ( self.top2allele != self.ref_allele and self.n_reads_T[ self.top2allele ] < min_altallele_count ) or self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar:
             self.bq_set_T[ self.top2allele ] = []
             self.bq_set_C[ self.top2allele ] = []
             self.n_reads_T[ self.top2allele ] = 0
@@ -255,6 +254,10 @@ cdef class PosReadsInfo:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.type = "homo_ref"
             self.filterout = True
+
+        if self.ref_pos == 6178940:
+            print self.top1allele, self.top2allele, self.n_reads[ self.top1allele ], self.n_reads[ self.top2allele ]
+
         return
 
     cpdef void top12alleles ( self ):
@@ -290,11 +293,11 @@ cdef class PosReadsInfo:
         (self.lnL_heter_noAS, self.BIC_heter_noAS) = CalModel_Heter_noAS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C )
         (self.lnL_heter_AS, self.BIC_heter_AS)     = CalModel_Heter_AS( top1_bq_T, top1_bq_C, top2_bq_T, top2_bq_C, max_allowed_ar )
 
-        if self.ref_pos == 71078525:
-            print "---"
-            print len( top1_bq_T ), len( top1_bq_C ), len( top2_bq_T ), len( top2_bq_C )
-            print self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS
-            print self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS
+        #if self.ref_pos == 71078525:
+        #    print "---"
+        #    print len( top1_bq_T ), len( top1_bq_C ), len( top2_bq_T ), len( top2_bq_C )
+        #    print self.lnL_homo_major, self.lnL_homo_minor, self.lnL_heter_noAS, self.lnL_heter_AS
+        #    print self.BIC_homo_major, self.BIC_homo_minor, self.BIC_heter_noAS, self.BIC_heter_AS
              
         if self.top1allele != self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # in this case, there is no top2 nt (or socalled minor
@@ -403,11 +406,11 @@ cdef class PosReadsInfo:
                     self.GT = "1/2"
                 # strand bias filter
                 # calculate SB score
-                print "calculate SB score for ", self.ref_pos
+                print "calculate SB score for ", self.ref_pos, "a/b/c/d:", self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ]
                 SBscore = self.SB_score_ChIP( self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ] )
                 #SBscore = 0
                 if SBscore >= 1:
-                    print "disgard variant at", self.ref_pos, "type", self.type, "a/b/c/d:", self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ]
+                    print "disgard variant at", self.ref_pos, "type", self.type
                     self.filterout = True
                 # if self.ref_allele == self.top1allele：
                 #     self.n_strand[ 0 ][ self.top1allele ] + self.n_strand[ 1 ][ self.top1allele ]
@@ -454,17 +457,20 @@ cdef class PosReadsInfo:
         # if there is bias in top2 allele then bias in top1 allele should not be significantly smaller than it.
         # or there is no significant bias (0.5) in top2 allele.
         
-        print a, b, c, d
+        #print a, b, c, d
         p1_l = binomial_cdf( a, (a+c), 0.5, lower=True )      # alternative: less than 0.5
         p1_r = binomial_cdf( c, (a+c), 0.5, lower=True )   #              greater than 0.5
         p2_l = binomial_cdf( b, (b+d), 0.5, lower=True )      # alternative: less than 0.5
         p2_r = binomial_cdf( d, (b+d), 0.5, lower=True )   #              greater than 0.5
-        print p1_l, p1_r, p2_l, p2_r
+        #print p1_l, p1_r, p2_l, p2_r
 
         if (p1_l < 0.05 and p2_r < 0.05) or (p1_r < 0.05 and p2_l < 0.05):
             # we reject loci where the significant biases are inconsistent between top1 and top2 alleles.
             return 1.0
         else:
+            # if b<=2 and d=0 or b=0 and d<=2 -- highly possible FPs
+            #if ( b<=2 and d==0 or b==0 and d<=2 ):
+            #    return 1
             # can't decide
             return 0.0
 
@@ -495,12 +501,12 @@ cdef class PosReadsInfo:
         # if there is bias in top2 allele then bias in top1 allele should not be significantly smaller than it.
         # or there is no significant bias (0.5) in top2 allele.
         
-        print a, b, c, d
+        #print a, b, c, d
         p1_l = binomial_cdf( a, (a+c), 0.5, lower=True )      # alternative: less than 0.5
         p1_r = binomial_cdf( c, (a+c), 0.5, lower=True )   #              greater than 0.5
         p2_l = binomial_cdf( b, (b+d), 0.5, lower=True )      # alternative: less than 0.5
         p2_r = binomial_cdf( d, (b+d), 0.5, lower=True )   #              greater than 0.5
-        print p1_l, p1_r, p2_l, p2_r
+        #print p1_l, p1_r, p2_l, p2_r
 
         if (p1_l < 0.05 and p2_r < 0.05) or (p1_r < 0.05 and p2_l < 0.05):
             # we reject loci where the significant biases are inconsistent between top1 and top2 alleles.
@@ -532,4 +538,37 @@ cdef class PosReadsInfo:
         vcf_sample = "%s:%d:%d:%d,%d,%d" % (self.GT, self.raw_read_depth(), self.GQ, self.PL_00, self.PL_01, self.PL_11)
         return "\t".join( ( vcf_ref, vcf_alt, vcf_qual, vcf_filter, vcf_info, vcf_format, vcf_sample ) )
 
+    cpdef toVariant ( self ):
+        cdef:
+            object v
 
+        v = Variant( self.ref_allele.decode(),
+                     self.alt_allele.decode(),
+                     self.GQ,
+                     '.',
+                     self.type,
+                     self.mutation_type,
+                     self.top1allele.decode(),
+                     self.top2allele.decode(),
+                     sum( self.n_reads_T.values() ),
+                     sum( self.n_reads_C.values() ),
+                     self.n_reads_T[self.top1allele],
+                     self.n_reads_T[self.top2allele],
+                     self.n_reads_C[self.top1allele],
+                     self.n_reads_C[self.top2allele],
+                     self.n_strand[ 0 ][ self.top1allele ],
+                     self.n_strand[ 0 ][ self.top2allele ],
+                     self.n_strand[ 1 ][ self.top1allele ],
+                     self.n_strand[ 1 ][ self.top2allele ],
+                     self.deltaBIC,
+                     self.BIC_homo_major,
+                     self.BIC_homo_minor,
+                     self.BIC_heter_noAS,
+                     self.BIC_heter_AS,
+                     self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele]),
+                     self.GT,
+                     self.raw_read_depth(),
+                     self.PL_00,
+                     self.PL_01,
+                     self.PL_11 )
+        return v
