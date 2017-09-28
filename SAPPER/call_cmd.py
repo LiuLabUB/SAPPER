@@ -217,7 +217,8 @@ def run( args ):
                     P.close()
                     P.join()
                     for i in range( NP ):
-                        peak_variants.add_Variant( results[i][0], results[i][1], results[i][2] )
+                        for result in results[ i ]:
+                            peak_variants.add_Variant( result[0], result[1], result[2] )
                 else:
                     # mono-cpu
                     for i in range( ra_collection["left"], ra_collection["right"] ):
@@ -265,7 +266,8 @@ def run( args ):
                         P.close()
                         P.join()
                         for i in range( NP ):
-                            peak_variants.add_Variant( results[ i ][0], results[i][1], results[i][2] )
+                            for result in results[ i ]:
+                                peak_variants.add_Variant( result[0], result[1], result[2] )
                     else:
                         # mono-cpu
                         for i in range( ra_collection["left"], ra_collection["right"] ):
