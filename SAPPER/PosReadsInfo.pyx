@@ -215,8 +215,15 @@ cdef class PosReadsInfo:
         self.n_reads[ read_allele ] += 1
         #self.n_strand[ strand ][ read_allele ] += 1
 
-    cpdef int raw_read_depth ( self ):
-        return sum( self.n_reads.values() )
+    cpdef int raw_read_depth ( self, str opt = "all" ):
+        if opt == "all":
+            return sum( self.n_reads.values() )
+        elif opt == "T":
+            return sum( self.n_reads_T.values() )
+        elif opt == "C":
+            return sum( self.n_reads_C.values() )
+        else:
+            raise Exception( "opt should be either 'all', 'T' or 'C'." )
 
     cpdef void update_top_alleles ( self, float min_top12alleles_ratio = 0.8, int min_altallele_count = 2, float max_allowed_ar = 0.95 ):
     #cpdef update_top_alleles ( self, float min_top12alleles_ratio = 0.8 ):
@@ -226,9 +233,6 @@ cdef class PosReadsInfo:
             float r
 
         [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
-
-        if self.ref_pos == 6178940:
-            print self.n_reads
 
         # if top2 allele count in ChIP is lower than
         # min_altallele_count, or when allele ratio top1/(top1+top2)
@@ -254,9 +258,6 @@ cdef class PosReadsInfo:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.type = "homo_ref"
             self.filterout = True
-
-        if self.ref_pos == 6178940:
-            print self.top1allele, self.top2allele, self.n_reads[ self.top1allele ], self.n_reads[ self.top2allele ]
 
         return
 
@@ -535,7 +536,7 @@ cdef class PosReadsInfo:
              self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele])
              )).decode()
         vcf_format = "GT:DP:GQ:PL"
-        vcf_sample = "%s:%d:%d:%d,%d,%d" % (self.GT, self.raw_read_depth(), self.GQ, self.PL_00, self.PL_01, self.PL_11)
+        vcf_sample = "%s:%d:%d:%d,%d,%d" % (self.GT, self.raw_read_depth( opt = "all" ), self.GQ, self.PL_00, self.PL_01, self.PL_11)
         return "\t".join( ( vcf_ref, vcf_alt, vcf_qual, vcf_filter, vcf_info, vcf_format, vcf_sample ) )
 
     cpdef toVariant ( self ):
@@ -567,7 +568,7 @@ cdef class PosReadsInfo:
                      self.BIC_heter_AS,
                      self.n_reads_T[self.top1allele]/(self.n_reads_T[self.top1allele]+self.n_reads_T[self.top2allele]),
                      self.GT,
-                     self.raw_read_depth(),
+                     self.raw_read_depth( opt = "all" ),
                      self.PL_00,
                      self.PL_01,
                      self.PL_11 )

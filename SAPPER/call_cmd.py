@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-27 14:12:12 Tao Liu>
+# Time-stamp: <2017-09-27 15:09:29 Tao Liu>
 
 """Description: sapper call
 
@@ -123,7 +123,6 @@ def run( args ):
 
     # parameter for assembly
     fermiMinOverlap = args.fermiMinOverlap
-    fermiOff = args.fermiOff
     fermi = args.fermi
     
     peakio = open( peakbedfile )
@@ -149,10 +148,10 @@ def run( args ):
     # prepare and write header of output file (.vcf)
     ovcf = open(args.ofile, "w")
     tmpcmdstr = ""
-    if not fermiOff:
+    if fermi != "off":
         tmpcmdstr = " --fermi-overlap "+str(fermiMinOverlap)
     else:
-        tmpcmdstr = " --fermi-off "
+        tmpcmdstr = " --fermi off "
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["-Q", str(minQ), "-D", str(maxDuplicate), "--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_altallele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )
@@ -192,10 +191,11 @@ def run( args ):
             # print ( ra_collection.get_FASTQ().decode() )
 
             peak_variants = PeakVariants()
+            
+            s = ra_collection["peak_refseq"]
 
-            if fermi == "auto":
+            if fermi == "auto" or fermi == "off":
                 # first pass to call variant w/o assembly
-                s = ra_collection["peak_refseq"]
                 # multiprocessing the following part
                 t_call_variants_0 = time()
                 print ( " Call varants w/o assembly")
@@ -227,9 +227,7 @@ def run( args ):
                         if ref_nt == b'N':
                             continue
                         PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-                        if i == 6178940:
-                            print( PRI.raw_read_depth() )
-                        if PRI.raw_read_depth() == 0: # skip if coverage is 0
+                        if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
                             continue
                         PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
                         t0 = time()
@@ -240,62 +238,54 @@ def run( args ):
                             peak_variants.add_Variant( chrom.decode(), i, PRI.toVariant() )
                 t_call_variants += time() - t_call_variants_0
 
-                # Next, if peak_variants contain any insertion or deletion
-                if peak_variants.has_indel():
-                    # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
-                    print(" Detect INDEL, invoke fermi to reanalyze")
-                    t0 = time()
-                    print ( " Assemble using fermi-lite")
-                    unitig_collection = ra_collection.build_unitig_collection( fermiMinOverlap )
-                    if not unitig_collection:
-                        print ( "  Failed to assemble unitigs, fall back to previous results" )
-                        pass              #pass this peak if there is no unitig from assembler
-                    else:
-                        peak_variants = PeakVariants() #reset
-                        if NP > 1:
-                            # divide right-left into NP parts
-                            window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
-                            P = mp.Pool( NP )
-                            # this partial function will only be used in multiprocessing
-                            p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
-                            ranges = []
-                            for i in range( NP ):
-                                l = i * window_size + ra_collection["left"]
-                                r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
-                                ranges.append( (l, r) )
+            # Next, if peak_variants contain any insertion or deletion
+            if ( fermi == "auto" and peak_variants.has_indel() ) or fermi == "on":
+                # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
+                t0 = time()
+                print ( " Assemble using fermi-lite")
+                unitig_collection = ra_collection.build_unitig_collection( fermiMinOverlap )
+                if not unitig_collection:
+                    print ( "  Failed to assemble unitigs, fall back to previous results" )
+                    pass              #pass this peak if there is no unitig from assembler
+                else:
+                    peak_variants = PeakVariants() #reset
+                    if NP > 1:
+                        # divide right-left into NP parts
+                        window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
+                        P = mp.Pool( NP )
+                        # this partial function will only be used in multiprocessing
+                        p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
+                        ranges = []
+                        for i in range( NP ):
+                            l = i * window_size + ra_collection["left"]
+                            r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
+                            ranges.append( (l, r) )
 
-                            results = P.map( p_call_variants_at_range, ranges )
-                            P.close()
-                            P.join()
-                            for i in range( NP ):
-                                peak_variants.add_Variant( results[ i ][0], results[i][1], results[i][2] )
-                        else:
-                            # mono-cpu
-                            for i in range( ra_collection["left"], ra_collection["right"] ):
-                                ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
-                                # skip if ref_nt is N
-                                if ref_nt == b'N':
-                                    continue
-                                PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-                                if PRI.raw_read_depth() == 0: # skip if coverage is 0
-                                    continue
-                                PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
-                                t0 = time()
-                                PRI.call_GT( max_allowed_ar )
-                                t_call_GT += time() - t0
-                                PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
-                                if not PRI.filterflag():
-                                    peak_variants.add_Variant( chrom.decode(), i, PRI.toVariant() )
-                ovcf.write( peak_variants.toVCF() )
+                        results = P.map( p_call_variants_at_range, ranges )
+                        P.close()
+                        P.join()
+                        for i in range( NP ):
+                            peak_variants.add_Variant( results[ i ][0], results[i][1], results[i][2] )
+                    else:
+                        # mono-cpu
+                        for i in range( ra_collection["left"], ra_collection["right"] ):
+                            ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
+                            # skip if ref_nt is N
+                            if ref_nt == b'N':
+                                continue
+                            PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
+                            if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
+                                continue
+                            PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
+                            t0 = time()
+                            PRI.call_GT( max_allowed_ar )
+                            t_call_GT += time() - t0
+                            PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
+                            if not PRI.filterflag():
+                                peak_variants.add_Variant( chrom.decode(), i, PRI.toVariant() )
+            ovcf.write( peak_variants.toVCF() )
 
     #print ("time to retrieve read alignment information from BAM:",t_prepare_ra,"(",round( 100 * t_prepare_ra/t_total, 2),"% )")
-    #if not fermiOff:
-    #    print ("time to assemble unitigs of peaks:",t_assemble,"(",round( 100 * t_assemble/t_total, 2),"% )")
-    #print ("time to call variants:", t_call_variants,"(",round( 100 * t_call_variants/t_total, 2),"% )")
-    #if not NP > 1:
-    #    print ("     to call Genotype: (not available for multiprocessing)",t_call_GT,"(",round( 100 * t_call_GT/t_total, 2),"% )")
-    #print ("total running time:", t_total)
-
     return
 
 def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, max_allowed_ar, min_altallele_count, min_homo_GQ, min_heter_GQ, minQ ):
@@ -307,7 +297,7 @@ def call_variants_at_range ( lr, chrom, s, collection, top2allelesminr, max_allo
             continue
 
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-        if PRI.raw_read_depth() == 0: # skip if coverage is 0
+        if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
             continue
         PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
         #PRI.update_top_alleles( top2allelesminr )

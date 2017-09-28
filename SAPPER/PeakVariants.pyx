@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-26 17:15:42 Tao Liu>
+# Time-stamp: <2017-09-27 14:59:53 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 
@@ -87,6 +87,69 @@ cdef class Variant:
         self.v_PL_01 = PL_01
         self.v_PL_11 = PL_11
 
+    def __getstate__ ( self ):
+        return (        
+            self.v_ref_allele,
+            self.v_alt_allele,
+            self.v_GQ,
+            self.v_filter,
+            self.v_type,
+            self.v_mutation_type,
+            self.v_top1allele,
+            self.v_top2allele,
+            self.v_DPT,
+            self.v_DPC,
+            self.v_DP1T,
+            self.v_DP2T,
+            self.v_DP1C,
+            self.v_DP2C,
+            self.v_PLUS1T,
+            self.v_PLUS2T,
+            self.v_MINUS1T,
+            self.v_MINUS2T,
+            self.v_deltaBIC,
+            self.v_BIC_homo_major,
+            self.v_BIC_homo_minor,
+            self.v_BIC_heter_noAS,
+            self.v_BIC_heter_AS,
+            self.v_AR,
+            self.v_GT,
+            self.v_DP,
+            self.v_PL_00,
+            self.v_PL_01,
+            self.v_PL_11 )
+
+    def __setstate__ ( self, state ):
+        ( self.v_ref_allele,
+          self.v_alt_allele,
+          self.v_GQ,
+          self.v_filter,
+          self.v_type,
+          self.v_mutation_type,
+          self.v_top1allele,
+          self.v_top2allele,
+          self.v_DPT,
+          self.v_DPC,
+          self.v_DP1T,
+          self.v_DP2T,
+          self.v_DP1C,
+          self.v_DP2C,
+          self.v_PLUS1T,
+          self.v_PLUS2T,
+          self.v_MINUS1T,
+          self.v_MINUS2T,
+          self.v_deltaBIC,
+          self.v_BIC_homo_major,
+          self.v_BIC_homo_minor,
+          self.v_BIC_heter_noAS,
+          self.v_BIC_heter_AS,
+          self.v_AR,
+          self.v_GT,
+          self.v_DP,
+          self.v_PL_00,
+          self.v_PL_01,
+          self.v_PL_11 ) = state
+
     cpdef bool is_indel ( self ):
         if self.v_mutation_type.find("Insertion") != -1 or self.v_mutation_type.find("Deletion") != -1:
             return True
@@ -115,6 +178,12 @@ cdef class PeakVariants:
         self.l_Variants = []
         self.l_chrom = []
         self.l_p = []
+
+    def __getstate__ ( self ):
+        return ( self.l_Variants, self.l_chrom, self.l_p )
+
+    def __setstate__ ( self, state ):
+        ( self.l_Variants, self.l_chrom, self.l_p ) = state
 
     cpdef add_Variant ( self, str chrom, long p, Variant v ):
         self.l_chrom.append( chrom )
