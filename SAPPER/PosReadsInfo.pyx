@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-27 14:14:00 Tao Liu>
+# Time-stamp: <2017-09-28 15:12:34 Tao Liu>
 
 """Module for SAPPER PosReadsInfo class.
 
@@ -70,6 +70,7 @@ cdef class PosReadsInfo:
         dict n_reads
 
         list n_strand #[{A:[], C:[], G:[], T:[], N:[]},{A:[], C:[], G:[], T:[], N:[]}] for total appearance on plus strand and minus strand for ChIP sample only
+        dict n_tips # count of nt appearing at tips
 
         bytes top1allele
         bytes top2allele
@@ -110,25 +111,26 @@ cdef class PosReadsInfo:
         self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.n_reads =  { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.n_strand = [ { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }, { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 } ]
+        self.n_tips = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
         self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
 
-    cpdef void merge ( self, PosReadsInfo PRI2 ):
-        """Merge two PRIs. No check available.
-
-        """
-        assert self.ref_pos == PRI2.ref_pos
-        assert self.ref_allele == PRI2.ref_allele
-        for b in set( self.n_reads.keys() ).union( set( PRI2.n_reads.keys() ) ):
-            self.bq_set_T[ b ] = self.bq_set_T.get( b, []).extend( PRI2.bq_set_T.get( b, [] ) )
-            self.bq_set_C[ b ] = self.bq_set_C.get( b, []).extend( PRI2.bq_set_C.get( b, [] ) )
-            self.n_reads_T[ b ] = self.n_reads_T.get( b, 0) + PRI2.n_reads_T.get( b, 0 )
-            self.n_reads_C[ b ] = self.n_reads_C.get( b, 0) + PRI2.n_reads_C.get( b, 0 )
-            self.n_reads[ b ] = self.n_reads.get( b, 0) + PRI2.n_reads.get( b, 0 )
-        return
+    #cpdef void merge ( self, PosReadsInfo PRI2 ):
+    #    """Merge two PRIs. No check available.
+    #
+    #    """
+    #    assert self.ref_pos == PRI2.ref_pos
+    #    assert self.ref_allele == PRI2.ref_allele
+    #    for b in set( self.n_reads.keys() ).union( set( PRI2.n_reads.keys() ) ):
+    #        self.bq_set_T[ b ] = self.bq_set_T.get( b, []).extend( PRI2.bq_set_T.get( b, [] ) )
+    #        self.bq_set_C[ b ] = self.bq_set_C.get( b, []).extend( PRI2.bq_set_C.get( b, [] ) )
+    #        self.n_reads_T[ b ] = self.n_reads_T.get( b, 0) + PRI2.n_reads_T.get( b, 0 )
+    #        self.n_reads_C[ b ] = self.n_reads_C.get( b, 0) + PRI2.n_reads_C.get( b, 0 )
+    #        self.n_reads[ b ] = self.n_reads.get( b, 0) + PRI2.n_reads.get( b, 0 )
+    #    return
 
     def __getstate__ ( self ):
         return ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
-                 self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads, self.n_strand,
+                 self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads, self.n_strand, self.n_tips,
                  self.top1allele, self.top2allele, self.top12alleles_ratio,
                  self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
                  self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
@@ -145,7 +147,7 @@ cdef class PosReadsInfo:
 
     def __setstate__ ( self, state ):
         ( self.ref_pos, self.ref_allele, self.alt_allele, self.filterout,
-          self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads, self.n_strand,
+          self.bq_set_T, self.bq_set_C, self.n_reads_T, self.n_reads_C, self.n_reads, self.n_strand, self.n_tips,
           self.top1allele, self.top2allele, self.top12alleles_ratio,
           self.lnL_homo_major, self.lnL_heter_AS, self.lnL_heter_noAS, self.lnL_homo_minor,
           self.BIC_homo_major, self.BIC_heter_AS, self.BIC_heter_noAS, self.BIC_homo_minor,
@@ -179,7 +181,7 @@ cdef class PosReadsInfo:
             self.filterout = True
         return
 
-    cpdef void add_T ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
+    cpdef void add_T ( self, int read_index, bytes read_allele, int read_bq, int strand, bool tip, int Q=20 ):
         """ Strand 0: plus, 1: minus
 
         Q is the quality cutoff. By default, only consider Q20 or read_bq > 20.
@@ -194,10 +196,12 @@ cdef class PosReadsInfo:
             self.n_reads[read_allele] = 0
             self.n_strand[ 0 ][ read_allele ] = 0
             self.n_strand[ 1 ][ read_allele ] = 0
+            self.n_tips[read_allele] = 0
         self.bq_set_T[read_allele].append( read_bq )
         self.n_reads_T[ read_allele ] += 1
         self.n_reads[ read_allele ] += 1
         self.n_strand[ strand ][ read_allele ] += 1
+        if tip: self.n_tips[ read_allele ] += 1
 
     cpdef void add_C ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
         if read_bq <= Q:
@@ -242,7 +246,8 @@ cdef class PosReadsInfo:
  
         # max(self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top2allele ]) < min_altallele_count
 
-        if ( self.top2allele != self.ref_allele and self.n_reads_T[ self.top2allele ] < min_altallele_count ) or self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar:
+        if ( self.top2allele != self.ref_allele and ( self.n_reads_T[ self.top2allele ] - self.n_tips[ self.top2allele ] ) < min_altallele_count ) or \
+                self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar:
             self.bq_set_T[ self.top2allele ] = []
             self.bq_set_C[ self.top2allele ] = []
             self.n_reads_T[ self.top2allele ] = 0

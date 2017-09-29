@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-09 14:31:16 Tao Liu>
+# Time-stamp: <2017-09-28 15:19:36 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -137,11 +137,13 @@ cdef class UnitigRAs:
             list bq_list_c = []
             list strand_list_t = []
             list strand_list_c = []
+            list tip_list_t = []
             list pos_list_t = []
             list pos_list_c = []
             bytes ra_seq
             long ra_pos
             int p_seq
+            int l_read
 
         #  b'TTATTAGAAAAAAT' find = 2
         #          b'AAAAATCCCACAGG'
@@ -173,6 +175,10 @@ cdef class UnitigRAs:
             for ra in self.RAlists[ 0 ]:
                 ra_seq = ra["SEQ"]
                 ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
+                if ra_pos == 0 or ra_pos == l_read -1:
+                    tip_list_t.append( True )
+                else:
+                    tip_list_t.append( False )
                 bq_list_t.append(  93 )
                 strand_list_t.append( ra["strand"] )
                 pos_list_t.append( ra_pos )
@@ -182,7 +188,7 @@ cdef class UnitigRAs:
                 bq_list_c.append(  93 )
                 strand_list_c.append( ra["strand"] )
                 pos_list_c.append( ra_pos )
-            return ( bytearray(b'*'), bq_list_t, bq_list_c, strand_list_t, strand_list_c, pos_list_t, pos_list_c )
+            return ( bytearray(b'*'), bq_list_t, bq_list_c, strand_list_t, strand_list_c, tip_list_t, pos_list_t, pos_list_c )
 
         if index_aln < self.aln_length - 1:
             for i in range( index_aln + 1, self.aln_length ):
@@ -190,12 +196,17 @@ cdef class UnitigRAs:
                     s += self.unitig_aln[ i:i+1 ] # we extend the s string to contain the inserted seq
                 else:
                     break
-        
+
         for ra in self.RAlists[0]:        #treatment
             ra_seq = ra["SEQ"]
+            l_read = ra["l"]
             ra_pos = index_unitig - self.seq.find( ra_seq ) - 1
-            if ra_pos < ra["l"] and ra_pos >= 0:
+            if ra_pos < l_read and ra_pos >= 0:
                 pos_list_t.append( ra_pos )
+                if ra_pos == 0 or ra_pos == l_read -1:
+                    tip_list_t.append( True )
+                else:
+                    tip_list_t.append( False )
                 bq_list_t.append( ra["binaryqual"][ra_pos] )
                 strand_list_t.append( ra["strand"] )
 
@@ -207,7 +218,7 @@ cdef class UnitigRAs:
                 bq_list_c.append( ra["binaryqual"][ra_pos] )                
                 strand_list_c.append( ra["strand"] )
 
-        return (bytearray(s), bq_list_t, bq_list_c, strand_list_t, strand_list_c, pos_list_t, pos_list_c )
+        return (bytearray(s), bq_list_t, bq_list_c, strand_list_t, strand_list_c, tip_list_t, pos_list_t, pos_list_c )
 
 cdef class UnitigCollection:
     """A collection of ReadAlignment objects and the corresponding
@@ -285,7 +296,7 @@ cdef class UnitigCollection:
         """
         cdef:
             bytearray s, bq
-            list bq_list_t, bq_list_c, strand_list_t, strand_list_c, pos_list_t, pos_list_c
+            list bq_list_t, bq_list_c, strand_list_t, strand_list_c, tip_list_t, pos_list_t, pos_list_c
             object ura
             int i
 
@@ -293,9 +304,9 @@ cdef class UnitigCollection:
         for i in range( len( self.URAs_list ) ):
             ura = self.URAs_list[ i ]
             if ura[ "lpos" ] <= ref_pos and ura[ "rpos" ] > ref_pos:
-                ( s, bq_list_t, bq_list_c, strand_list_t, strand_list_c, pos_list_t, pos_list_c ) = ura.get_variant_bq_by_ref_pos( ref_pos )
+                ( s, bq_list_t, bq_list_c, strand_list_t, strand_list_c, tip_list_t, pos_list_t, pos_list_c ) = ura.get_variant_bq_by_ref_pos( ref_pos )
                 for i in range( len(bq_list_t) ):
-                    posreadsinfo_p.add_T( i, bytes(s), bq_list_t[i], strand_list_t[i], Q=Q )
+                    posreadsinfo_p.add_T( i, bytes(s), bq_list_t[i], strand_list_t[i], tip_list_t[i], Q=Q )
                 for i in range( len(bq_list_c) ):
                     posreadsinfo_p.add_C( i, bytes(s), bq_list_c[i], strand_list_c[i], Q=Q )
 

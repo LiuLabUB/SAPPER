@@ -1,4 +1,4 @@
-# Time-stamp: <2017-08-09 14:34:14 Tao Liu>
+# Time-stamp: <2017-09-28 15:14:37 Tao Liu>
 
 """Module for SAPPER ReadAlignment class
 
@@ -398,6 +398,7 @@ cdef class ReadAlignment:
            int i, m, n
            int res, p, op, op_l
            int pos
+           bool tip
            bytearray refseq
            bytes p_refseq, p_seq
            bytearray seq_array
@@ -490,7 +491,12 @@ cdef class ReadAlignment:
             elif op == 4 :      # Softclip. If it's Softclip, we'd better not return the extra seq
                 p += op_l
 
-        return ( seq_array, bq_array, self.strand, pos )
+        if pos == 0 or pos == self.l - 1:
+            tip = True
+        else:
+            tip = False
+                
+        return ( seq_array, bq_array, self.strand, tip, pos )
         # last position ?
         #raise Exception("Not expected to see this")
 
