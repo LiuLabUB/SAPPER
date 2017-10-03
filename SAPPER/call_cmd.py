@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-27 15:09:29 Tao Liu>
+# Time-stamp: <2017-09-29 13:26:50 Tao Liu>
 
 """Description: sapper call
 
@@ -147,11 +147,7 @@ def run( args ):
 
     # prepare and write header of output file (.vcf)
     ovcf = open(args.ofile, "w")
-    tmpcmdstr = ""
-    if fermi != "off":
-        tmpcmdstr = " --fermi-overlap "+str(fermiMinOverlap)
-    else:
-        tmpcmdstr = " --fermi off "
+    tmpcmdstr = " --fermi "+ fermi+ " --fermi-overlap "+str(fermiMinOverlap)
     ovcf.write ( VCFHEADER % (datetime.date.today().strftime("%Y%m%d"), SAPPER_VERSION, " ".join(sys.argv[1:] + ["-Q", str(minQ), "-D", str(maxDuplicate), "--max-ar", str(max_allowed_ar), "--top2alleles-mratio", str(top2allelesminr), "--top2allele-count", str(min_altallele_count), "-g", str(min_heter_GQ), "-G", str(min_homo_GQ), tmpcmdstr]) ) + "\n" )
     for (chrom, chrlength) in tbam.get_rlengths().items():
         ovcf.write( "##contig=<ID=%s,length=%d,assembly=NA>\n" % ( chrom.decode(), chrlength ) )

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-28 15:12:34 Tao Liu>
+# Time-stamp: <2017-09-29 16:40:54 Tao Liu>
 
 """Module for SAPPER PosReadsInfo class.
 
@@ -246,24 +246,36 @@ cdef class PosReadsInfo:
  
         # max(self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top2allele ]) < min_altallele_count
 
-        if ( self.top2allele != self.ref_allele and ( self.n_reads_T[ self.top2allele ] - self.n_tips[ self.top2allele ] ) < min_altallele_count ) or \
-                self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar:
+        if ( self.top2allele != self.ref_allele and ( ( self.n_reads_T[ self.top2allele ] - self.n_tips[ self.top2allele ] ) < min_altallele_count ) or \
+                self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar ):
             self.bq_set_T[ self.top2allele ] = []
             self.bq_set_C[ self.top2allele ] = []
             self.n_reads_T[ self.top2allele ] = 0
             self.n_reads_C[ self.top2allele ] = 0
             self.n_reads[ self.top2allele ] = 0
+            self.n_tips[ self.top2allele ] = 0
+            if ( self.top1allele != self.ref_allele and ( self.n_reads_T[ self.top1allele ] - self.n_tips[ self.top1allele ] ) < min_altallele_count ):
+                self.bq_set_T[ self.top1allele ] = []
+                self.bq_set_C[ self.top1allele ] = []
+                self.n_reads_T[ self.top1allele ] = 0
+                self.n_reads_C[ self.top1allele ] = 0
+                self.n_reads[ self.top1allele ] = 0
+                self.n_tips[ self.top1allele ] = 0
+
+        if self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ] == 0:
+            self.filterout = True
+            return
 
         self.top12alleles_ratio = ( self.n_reads[ self.top1allele ] + self.n_reads[ self.top2allele ] ) /  sum( self.n_reads.values() )
         if self.top12alleles_ratio < min_top12alleles_ratio:
             self.filterout = True
-        if self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ] == 0:
-            self.filterout = True
+            return
+
         if self.top1allele == self.ref_allele and self.n_reads[ self.top2allele ] == 0:
             # This means this position only contains top1allele which is the ref_allele. So the GT must be 0/0
             self.type = "homo_ref"
             self.filterout = True
-
+            return
         return
 
     cpdef void top12alleles ( self ):
