@@ -21,7 +21,7 @@
  *  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  *  OTHER DEALINGS IN THE SOFTWARE.
- */
+b */
 
 #include <float.h>
 #include <math.h>
@@ -42,42 +42,41 @@ typedef struct {
 // prev holds the coordinates of the previous cell in the matrix.
 typedef struct {
   double score;
+  unsigned int ngap_v;
+  unsigned int ngap_h;
   unsigned int prev[2];
 } entry_t;
 
 typedef struct {
-  unsigned int m;
-  unsigned int n;
-  entry_t **mat;
+  unsigned int m;		/* length of seq1 */
+  unsigned int n;		/* length of seq2 */
+  entry_t **mat;		/* content of matrix */
 } matrix_t;
 
 typedef struct {
   seq_pair_t *seqs;
+  char *markup;
   int start_a;
   int start_b;
   int end_a;
   int end_b;
   int matches;
+  int gaps;
   double score;
 } align_t;
 
-static char* reverse(char *str);
+static char* reverse(char *str, unsigned int l);
 
 static char get_char_comp(char c);
 
 char* revcomp(char *str);
 
-static align_t *traceback(seq_pair_t *problem, matrix_t *S, bool local);
-
-static matrix_t *create_matrix(unsigned int m, unsigned int n);
-
-void destroy_matrix(matrix_t *S);
-
-void print_matrix(matrix_t *matrix, seq_pair_t *seq_pair);
+static align_t *traceback(seq_pair_t *problem, unsigned short *S, int row, int col, float score, unsigned short *ngap_vertical, unsigned short *ngap_horizontal);
 
 void destroy_seq_pair(seq_pair_t *pair);
 
-// align_t *smith_waterman(seq_pair_t *problem, bool local);
+void destroy_align(align_t *ali);
+
 align_t *smith_waterman(seq_pair_t *problem);
 
-void print_alignment(align_t *result, int target_len, int query_len);
+void print_alignment(align_t *result);

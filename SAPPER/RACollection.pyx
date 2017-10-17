@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-28 15:13:34 Tao Liu>
+# Time-stamp: <2017-10-17 16:33:07 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -104,14 +104,17 @@ cdef extern from "swalign.h":
         unsigned int blen
     ctypedef struct align_t:
         seq_pair_t *seqs
+        char *markup;
         int start_a
         int start_b
         int end_a
         int end_b
         int matches
+        int gaps
         double score
     align_t *smith_waterman(seq_pair_t *problem)
     void destroy_seq_pair(seq_pair_t *pair)
+    void destroy_align(align_t *ali)
     
 # ------------------------------------
 # constants
@@ -598,6 +601,7 @@ cdef class RACollection:
             score_f = results.score
             free( results.seqs.a )
             free( results.seqs.b )
+            free( results.markup )
             free( results )
             # end of local alignment
             
@@ -614,6 +618,7 @@ cdef class RACollection:
             score_r = results.score
             free( results.seqs.a )
             free( results.seqs.b )
+            free( results.markup )
             free( results )
             # end of local alignment
 

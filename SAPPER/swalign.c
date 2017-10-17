@@ -1,4 +1,5 @@
-/*
+/*  
+ *  Copyright (c) 2017 Tao Liu
  *  Copyright (c) 2010 Nicolaus Lance Hepler
  *  
  * 
@@ -29,26 +30,30 @@
 
 #include "swalign.h"
 
-#define GAP -1.0
-#define MATCH 2.0
-#define MISMATCH -0.5
+#define GAPO 10.0
+#define GAPE 1
+#define MATCH 5.0
+#define MISMATCH 0
 //             ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz
 #define TRANS "TVGHEFCDIJMLKNOPQYWAABSXRZ[\\]^_`tvghefcdijmlknopqywaabsxrz"
 #define TRANS_OFFSET 65
 
+#define STOP 0
+#define LEFT 1
+#define DIAGONAL 2
+#define UP 3
 
-// /* reverse a string in place, return str */
-static char* reverse(char *str) {
+// /* reverse a string str0 in place, return str */
+static char* reverse(char *str, unsigned int l) {
   char *left  = str;
-  char *right = left + strlen(str) - 1;
+  char *right = left + l - 1;
   char tmp;
-
   while (left < right) {
     tmp        = *left;
     *(left++)  = *right;
     *(right--) = tmp;
   }
-
+  *(str+l) = '\0';
   return str;
 }
 
@@ -78,176 +83,101 @@ static char get_char_comp(char c) {
   }
 }
 
-// // works globally
-// Note: Currently the "local" flag isn't functional. It seems to always do a local alignment.
-static align_t *traceback(seq_pair_t *problem, matrix_t *S, bool local) {
+// return the alignment of two sequences
+static align_t *traceback(seq_pair_t *problem, unsigned short *S, int row, int col, float score, unsigned short *ngap_vertical, unsigned short *ngap_horizontal) {
+  unsigned int l, l2;
+  unsigned int m = problem->alen + 1;
+  unsigned int n = problem->blen + 1;
   align_t *result = malloc(sizeof(align_t));
   seq_pair_t *seqs = malloc(sizeof(seq_pair_t));
-  unsigned int i    = S->m - 1;
-  unsigned int j    = S->n - 1;
-  unsigned int k    = 0;
-  // Create output strings. Allocate maximum potential length.
-  char c[S->m + S->n + 1];
-  char d[S->m + S->n + 1];
 
-  memset(c, '\0', sizeof(c));
-  memset(d, '\0', sizeof(d));
+  int max_len = problem->alen + problem->blen; /* maximum length of alignment */
 
-  // This wasn't finished by NLH. Not functioning correctly yet.
-  // It seems the purpose is to start the traceback from the place where the score reaches its
-  // maximum instead of the very end (set i and j to those coordinates).
-  if (local == true) {
-    unsigned int l, m;
-    double max = FLT_MIN;
+  char reversed1[max_len];	/* reversed sequence #1 */
+  char reversed2[max_len];	/* reversed sequence #2 */
+  char reversed3[max_len];	/* reversed markup */
 
-    for (l = 0; l < S->m; l++) {
-      for (m = 0; m < S->n; m++) {
-        if (S->mat[l][m].score > max) {
-          i = l;
-          j = m;
-          max = S->mat[l][m].score;
-        } 
-      } 
+  unsigned int len1 = 0;	/* length of seq #1 in alignment */
+  unsigned int len2 = 0;	/* length of seq #2 in alignment */
+  unsigned int len3 = 0;	/* length of the markup line in alignment */  
+
+  unsigned int identity = 0; // count of identitcal pairs
+  unsigned int gaps = 0; // count of gaps
+
+  char c1, c2;
+
+  int i = row; // traceback start row
+  int j = col; // traceback start col
+  int k = i * n;
+  bool still_going = true; // traceback flag: true -> continue & false -> stop
+
+  while ( still_going ) {
+    switch ( S[k+j] ) {
+    case UP:
+      for (l = 0, l2 = ngap_vertical[k + j]; l < l2; l++) {
+	reversed1[len1++] = problem->a[--i];
+	reversed2[len2++] = '-';
+	reversed3[len3++] = ' ';
+	k -= n;
+	gaps++;
+      }
+      break;
+    case DIAGONAL:
+      c1 = problem->a[--i];
+      c2 = problem->b[--j];
+      k -= n;
+      reversed1[len1++] = c1;
+      reversed2[len2++] = c2;
+      if (c1 == c2) {
+	reversed3[len3++] = '|';
+	identity++;
+      } else
+	reversed3[len3++] = '.';
+      break;
+    case LEFT:
+      for (l = 0, l2 = ngap_horizontal[k + j]; l < l2; l++) {
+	reversed1[len1++] = '-';
+	reversed2[len2++] = problem->b[--j];
+	reversed3[len3++] = ' ';
+	gaps++;
+      }
+      break;
+    case STOP:
+      still_going = false;
     }
   }
 
-  double score = DBL_MIN;
-  int matches = 0;
-  int start_a = 0;
-  int start_b = 0;
-  int end_a = 0;
-  int end_b = 0;
-  bool move_i = false;
-  bool move_j = false;
-  // Walk back through the matrix from the end, taking the path determined by the "prev" values of
-  // each cell. Assemble the sequence along the way.
-  if (S->mat[i][j].prev[0] != 0 && S->mat[i][j].prev[1] != 0) {
-    while (i > 0 || j > 0) {
-      unsigned int new_i = S->mat[i][j].prev[0];
-      unsigned int new_j = S->mat[i][j].prev[1];
+  seqs->a = malloc(sizeof(char) * (len1 + 1) );
+  seqs->b = malloc(sizeof(char) * (len2 + 1) );
+  result->markup = malloc(sizeof(char) * (len3 + 1) ); 
   
-      // If we've moved in the i axis, add the new base to the sequence. Otherwise, it's a gap.
-      if (new_i < i) {
-        *(c+k) = *(problem->a+i-1);
-        move_i = true;
-      } else {
-        *(c+k) = '-';
-        move_i = false;
-      }
-  
-      // If we've moved in the j axis, add the new base to the sequence. Otherwise, it's a gap.
-      if (new_j < j) {
-        *(d+k) = *(problem->b+j-1);
-        move_j = true;
-      } else {
-        *(d+k) = '-';
-        move_j = false;
-      }
+  memset(seqs->a, '\0', sizeof(char) * (len1 + 1));
+  memset(seqs->b, '\0', sizeof(char) * (len2 + 1));
+  memset(result->markup, '\0', sizeof(char) * (len3 + 1) );
 
-      if (S->mat[i][j].score > score) {
-        score = S->mat[i][j].score;
-      }
+  reverse(reversed1, len1);
+  reverse(reversed2, len2);
+  reverse(reversed3, len3);
 
-      if (move_i && move_j) {
-        if (*(c+k) == *(d+k)) {
-          matches++;
-        }
-        // Start and end of each sequence are in the coordinates of the other sequence.
-        start_a = new_j + 1;
-        start_b = new_i + 1;
-        if (! end_a) {
-          end_a = new_j + 1;
-        }
-        if (! end_b) {
-          end_b = new_i + 1;
-        }
-      }
-  
-      k++;
-  
-      i = new_i;
-      j = new_j;
-    }
-  }
-
-  seqs->a = malloc(sizeof(char) * k + 1);
-  seqs->b = malloc(sizeof(char) * k + 1);
-
-  memset(seqs->a, '\0', sizeof(seqs->a));
-  memset(seqs->b, '\0', sizeof(seqs->b));
-
-  reverse(c);
-  reverse(d);
-
-  strcpy(seqs->a, c);
-  strcpy(seqs->b, d);
+  strcpy(seqs->a, reversed1);
+  strcpy(seqs->b, reversed2);
+  strcpy(result->markup, reversed3);
 
   seqs->alen = k;
   seqs->blen = k;
 
   result->seqs = seqs;
   result->score = score;
-  result->matches = matches;
-  result->start_a = start_a;
-  result->start_b = start_b;
-  result->end_a = end_a;
-  result->end_b = end_b;
+  result->matches = identity;
+  result->gaps = gaps;
+  result->start_a = i;
+  result->start_b = j;
+  result->end_a = row;
+  result->end_b = col;
 
+  //printf("%d %d %d",len1, len2, len3);
+  
   return result; 
-}
-
-static matrix_t *create_matrix(unsigned int m, unsigned int n) {
-  matrix_t *S = malloc(sizeof(matrix_t));
-  unsigned int i;
-
-  S->m = m;
-  S->n = n;
-
-  S->mat = malloc(sizeof(entry_t) * m * n);
-
-  for (i = 0; i < m; i++) {
-    S->mat[i] = malloc(sizeof(entry_t) * n);
-  }
-
-  return S;
-}
-
-void destroy_matrix(matrix_t *S) {
-  unsigned int i;
-  for (i = 0; i < S->m; i++) {
-    free(S->mat[i]);
-  }
-  free(S->mat);
-  free(S);
-  return;
-}
-
-// Print a visual representation of the path through the matrix.
-void print_matrix(matrix_t *matrix, seq_pair_t *seq_pair) {
-  int i, j;
-  for (i = 0; i < matrix->m; i++) {
-    if (i == 0) {
-      printf("\t\t");
-      for (j = 0; j < seq_pair->blen; j++) {
-        printf("%c\t", seq_pair->b[j]);
-      }
-      printf("\n");
-      printf("        ");
-      for (j = 0; j < matrix->n; j++) {
-        printf("%d\t", j);
-      }
-      printf("\n");
-    }
-    if (i == 0) {
-      printf("     0  ");
-    } else {
-      printf("%c %4d  ", seq_pair->a[i-1], i);
-    }
-    for (j = 0; j < matrix->n; j++) {
-      printf("%d,%d|%0.0f\t", matrix->mat[i][j].prev[0], matrix->mat[i][j].prev[1], matrix->mat[i][j].score);
-    }
-    printf("\n");
-  }
 }
 
 void destroy_seq_pair(seq_pair_t *pair) {
@@ -257,81 +187,141 @@ void destroy_seq_pair(seq_pair_t *pair) {
   return;
 }
 
+void destroy_align(align_t *ali) {
+  destroy_seq_pair( ali->seqs );
+  free(ali->markup);
+  return;
+}
+
 //align_t *smith_waterman(seq_pair_t *problem, bool local) {
 align_t *smith_waterman(seq_pair_t *problem) {
-  bool local = false;
   unsigned int m = problem->alen + 1;
   unsigned int n = problem->blen + 1;
-  matrix_t *S = create_matrix(m, n);
+
+  /* traceback matrix */
+  unsigned short *S = malloc(sizeof(unsigned short) * m * n); /* 0 = STOP; 1 = LEFT; 2 = DIAGONAL; 3 = UP */
+
+  /* number of vertical gaps for each cell */
+  unsigned short *ngap_vertical = malloc(sizeof(unsigned short) * m * n);
+  /* number of horizontal gaps for each cell */
+  unsigned short *ngap_horizontal = malloc(sizeof(unsigned short) * m * n);
+
   align_t *result;
   unsigned int i, j, k, l;
 
-  S->mat[0][0].score   = 0;
-  S->mat[0][0].prev[0] = 0;
-  S->mat[0][0].prev[1] = 0;
+  float f;			         /* score of final alignment */
+  float * g = malloc(sizeof(float) * n); /* score if x_i aligns to a gap after y_i */
+  float h;			         /* score if y_i aligns to a gap after x_i */
+  float * v = malloc(sizeof(float) * n); /* best of score of alignment x_1 ... x_i to y_1 ... y_i */
+  float v_diagonal;
 
-  for (i = 1; i <= problem->alen; i++) {
-    S->mat[i][0].score   = 0.0;
-    S->mat[i][0].prev[0] = i-1;
-    S->mat[i][0].prev[1] = 0;
+  float sim_score, g1, g2, h1, h2;
+
+  /* row and col number, and score of optimal cell in the matrix */
+  unsigned int t_row, t_col;
+  float t_score;
+
+  /* Initialize traceback matrix */
+  for ( i = 0, k = 0; i < m; i++, k+= n )
+    S[k] = STOP;
+  for ( j = 1; j < n; j++ )
+    S[j] = STOP;
+
+  /* set number of gaps */
+  for (int i = 0, k = 0; i < m; i++, k += n)
+    for (int j = 0; j < n; j++)
+      ngap_vertical[k + j] = ngap_horizontal[k + j] = 1;
+  
+  
+  g[0] = -INFINITY;
+  h = -INFINITY;
+  v[0] = 0;
+
+  t_row = 0;
+  t_col = 0;
+  t_score = -INFINITY;
+
+  for ( j = 1; j < n; j++ ) {
+    g[j] = -INFINITY;
+    v[j] = 0;
   }
+  
+  for (int i = 1, k = n; i < m; i++, k += n) { /* i for row number/# on seq1; k for position of first column in m*n matrix; */
+    h = -INFINITY;
+    v_diagonal = v[0];
+    for (j = 1, l = k + 1; j < n; j++, l++) { /* j for column number/# on seq2; l for position of ith row jth column in m*n matrix; */
+      sim_score = (strncmp(problem->a+(i-1), problem->b+(j-1), 1) == 0) ? MATCH : MISMATCH;
 
-  for (j = 1; j <= problem->blen; j++) {
-    S->mat[0][j].score   = 0.0;
-    S->mat[0][j].prev[0] = 0;
-    S->mat[0][j].prev[1] = j-1;
-  }
+      /* set direction in traceback matrix */
+      f = v_diagonal + sim_score;
 
-  for (i = 1; i <= problem->alen; i++) {
-    for (j = 1; j <= problem->blen; j++) {
-      int nw_score = (strncmp(problem->a+(i-1), problem->b+(j-1), 1) == 0) ? MATCH : MISMATCH;
+      g1 = g[j] - GAPE;
+      g2 = v[j] - GAPO;
 
-      S->mat[i][j].score   = DBL_MIN;
-      S->mat[i][j].prev[0] = 0;
-      S->mat[i][j].prev[1] = 0;
+      if ( g1 > g2 ) {		/* perfer gap extension in vertical direction (seq 1) */
+	g[j] = g1;
+	ngap_vertical[l] = (short) (ngap_vertical[l - n] + 1);
+      } else {			/* prefer gap openning */
+	g[j] = g2;
+      }
 
-      for (k = 0; k <= 1; k++) {
-        for (l = 0; l <= 1; l++) {
-          int val;
+      h1 = h - GAPE;
+      h2 = v[j-1] - GAPO;
 
-          if (k == 0 && l == 0) {
-            continue;
-          } else if (k > 0 && l > 0) {
-            val = nw_score; 
-          } else if (k > 0 || l > 0) {
-            if ((i == problem->alen && k == 0) ||
-                (j == problem->blen && l == 0))
-              val = 0.0;
-            else
-              val = GAP;
-          } else {
-            // do nothing..
-          }
+      if (h1 > h2) {		/* prefer gap extention in horizontal direction ( seq 2) */
+	h = h1;
+	ngap_horizontal[l] = (short) (ngap_horizontal[l - 1] + 1);
+      } else {
+	h = h2;
+      }
+	  
+      v_diagonal = v[j];
+      //v[j] = max( f, g[j], h, 0 ); /* the final score */
 
-          val += S->mat[i-k][j-l].score;
-
-          if (val > S->mat[i][j].score) {
-            S->mat[i][j].score   = val;
-            S->mat[i][j].prev[0] = i-k;
-            S->mat[i][j].prev[1] = j-l;
-          }
-        }
+      /* Determine the traceback direction */
+      if ( f <= 0 && g[j] <=0 && h <=0 ) { /* 0 is max */
+	  v[j] = 0;
+	  S[l] = STOP;
+	}
+      else if ( g[j] <= f && h <= f ) { /* or f is max */
+	v[j] = f;
+	S[l] = DIAGONAL;
+      }
+      else if ( h <= g[j]) { 	/* or g[j] is max */
+	v[j] = g[j];
+	S[l] = UP;
+      }
+      else {			/* or h is max */
+	v[j] = h;
+	S[l] = LEFT;
+      }
+      
+      // Set the traceback start at the current cell i, j and score
+      if (v[j] > t_score) {
+	t_row = i;
+	t_col = j;
+	t_score = v[j];
       }
     }
   }
 
-  result = traceback(problem, S, local);
+  result = traceback(problem, S, t_row, t_col, t_score, ngap_vertical, ngap_horizontal);
 
   // print_matrix(S, problem);
 
-  destroy_matrix(S);
-
+  free(S);
+  free(g);
+  free(v);
+  free(ngap_vertical);
+  free(ngap_horizontal);
+  
   return result;
 }
 
-void print_alignment(align_t *result, int target_len, int query_len) {
-  printf("Score: %0.0f  Matches: %d\n", result->score, result->matches);
+void print_alignment(align_t *result) {
+  printf("Score: %0.0f  Matches: %d Gaps: %d\n", result->score, result->matches, result->gaps);
   printf("Target: %3d %s %-3d\n", result->start_a, result->seqs->a, result->end_a);
+  printf("            %s     \n", result->markup);
   printf("Query:  %3d %s %-3d\n", result->start_b, result->seqs->b, result->end_b);
 }
 
@@ -357,7 +347,7 @@ int main(int argc, const char **argv) {
   
     result = smith_waterman(&problem);
   
-    print_alignment(result, problem.alen, problem.blen);
+    print_alignment(result);
   }
 
   exit(0);
