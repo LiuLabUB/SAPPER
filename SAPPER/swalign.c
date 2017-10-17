@@ -228,8 +228,8 @@ align_t *smith_waterman(seq_pair_t *problem) {
     S[j] = STOP;
 
   /* set number of gaps */
-  for (int i = 0, k = 0; i < m; i++, k += n)
-    for (int j = 0; j < n; j++)
+  for (i = 0, k = 0; i < m; i++, k += n)
+    for (j = 0; j < n; j++)
       ngap_vertical[k + j] = ngap_horizontal[k + j] = 1;
   
   
@@ -246,7 +246,7 @@ align_t *smith_waterman(seq_pair_t *problem) {
     v[j] = 0;
   }
   
-  for (int i = 1, k = n; i < m; i++, k += n) { /* i for row number/# on seq1; k for position of first column in m*n matrix; */
+  for (i = 1, k = n; i < m; i++, k += n) { /* i for row number/# on seq1; k for position of first column in m*n matrix; */
     h = -INFINITY;
     v_diagonal = v[0];
     for (j = 1, l = k + 1; j < n; j++, l++) { /* j for column number/# on seq2; l for position of ith row jth column in m*n matrix; */
