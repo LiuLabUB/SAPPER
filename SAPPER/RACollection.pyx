@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-17 16:33:07 Tao Liu>
+# Time-stamp: <2017-10-30 17:12:01 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -498,7 +498,7 @@ cdef class RACollection:
 
         fml_opt_init(opt)
         # k-mer length for error correction (0 for auto; -1 to disable)
-        # opt.ec_k = -1
+        #opt.ec_k = 0
 
         # min overlap length during initial assembly
         opt.min_asm_ovlp = fermiMinOverlap
@@ -523,7 +523,7 @@ cdef class RACollection:
         #opt.mag_opt.min_ovlp = fermiMinOverlap
 
         # drop an overlap if its length is below maxOvlpLen*FLOAT
-        opt.mag_opt.min_dratio1 = 0.5
+        #opt.mag_opt.min_dratio1 = 0.5
 
         # retain a bubble if one side is longer than the other side by >INT-bp
         #opt.mag_opt.max_bdiff = 10#merge_min_len
@@ -578,9 +578,11 @@ cdef class RACollection:
             bytes reference
             bytes target_aln_f, target_aln_r
             bytes reference_aln_f, reference_aln_r
+            bytes markup_aln_f, markup_aln_r
             double score_f, score_r
             list target_alns = []
             list reference_alns = []
+            list markup_alns = []
             list aln_scores = []
             int i
 
@@ -598,6 +600,7 @@ cdef class RACollection:
             results = smith_waterman( &problem )
             target_aln_f = results.seqs.a
             reference_aln_f = results.seqs.b
+            markup_aln_f = results.markup
             score_f = results.score
             free( results.seqs.a )
             free( results.seqs.b )
@@ -615,6 +618,7 @@ cdef class RACollection:
             results = smith_waterman( &problem )
             target_aln_r = results.seqs.a
             reference_aln_r = results.seqs.b
+            markup_aln_r = results.markup
             score_r = results.score
             free( results.seqs.a )
             free( results.seqs.b )
@@ -625,16 +629,39 @@ cdef class RACollection:
             if score_f > score_r:
                 target_alns.append( target_aln_f )
                 reference_alns.append( reference_aln_f )
+                markup_alns.append( markup_aln_f )
                 aln_scores.append( score_f )
             else:
                 target_alns.append( target_aln_r )
                 reference_alns.append( reference_aln_r )
+                markup_alns.append( markup_aln_r )                
                 aln_scores.append( score_r )
                 # we will revcomp unitig
                 unitig = unitig[::-1]
                 unitig_list[ i ] = unitig.translate( __DNACOMPLEMENT__ )
             
-        return ( target_alns, reference_alns, aln_scores )
+        return ( target_alns, reference_alns, aln_scores, markup_alns )
+
+    cdef verify_alns( self, unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns, float min_score_100 = 150 ):
+        """Remove aln/unitig if it contains too many edits in a small region
+
+        default min score is 150, which means under 2/-3/-5/-2 scoring schema, there are 10 mismatches within 100bps region.
+        """
+        cdef:
+            int i
+        for i in range( len( unitig_list )-1, -1, -1 ):
+            #print i, aln_scores[ i ]
+            #print unitig_alns[ i ]
+            #print markup_alns[ i ]
+            #print reference_alns[ i ]
+            if aln_scores[ i ] * 100 /len( markup_alns[ i ] ) < min_score_100:
+                unitig_list.pop( i )
+                unitig_alns.pop( i )
+                reference_alns.pop( i )
+                aln_scores.pop( i )
+                markup_alns.pop( i )
+        return
+            
 
     cdef tuple filter_unitig_with_bad_aln ( self, list unitig_list, list target_alns, list reference_alns, float gratio = 0.25  ):
         """Remove unitigs that has too much gaps (both on target and reference) during alignments. 
@@ -732,7 +759,7 @@ cdef class RACollection:
             long start, end
             list unitigs_2nd
             bytes u
-            list target_alns, reference_alns, aln_scores
+            list target_alns, reference_alns, aln_scores, markup_alns
             list target_alns_2nd, reference_alns_2nd, aln_scores_2nd
             list RAlists_T = [] # lists of list of RAs of ChIP mapped to each unitig
             list RAlists_C = []
@@ -758,7 +785,9 @@ cdef class RACollection:
         n_unitigs_1 = len( unitig_list )
         print " # of Unitigs:", n_unitigs_1
         print " Map reads to unitigs"
-        ( unitig_alns, reference_alns, aln_scores) = self.align_unitig_to_REFSEQ( unitig_list )
+        ( unitig_alns, reference_alns, aln_scores, markup_alns) = self.align_unitig_to_REFSEQ( unitig_list )
+
+        self.verify_alns( unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns )
 
         # assign RAs to unitigs
         [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
@@ -769,11 +798,11 @@ cdef class RACollection:
         while len( unmapped_RAlist_T ) > 0 and n_unitigs_1 != n_unitigs_0:
             # if there are unmapped reads AND we can get more unitigs
             # from last round of assembly, do assembly again
+
             print " # of RAs not mapped, will be assembled again:", n_unmapped
             n_unitigs_0 = n_unitigs_1
             # another round of assembly
             unmapped_ra_collection = RACollection( self.chrom, self.peak, unmapped_RAlist_T, unmapped_RAlist_C )
-            print " extra round to assemble more unitigs"
             unitigs_2nd = unmapped_ra_collection.fermi_assemble( fermiMinOverlap, opt_flag = 0x80 )
 
             if unitigs_2nd:
@@ -781,10 +810,31 @@ cdef class RACollection:
                 n_unitigs_1 = len( unitig_list )
                 print " # of Unitigs:", n_unitigs_1
                 print " Map reads to unitigs"
-                ( unitig_alns, reference_alns, aln_scores ) = self.align_unitig_to_REFSEQ( unitig_list )
+                ( unitig_alns, reference_alns, aln_scores, markup_alns ) = self.align_unitig_to_REFSEQ( unitig_list )
+                self.verify_alns( unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns )
                 [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
                 n_unmapped = len( unmapped_RAlist_T ) + len( unmapped_RAlist_C )
+            #else:
+            #    for r in unmapped_RAlist_T:
+            #        print r.get_FASTQ().decode().lstrip()
 
+            print " # of RAs not mapped, will be assembled again with 1/2 of fermiMinOverlap:", n_unmapped
+            # another round of assembly
+            unmapped_ra_collection = RACollection( self.chrom, self.peak, unmapped_RAlist_T, unmapped_RAlist_C )
+            unitigs_2nd = unmapped_ra_collection.fermi_assemble( fermiMinOverlap/2, opt_flag = 0x80 )
+
+            if unitigs_2nd:
+                unitig_list = self.add_to_unitig_list ( unitig_list, unitigs_2nd )
+                n_unitigs_1 = len( unitig_list )
+                print " # of Unitigs:", n_unitigs_1
+                print " Map reads to unitigs"
+                ( unitig_alns, reference_alns, aln_scores, markup_alns ) = self.align_unitig_to_REFSEQ( unitig_list )
+                self.verify_alns( unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns )
+                [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
+                n_unmapped = len( unmapped_RAlist_T ) + len( unmapped_RAlist_C )
+            #else:
+            #    for r in unmapped_RAlist_T:
+            #        print r.get_FASTQ().decode().lstrip()                    
 
         print " Final round: # of RAs not mapped:", n_unmapped
         #print unmapped_ra_collection.get_FASTQ().decode()

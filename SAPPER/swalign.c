@@ -30,10 +30,10 @@
 
 #include "swalign.h"
 
-#define GAPO 10.0
-#define GAPE 1
-#define MATCH 5.0
-#define MISMATCH 0
+#define GAPO -5.0
+#define GAPE -2.0
+#define MATCH 2.0
+#define MISMATCH -3.0		/* the scoring parameters are from BLASTN default */
 //             ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz
 #define TRANS "TVGHEFCDIJMLKNOPQYWAABSXRZ[\\]^_`tvghefcdijmlknopqywaabsxrz"
 #define TRANS_OFFSET 65
@@ -255,8 +255,8 @@ align_t *smith_waterman(seq_pair_t *problem) {
       /* set direction in traceback matrix */
       f = v_diagonal + sim_score;
 
-      g1 = g[j] - GAPE;
-      g2 = v[j] - GAPO;
+      g1 = g[j] + GAPE;
+      g2 = v[j] + GAPO;
 
       if ( g1 > g2 ) {		/* perfer gap extension in vertical direction (seq 1) */
 	g[j] = g1;
@@ -265,8 +265,8 @@ align_t *smith_waterman(seq_pair_t *problem) {
 	g[j] = g2;
       }
 
-      h1 = h - GAPE;
-      h2 = v[j-1] - GAPO;
+      h1 = h + GAPE;
+      h2 = v[j-1] + GAPO;
 
       if (h1 > h2) {		/* prefer gap extention in horizontal direction ( seq 2) */
 	h = h1;

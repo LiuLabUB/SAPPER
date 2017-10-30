@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-29 16:40:54 Tao Liu>
+# Time-stamp: <2017-10-30 16:59:30 Tao Liu>
 
 """Module for SAPPER PosReadsInfo class.
 
@@ -245,8 +245,9 @@ cdef class PosReadsInfo:
         # dictionaries to [] and ignore top2 allele entirely.
  
         # max(self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top2allele ]) < min_altallele_count
-
-        if ( self.top2allele != self.ref_allele and ( ( self.n_reads_T[ self.top2allele ] - self.n_tips[ self.top2allele ] ) < min_altallele_count ) or \
+        #if self.ref_pos == 52608504:
+        #    print self.ref_pos, self.n_reads_T[ self.top1allele ], self.n_reads_T[ self.top2allele ], self.n_reads_C[ self.top1allele ], self.n_reads_C[ self.top2allele ]
+        if (len(self.top1allele)==1 and len(self.top2allele)==1) and ( self.top2allele != self.ref_allele and ( ( self.n_reads_T[ self.top2allele ] - self.n_tips[ self.top2allele ] ) < min_altallele_count ) or \
                 self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar ):
             self.bq_set_T[ self.top2allele ] = []
             self.bq_set_C[ self.top2allele ] = []
@@ -560,7 +561,8 @@ cdef class PosReadsInfo:
         cdef:
             object v
 
-        v = Variant( self.ref_allele.decode(),
+        v = Variant( 
+                     self.ref_allele.decode(),
                      self.alt_allele.decode(),
                      self.GQ,
                      '.',

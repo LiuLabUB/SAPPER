@@ -1,4 +1,4 @@
-# Time-stamp: <2017-09-27 14:59:53 Tao Liu>
+# Time-stamp: <2017-10-30 16:53:03 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 
@@ -22,6 +22,7 @@ from cpython cimport bool
 
 cdef class Variant:
     cdef:
+        long v_ref_pos
         str v_ref_allele
         str v_alt_allele
         int v_GQ
@@ -57,6 +58,7 @@ cdef class Variant:
                    int PLUS1T, int PLUS2T, int MINUS1T, int MINUS2T, 
                    float deltaBIC, float BIC_homo_major, float BIC_homo_minor, float BIC_heter_noAS, float BIC_heter_AS,
                    float AR, str GT, int DP, int PL_00, int PL_01, int PL_11):
+        #self.v_ref_pos = ref_pos
         self.v_ref_allele = ref_allele
         self.v_alt_allele = alt_allele
         self.v_GQ = GQ
@@ -88,7 +90,8 @@ cdef class Variant:
         self.v_PL_11 = PL_11
 
     def __getstate__ ( self ):
-        return (        
+        return (
+            #self.v_ref_pos,
             self.v_ref_allele,
             self.v_alt_allele,
             self.v_GQ,
@@ -120,7 +123,8 @@ cdef class Variant:
             self.v_PL_11 )
 
     def __setstate__ ( self, state ):
-        ( self.v_ref_allele,
+        ( #self.v_ref_pos,
+          self.v_ref_allele,
           self.v_alt_allele,
           self.v_GQ,
           self.v_filter,
@@ -153,6 +157,10 @@ cdef class Variant:
     cpdef bool is_indel ( self ):
         if self.v_mutation_type.find("Insertion") != -1 or self.v_mutation_type.find("Deletion") != -1:
             return True
+
+    cpdef bool is_refer_biased_01 ( self, float ar=0.85 ):
+        if self.v_AR >= ar and self.v_ref_allele == self.v_top1allele:
+            return True
         
     cpdef str toVCF ( self ):
         return "\t".join( ( self.v_ref_allele, self.v_alt_allele, "%d" % self.v_GQ, self.v_filter,
@@ -170,41 +178,65 @@ cdef class Variant:
 
 cdef class PeakVariants:
     cdef:
-        list l_chrom
-        list l_p
-        list l_Variants
+        str chrom
+        dict d_Variants
 
-    def __init__ ( self ):
-        self.l_Variants = []
-        self.l_chrom = []
-        self.l_p = []
+    def __init__ ( self, str chrom ):
+        self.chrom = chrom
+        self.d_Variants = {}
 
     def __getstate__ ( self ):
-        return ( self.l_Variants, self.l_chrom, self.l_p )
+        return ( self.d_Variants, self.chrom )
 
     def __setstate__ ( self, state ):
-        ( self.l_Variants, self.l_chrom, self.l_p ) = state
+        ( self.d_Variants, self.chrom ) = state
 
-    cpdef add_Variant ( self, str chrom, long p, Variant v ):
-        self.l_chrom.append( chrom )
-        self.l_p.append( p )
-        self.l_Variants.append( v )
+    cpdef int n_variants ( self ):
+        return len(self.d_Variants)
+            
+    cpdef add_variant ( self, long p, Variant v ):
+        self.d_Variants[ p ] = v
 
     cpdef bool has_indel ( self ):
         cdef:
-            int i
-        for i in range( len(self.l_Variants) ):
-            if self.l_Variants[ i ].is_indel():
+            long p
+        for p in sorted( self.d_Variants.keys() ):
+            if self.d_Variants[ p ].is_indel():
                 return True
         return False
 
+    cpdef bool has_refer_biased_01 ( self ):
+        cdef:
+            long p 
+        for p in sorted( self.d_Variants.keys() ):
+            if self.d_Variants[ p ].is_refer_biased_01():
+                return True
+        return False
+
+    cpdef list get_refer_biased_01s ( self ):
+        cdef:
+            list ret_poss = []
+            long p
+        for p in sorted( self.d_Variants.keys() ):
+            if self.d_Variants[ p ].is_refer_biased_01():
+                ret_poss.append( p )
+        return ret_poss
+
+    cpdef remove_variant ( self, long p ):
+        assert p in self.d_Variants
+        self.d_Variants.pop( p )
+    
+    cpdef replace_variant ( self, long p, Variant v ):
+        assert p in self.d_Variants
+        self.d_Variants[ p ] = v
+    
     cpdef str toVCF ( self ):
         cdef:
-            int i
+            long p
             str res
         res = ""
-        for i in range( len(self.l_Variants) ):
-            res += "\t".join( ( self.l_chrom[ i ], str(self.l_p[ i ]+1), ".", self.l_Variants[ i ].toVCF() ) ) + "\n"
+        for p in sorted( self.d_Variants.keys() ):
+            res += "\t".join( ( self.chrom, str(p+1), ".", self.d_Variants[ p ].toVCF() ) ) + "\n"
         return res
             
         
