@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-30 16:49:03 Tao Liu>
+# Time-stamp: <2017-10-30 17:20:08 Tao Liu>
 
 """Description: sapper call
 
@@ -202,7 +202,7 @@ def run( args ):
 
                     P = mp.Pool( NP )
                     # this partial function will only be used in multiprocessing
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
 
                     ranges = []
                     for i in range( NP ):
@@ -295,7 +295,7 @@ def run( args ):
                     window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
                     P = mp.Pool( NP )
                     # this partial function will only be used in multiprocessing
-                    p_call_variants_at_range =  partial(call_variants_at_range, chrom=chrom, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
+                    p_call_variants_at_range =  partial(call_variants_at_range, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
                     ranges = []
                     for i in range( NP ):
                         l = i * window_size + ra_collection["left"]
