@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-30 16:53:03 Tao Liu>
+# Time-stamp: <2017-10-31 11:09:59 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-30 17:20:08 Tao Liu>
+# Time-stamp: <2017-10-31 10:34:32 Tao Liu>
 
 """Description: sapper call
 
@@ -225,7 +225,7 @@ def run( args ):
                         if ref_nt == b'N':
                             continue
                         PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-                        if PRI.raw_read_depth( opt="all" ) == 0: # skip if coverage is 0
+                        if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
                             continue
                         PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
                         t0 = time()
@@ -273,7 +273,7 @@ def run( args ):
                         peak_variants.remove_variant( i )
                         continue
                     PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-                    if PRI.raw_read_depth( opt="all" ) == 0: # skip if coverage is 0
+                    if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
                         peak_variants.remove_variant( i )                        
                         continue
                     PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
@@ -341,7 +341,7 @@ def call_variants_at_range ( lr, s, collection, top2allelesminr, max_allowed_ar,
             continue
 
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-        if PRI.raw_read_depth( opt="all" ) == 0: # skip if coverage is 0
+        if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
             continue
         PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
         #PRI.update_top_alleles( top2allelesminr )
