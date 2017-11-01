@@ -1,4 +1,4 @@
-# Time-stamp: <2017-11-01 13:13:13 Tao Liu>
+# Time-stamp: <2017-11-01 13:18:09 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 
@@ -267,14 +267,18 @@ cdef class PeakVariants:
 
     cpdef merge_continuous_dels ( self ):
         cdef:
-            long p0, p
-        p0 = -1
+            long p0, p1, p
+        p0 = -1                           #start of deletion chunk
+        p1 = -1                           #end of deletion chunk
         for p in sorted( self.d_Variants.keys() ):
-            if p == p0+1 and self.d_Variants[ p ].only_del() and self.d_Variants[ p0 ].only_del() :
+            if p == p1+1 and self.d_Variants[ p ].only_del() and self.d_Variants[ p0 ].only_del() :
                 # we keep p0, remove p, and add p's ref_allele to p0, keep other information as in p0
                 self.d_Variants[ p0 ]["ref_allele"] += self.d_Variants[ p ]["ref_allele"]
                 self.d_Variants.pop ( p )
-            p0 = p
+                p1 = p
+            else:
+                p0 = p
+                p1 = p
         return
                 
     cpdef str toVCF ( self ):
