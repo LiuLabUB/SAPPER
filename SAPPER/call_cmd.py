@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-31 10:34:32 Tao Liu>
+# Time-stamp: <2017-11-01 12:52:51 Tao Liu>
 
 """Description: sapper call
 
@@ -244,9 +244,13 @@ def run( args ):
                 # invoke fermi to assemble local sequence and filter out those can not be mapped to unitigs.
                 print ( " Assemble using fermi-lite")
                 unitig_collection = ra_collection.build_unitig_collection( fermiMinOverlap )
-                if not unitig_collection:
+                if unitig_collection == -1:
+                    print(" Too many mismatches found while assembling the sequence, we will skip this region entirely!")
+                    continue
+                elif unitig_collection == 0:
                     print ( "  Failed to assemble unitigs, fall back to previous results" )
                     if peak_variants.n_variants() > 0:
+                        peak_variants.merge_continuous_dels()
                         ovcf.write( peak_variants.toVCF() )
                         continue
                 #for u in unitig_collection["URAs_list"]:
@@ -256,6 +260,7 @@ def run( args ):
             else:
                 # if we do not assemble, write results now
                 if peak_variants.n_variants() > 0:
+                    peak_variants.merge_continuous_dels()                    
                     ovcf.write( peak_variants.toVCF() )
                     continue
 
@@ -284,6 +289,7 @@ def run( args ):
                     else:
                         peak_variants.remove_variant( i )
                 if peak_variants.n_variants() > 0:
+                    peak_variants.merge_continuous_dels()
                     ovcf.write( peak_variants.toVCF() )
                     continue
 
@@ -327,6 +333,7 @@ def run( args ):
                             peak_variants.add_variant( i, PRI.toVariant() )
                                 
                 if peak_variants.n_variants() > 0:
+                    peak_variants.merge_continuous_dels()
                     ovcf.write( peak_variants.toVCF() )
 
     #print ("time to retrieve read alignment information from BAM:",t_prepare_ra,"(",round( 100 * t_prepare_ra/t_total, 2),"% )")

@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-30 17:12:01 Tao Liu>
+# Time-stamp: <2017-11-01 12:49:08 Tao Liu>
 
 """Module for SAPPER BAMParser class
 
@@ -778,17 +778,21 @@ cdef class RACollection:
         # first round of assembly
         print " First round to assemble unitigs"
         unitig_list = self.fermi_assemble( fermiMinOverlap, opt_flag = 0x80 )
-        if unitig_list == []:
-            return None
+        if len(unitig_list) == 0:
+            return 0
 
         n_unitigs_0 = -1
         n_unitigs_1 = len( unitig_list )
-        print " # of Unitigs:", n_unitigs_1
-        print " Map reads to unitigs"
+        #print " # of Unitigs:", n_unitigs_1
+        #print " Map reads to unitigs"
         ( unitig_alns, reference_alns, aln_scores, markup_alns) = self.align_unitig_to_REFSEQ( unitig_list )
 
         self.verify_alns( unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns )
-
+        if len(unitig_list) == 0:
+            # if stop here, it raises a flag that the region may contain too many mismapped reads, we return -1
+            return -1
+        print " # of Unitigs:", n_unitigs_1
+        
         # assign RAs to unitigs
         [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
         #print unmapped_ra_collection.get_FASTQ().decode()
@@ -808,8 +812,8 @@ cdef class RACollection:
             if unitigs_2nd:
                 unitig_list = self.add_to_unitig_list ( unitig_list, unitigs_2nd )
                 n_unitigs_1 = len( unitig_list )
-                print " # of Unitigs:", n_unitigs_1
-                print " Map reads to unitigs"
+                #print " # of Unitigs:", n_unitigs_1
+                #print " Map reads to unitigs"
                 ( unitig_alns, reference_alns, aln_scores, markup_alns ) = self.align_unitig_to_REFSEQ( unitig_list )
                 self.verify_alns( unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns )
                 [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
@@ -826,18 +830,24 @@ cdef class RACollection:
             if unitigs_2nd:
                 unitig_list = self.add_to_unitig_list ( unitig_list, unitigs_2nd )
                 n_unitigs_1 = len( unitig_list )
-                print " # of Unitigs:", n_unitigs_1
-                print " Map reads to unitigs"
+                #print " # of Unitigs:", n_unitigs_1
+                #print " Map reads to unitigs"
                 ( unitig_alns, reference_alns, aln_scores, markup_alns ) = self.align_unitig_to_REFSEQ( unitig_list )
                 self.verify_alns( unitig_list, unitig_alns, reference_alns, aln_scores, markup_alns )
                 [ RAlists_T, RAlists_C, unmapped_RAlist_T, unmapped_RAlist_C ] = self.remap_RAs_w_unitigs( unitig_list )
                 n_unmapped = len( unmapped_RAlist_T ) + len( unmapped_RAlist_C )
             #else:
             #    for r in unmapped_RAlist_T:
-            #        print r.get_FASTQ().decode().lstrip()                    
+            #        print r.get_FASTQ().decode().lstrip()
+            if len(unitig_list) == 0:
+                raise Exception("Shouldn't reach here")
+                return None
+            print " # of Unitigs:", n_unitigs_1
 
+        if len(unitig_list) == 0:
+            return None
+        print " Final round: # of Unitigs:", len(unitig_list)
         print " Final round: # of RAs not mapped:", n_unmapped
-        #print unmapped_ra_collection.get_FASTQ().decode()
 
         start = min( self.left, self.RAs_left )
         end = max( self.right, self.RAs_right )

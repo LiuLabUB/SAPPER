@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-31 11:09:59 Tao Liu>
+# Time-stamp: <2017-11-01 12:46:00 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 
@@ -157,10 +157,44 @@ cdef class Variant:
     cpdef bool is_indel ( self ):
         if self.v_mutation_type.find("Insertion") != -1 or self.v_mutation_type.find("Deletion") != -1:
             return True
+        else:
+            return False
 
+    cpdef bool only_del ( self ):
+        if self.v_mutation_type == "Deletion":
+            return True
+        else:
+            return False
+
+    def __getitem__ ( self, keyname ):
+        if keyname == "ref_allele":
+            return self.v_ref_allele
+        elif keyname == "alt_allele":
+            return self.v_alt_allele
+        elif keyname == "type":
+            return self.type
+        elif keyname == "mutation_type":
+            return self.mutation_type
+        else:
+            raise Exception("keyname is not accessible:", keyname)
+
+    def __setitem__ ( self, keyname, v ):
+        if keyname == "ref_allele":
+            self.v_ref_allele = v
+        elif keyname == "alt_allele":
+            self.v_alt_allele = v
+        elif keyname == "type":
+            self.type = v
+        elif keyname == "mutation_type":
+            self.mutation_type = v
+        else:
+            raise Exception("keyname is not accessible:", keyname)        
+        
     cpdef bool is_refer_biased_01 ( self, float ar=0.85 ):
         if self.v_AR >= ar and self.v_ref_allele == self.v_top1allele:
             return True
+        else:
+            return False
         
     cpdef str toVCF ( self ):
         return "\t".join( ( self.v_ref_allele, self.v_alt_allele, "%d" % self.v_GQ, self.v_filter,
@@ -229,7 +263,21 @@ cdef class PeakVariants:
     cpdef replace_variant ( self, long p, Variant v ):
         assert p in self.d_Variants
         self.d_Variants[ p ] = v
-    
+
+
+    cpdef merge_continuous_dels ( self ):
+        cdef:
+            long p0, p
+        p0 = -1
+        for p in sorted( self.d_Variants.keys() ):
+            if p == p0+1 and self.d_Variants[ p ].only_del() and self.d_Variants[ p0 ].only_del() :
+                # we keep p0, remove p, and add p's ref_allele to p0, keep other information as in p0
+                self.d_Variants[ p0 ]["ref_allele"] += self.d_Variants[ p ]["ref_allele"]
+                self.d_Variants.pop ( p )
+            else:
+                p0 = p
+        return
+                
     cpdef str toVCF ( self ):
         cdef:
             long p
