@@ -1,4 +1,4 @@
-# Time-stamp: <2017-11-01 12:46:00 Tao Liu>
+# Time-stamp: <2017-11-01 13:13:13 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 
@@ -274,8 +274,7 @@ cdef class PeakVariants:
                 # we keep p0, remove p, and add p's ref_allele to p0, keep other information as in p0
                 self.d_Variants[ p0 ]["ref_allele"] += self.d_Variants[ p ]["ref_allele"]
                 self.d_Variants.pop ( p )
-            else:
-                p0 = p
+            p0 = p
         return
                 
     cpdef str toVCF ( self ):
