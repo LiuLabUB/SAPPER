@@ -1,4 +1,4 @@
-# Time-stamp: <2017-10-30 16:59:30 Tao Liu>
+# Time-stamp: <2017-11-07 14:22:03 Tao Liu>
 
 """Module for SAPPER PosReadsInfo class.
 
@@ -105,14 +105,14 @@ cdef class PosReadsInfo:
     def __init__ ( self, long ref_pos, bytes ref_allele ):
         self.ref_pos = ref_pos
         self.ref_allele = ref_allele
-        self.bq_set_T = { ref_allele:[],b'A':[], b'C':[], b'G':[], b'T':[], b'N':[] }
-        self.bq_set_C = { ref_allele:[],b'A':[], b'C':[], b'G':[], b'T':[], b'N':[] }
-        self.n_reads_T = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
-        self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
-        self.n_reads =  { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
-        self.n_strand = [ { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }, { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 } ]
-        self.n_tips = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
-        self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0 }
+        self.bq_set_T = { ref_allele:[],b'A':[], b'C':[], b'G':[], b'T':[], b'N':[], b'*':[] }
+        self.bq_set_C = { ref_allele:[],b'A':[], b'C':[], b'G':[], b'T':[], b'N':[], b'*':[] }
+        self.n_reads_T = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0, b'*':0 }
+        self.n_reads_C = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0, b'*':0 }
+        self.n_reads =  { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0, b'*':0 }
+        self.n_strand = [ { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0, b'*':0 }, { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0, b'*':0 } ]
+        self.n_tips = { ref_allele:0,b'A':0, b'C':0, b'G':0, b'T':0, b'N':0, b'*':0 }
+        
 
     #cpdef void merge ( self, PosReadsInfo PRI2 ):
     #    """Merge two PRIs. No check available.
@@ -188,7 +188,7 @@ cdef class PosReadsInfo:
         """
         if read_bq <= Q:
             return
-        if not self.bq_set_T.has_key( read_allele ):
+        if not self.n_reads.has_key( read_allele ):
             self.bq_set_T[read_allele] = []
             self.bq_set_C[read_allele] = []
             self.n_reads_T[read_allele] = 0
@@ -206,7 +206,7 @@ cdef class PosReadsInfo:
     cpdef void add_C ( self, int read_index, bytes read_allele, int read_bq, int strand, int Q=20 ):
         if read_bq <= Q:
             return
-        if not self.bq_set_C.has_key( read_allele ):
+        if not self.n_reads.has_key( read_allele ):
             self.bq_set_T[read_allele] = []
             self.bq_set_C[read_allele] = []
             self.n_reads_T[read_allele] = 0
@@ -214,6 +214,7 @@ cdef class PosReadsInfo:
             self.n_reads[read_allele] = 0
             self.n_strand[ 0 ][ read_allele ] = 0
             self.n_strand[ 1 ][ read_allele ] = 0
+            self.n_tips[read_allele] = 0
         self.bq_set_C[read_allele].append( read_bq )
         self.n_reads_C[ read_allele ] += 1
         self.n_reads[ read_allele ] += 1
