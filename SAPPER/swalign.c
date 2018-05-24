@@ -30,7 +30,7 @@
 
 #include "swalign.h"
 
-#define GAPO -5.0
+#define GAPO -10.0
 #define GAPE -2.0
 #define MATCH 2.0
 #define MISMATCH -3.0		/* the scoring parameters are from BLASTN default */

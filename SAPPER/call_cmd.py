@@ -1,4 +1,4 @@
-# Time-stamp: <2018-05-24 11:49:53 Tao Liu>
+# Time-stamp: <2018-05-24 15:12:18 Tao Liu>
 
 """Description: sapper call
 
@@ -222,9 +222,10 @@ def run( args ):
                     r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
                     ranges.append( (l, r) )
 
-                results = P.map( p_call_variants_at_range, ranges )
+                mapresults = P.map_async( p_call_variants_at_range, ranges )
                 P.close()
-                P.join(timeout=window_size*300)
+                P.join()
+                results = mapresults.get(timeout=window_size*300)
                 for i in range( NP ):
                     for result in results[ i ]:
                         peak_variants.add_variant( result[0], result[1] )
@@ -245,9 +246,10 @@ def run( args ):
                 elif unitig_collection == 0:
                     print ( "  Failed to assemble unitigs, fall back to previous results" )
                     if peak_variants.n_variants() > 0:
-                        peak_variants.merge_continuous_dels()
+                        peak_variants.fix_indels()
                         ovcf.write( peak_variants.toVCF() )
                         continue
+                # uncomment the following to print those assembled unitigs and their alignments to reference genome
                 #for u in unitig_collection["URAs_list"]:
                 #    print( u["seq"].decode(), u["lpos"], u["rpos"], u["count"] )
                 #    print( "a",u["unitig_aln"].decode() )
@@ -255,7 +257,7 @@ def run( args ):
             else:
                 # if we do not assemble, write results now
                 if peak_variants.n_variants() > 0:
-                    peak_variants.merge_continuous_dels()                    
+                    peak_variants.fix_indels()                    
                     ovcf.write( peak_variants.toVCF() )
                     continue
 
@@ -284,7 +286,7 @@ def run( args ):
                     else:
                         peak_variants.remove_variant( i )
                 if peak_variants.n_variants() > 0:
-                    peak_variants.merge_continuous_dels()
+                    peak_variants.fix_indels()
                     ovcf.write( peak_variants.toVCF() )
                     continue
 
@@ -304,15 +306,16 @@ def run( args ):
                     r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
                     ranges.append( (l, r) )
 
-                results = P.map( p_call_variants_at_range, ranges )
+                mapresults = P.map_async( p_call_variants_at_range, ranges )
                 P.close()
-                P.join(timeout=window_size*300)
+                P.join()
+                results = mapresults.get(timeout=window_size*300)                
                 for i in range( NP ):
                     for result in results[ i ]:
                         peak_variants.add_variant( result[0], result[1] )
                                 
             if peak_variants.n_variants() > 0:
-                peak_variants.merge_continuous_dels()
+                peak_variants.fix_indels()
                 ovcf.write( peak_variants.toVCF() )
 
     #print ("time to retrieve read alignment information from BAM:",t_prepare_ra,"(",round( 100 * t_prepare_ra/t_total, 2),"% )")

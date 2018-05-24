@@ -1,4 +1,4 @@
-# Time-stamp: <2017-11-01 13:18:09 Tao Liu>
+# Time-stamp: <2018-05-24 14:47:38 Tao Liu>
 
 """Module for SAPPER PeakVariants class.
 
@@ -161,8 +161,14 @@ cdef class Variant:
         else:
             return False
 
-    cpdef bool only_del ( self ):
+    cpdef bool is_only_del ( self ):
         if self.v_mutation_type == "Deletion":
+            return True
+        else:
+            return False
+
+    cpdef bool is_only_insertion ( self ):
+        if self.v_mutation_type == "Insertion":
             return True
         else:
             return False
@@ -172,6 +178,10 @@ cdef class Variant:
             return self.v_ref_allele
         elif keyname == "alt_allele":
             return self.v_alt_allele
+        elif keyname == "top1allele":
+            return self.v_top1allele
+        elif keyname == "top2allele":
+            return self.v_top2allele        
         elif keyname == "type":
             return self.type
         elif keyname == "mutation_type":
@@ -184,6 +194,10 @@ cdef class Variant:
             self.v_ref_allele = v
         elif keyname == "alt_allele":
             self.v_alt_allele = v
+        elif keyname == "top1allele":
+            self.v_top1allele = v
+        elif keyname == "top2allele":
+            self.v_top2allele = v
         elif keyname == "type":
             self.type = v
         elif keyname == "mutation_type":
@@ -196,6 +210,19 @@ cdef class Variant:
             return True
         else:
             return False
+
+
+    cpdef bool top1isreference ( self ):
+        if self.v_ref_allele == self.v_top1allele:
+            return True
+        else:
+            return False
+
+    cpdef bool top2isreference ( self ):
+        if self.v_ref_allele == self.v_top2allele:
+            return True
+        else:
+            return False        
         
     cpdef str toVCF ( self ):
         return "\t".join( ( self.v_ref_allele, self.v_alt_allele, "%d" % self.v_GQ, self.v_filter,
@@ -272,30 +299,57 @@ cdef class PeakVariants:
         assert p in self.d_Variants
         self.d_Variants[ p ] = v
 
-    cpdef merge_continuous_dels ( self ):
+    cpdef fix_indels ( self ):
         cdef:
             long p0, p1, p
-            
+
+        # merge continuous deletion
         p0 = -1                           #start of deletion chunk
         p1 = -1                           #end of deletion chunk
         for p in sorted( self.d_Variants.keys() ):
-            if p == p1+1 and self.d_Variants[ p ].only_del() and self.d_Variants[ p0 ].only_del() :
+            if p == p1+1 and self.d_Variants[ p ].is_only_del() and self.d_Variants[ p0 ].is_only_del() :
                 # we keep p0, remove p, and add p's ref_allele to p0, keep other information as in p0
+                if self.d_Variants[ p0 ].top1isreference:
+                    if self.d_Variants[ p0 ]["top1allele"] == "*":
+                        self.d_Variants[ p0 ]["top1allele"] = ""
+                    self.d_Variants[ p0 ]["top1allele"] += self.d_Variants[ p ]["ref_allele"]
+                elif self.d_Variants[ p0 ].top2isreference:
+                    if self.d_Variants[ p0 ]["top2allele"] == "*":
+                        self.d_Variants[ p0 ]["top2allele"] = ""                    
+                    self.d_Variants[ p0 ]["top2allele"] += self.d_Variants[ p ]["ref_allele"]                    
                 self.d_Variants[ p0 ]["ref_allele"] += self.d_Variants[ p ]["ref_allele"]
                 self.d_Variants.pop ( p )
                 p1 = p
             else:
                 p0 = p
                 p1 = p
-        # firx deletion so that if the preceding base is 0/0 -- i.e. not in d_Variants, the reference base will be added.
+                
+        # fix deletion so that if the preceding base is 0/0 -- i.e. not in d_Variants, the reference base will be added.
         for p in sorted( self.d_Variants.keys() ):
-            if self.d_Variants[ p ].only_del():
+            if self.d_Variants[ p ].is_only_del():
                 if not( ( p-1 ) in self.d_Variants ):
-                    if p > self.start:
+                    if p > self.start: # now add the reference base 
                         self.d_Variants[ p-1 ] = copy(self.d_Variants[ p ])
                         self.d_Variants[ p-1 ]["ref_allele"] = str(self.refseq)[ p - self.start ] + self.d_Variants[ p-1 ]["ref_allele"]
                         self.d_Variants[ p-1 ]["alt_allele"] = str(self.refseq)[ p - self.start ]
+                        if self.d_Variants[ p ].top1isreference:
+                            self.d_Variants[ p-1 ]["top1allele"] = self.d_Variants[ p-1 ]["ref_allele"]
+                            self.d_Variants[ p-1 ]["top2allele"] = self.d_Variants[ p-1 ]["alt_allele"]
+                        elif self.d_Variants[ p ].top2isreference:
+                            self.d_Variants[ p-1 ]["top1allele"] = self.d_Variants[ p-1 ]["alt_allele"]                            
+                            self.d_Variants[ p-1 ]["top2allele"] = self.d_Variants[ p-1 ]["ref_allele"]
                         self.d_Variants.pop( p )
+
+        # remove indel if a deletion is immediately following an
+        # insertion -- either a third genotype is found which is not
+        # allowed in this version of sapper, or problem caused by
+        # assembling in a simple repeat region.
+        
+        for p in sorted( self.d_Variants.keys() ):
+            if self.d_Variants[ p ].is_only_del():
+                if ( p-1 ) in self.d_Variants and self.d_Variants[p-1].is_only_insertion():
+                    self.d_Variants.pop( p )
+                    self.d_Variants.pop( p - 1 )
         return
                 
     cpdef str toVCF ( self ):
