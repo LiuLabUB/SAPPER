@@ -1,4 +1,4 @@
-# Time-stamp: <2017-11-01 12:52:51 Tao Liu>
+# Time-stamp: <2018-05-24 11:49:53 Tao Liu>
 
 """Description: sapper call
 
@@ -224,7 +224,7 @@ def run( args ):
 
                 results = P.map( p_call_variants_at_range, ranges )
                 P.close()
-                P.join()
+                P.join(timeout=window_size*300)
                 for i in range( NP ):
                     for result in results[ i ]:
                         peak_variants.add_variant( result[0], result[1] )
@@ -306,7 +306,7 @@ def run( args ):
 
                 results = P.map( p_call_variants_at_range, ranges )
                 P.close()
-                P.join()
+                P.join(timeout=window_size*300)
                 for i in range( NP ):
                     for result in results[ i ]:
                         peak_variants.add_variant( result[0], result[1] )
