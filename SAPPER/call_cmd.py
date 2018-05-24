@@ -116,6 +116,8 @@ def run( args ):
     min_altallele_count = args.altalleleMinCount
     max_allowed_ar = args.maxAR
     NP = args.np
+    if NP<=0:
+        NP = 1
     min_homo_GQ = args.GQCutoffHomo
     min_heter_GQ = args.GQCutoffHetero
     minQ = args.Q
@@ -139,9 +141,11 @@ def run( args ):
     tbam = BAMParser( peaktfile )
     if peakcfile:
         cbam = BAMParser( peakcfile )
-        assert tbam.get_chromosomes() == cbam.get_chromosomes(), Exception("Treatment and Control BAM files have different orders of sorted chromosomes! Please check BAM Headers and re-sort BAM files.")
+        assert tbam.get_chromosomes()[0] in cbam.get_chromosomes() or cbam.get_chromosomes()[0] in tbam.get_chromosomes(), Exception("It seems Treatment and Control BAM use different naming for chromosomes! Check headers of both files.")
+        #assert tbam.get_chromosomes() == cbam.get_chromosomes(), Exception("Treatment and Control BAM files have different orders of sorted chromosomes! Please check BAM Headers and re-sort BAM files.")
     else:
         cbam = None
+
 
     ra_collections = []
 
@@ -177,64 +181,55 @@ def run( args ):
             flag_todo_lassembly = False
 
             t0 = time()
-            if cbam:
-                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate) )
-            else:
-                ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate ) )
+            try:
+                if cbam:
+                    ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate ), cbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate) )
+                else:
+                    ra_collection = RACollection( chrom, peak, tbam.get_reads_in_region( chrom, peak["start"], peak["end"], maxDuplicate=maxDuplicate ) )
+            except:
+                print ("No reads found in peak: ", chrom.decode(), peak["start"], peak["end"], ". Skipped!")
+                # while there is no reads in peak region, simply skip it.
+                continue
+            
             ra_collection.remove_outliers( percent = 5 )
             t_prepare_ra += time() - t0
 
             # print ( "Reads in Peak:")
             # print ( ra_collection.get_FASTQ().decode() )
 
-            peak_variants = PeakVariants( chrom.decode() )
-            
             s = ra_collection["peak_refseq"]
+
+            peak_variants = PeakVariants( chrom.decode(), peak["start"], peak["end"], s )
+            
 
             if fermi == "auto" or fermi == "off":
                 # first pass to call variant w/o assembly
                 # multiprocessing the following part
                 t_call_variants_0 = time()
                 print ( " Call varants w/o assembly")
-                if NP > 1:
-                    # divide right-left into NP parts
-                    window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
 
-                    P = mp.Pool( NP )
-                    # this partial function will only be used in multiprocessing
-                    p_call_variants_at_range =  partial(call_variants_at_range, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
+                # -- now make multi processes
+                # divide right-left into NP parts
+                window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
 
-                    ranges = []
-                    for i in range( NP ):
-                        l = i * window_size + ra_collection["left"]
-                        r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
-                        ranges.append( (l, r) )
+                P = mp.Pool( NP )
+                # this partial function will only be used in multiprocessing
+                p_call_variants_at_range =  partial(call_variants_at_range, s=s, collection=ra_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
 
-                    results = P.map( p_call_variants_at_range, ranges )
-                    P.close()
-                    P.join()
-                    for i in range( NP ):
-                        for result in results[ i ]:
-                            peak_variants.add_variant( result[0], result[1] )
-                else:
-                    # mono-cpu
-                    for i in range( ra_collection["left"], ra_collection["right"] ):
-                        ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
+                ranges = []
+                for i in range( NP ):
+                    l = i * window_size + ra_collection["left"]
+                    r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
+                    ranges.append( (l, r) )
 
-                         # skip if ref_nt is N
-                        if ref_nt == b'N':
-                            continue
-                        PRI = ra_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-                        if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
-                            continue
-                        PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
-                        t0 = time()
-                        PRI.call_GT( max_allowed_ar )
-                        t_call_GT += time() - t0
-                        PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
-                        if not PRI.filterflag():
-                            peak_variants.add_variant( i, PRI.toVariant() )
-                t_call_variants += time() - t_call_variants_0
+                results = P.map( p_call_variants_at_range, ranges )
+                P.close()
+                P.join()
+                for i in range( NP ):
+                    for result in results[ i ]:
+                        peak_variants.add_variant( result[0], result[1] )
+
+            t_call_variants += time() - t_call_variants_0
 
             # Next, check if we should do local assembly
             if ( fermi == "auto" and ( peak_variants.has_indel() or peak_variants.has_refer_biased_01() ) ) or fermi == "on":
@@ -295,46 +290,30 @@ def run( args ):
 
             # in this case, we call variants at every locations in the peak based on local assembly.
             if ( fermi == "on" or ( fermi == "auto" and peak_variants.has_indel() ) ):
-                peak_variants = PeakVariants( chrom.decode() ) #reset
-                if NP > 1:
-                    # divide right-left into NP parts
-                    window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
-                    P = mp.Pool( NP )
-                    # this partial function will only be used in multiprocessing
-                    p_call_variants_at_range =  partial(call_variants_at_range, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
-                    ranges = []
-                    for i in range( NP ):
-                        l = i * window_size + ra_collection["left"]
-                        r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
-                        ranges.append( (l, r) )
+                peak_variants = PeakVariants( chrom.decode(), peak["start"], peak["end"], s ) #reset
 
-                    results = P.map( p_call_variants_at_range, ranges )
-                    P.close()
-                    P.join()
-                    for i in range( NP ):
-                        for result in results[ i ]:
-                            peak_variants.add_variant( result[0], result[1] )
-                else:
-                    # mono-cpu
-                    for i in range( ra_collection["left"], ra_collection["right"] ):
-                        ref_nt = chr(s[ i-ra_collection["left"] ] ).encode()
-                        # skip if ref_nt is N
-                        if ref_nt == b'N':
-                            continue
-                        PRI = unitig_collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
-                        if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
-                            continue
-                        PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
-                        t0 = time()
-                        PRI.call_GT( max_allowed_ar )
-                        t_call_GT += time() - t0
-                        PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
-                        if not PRI.filterflag():
-                            peak_variants.add_variant( i, PRI.toVariant() )
+                # --- make multi processes
+                # divide right-left into NP parts
+                window_size = ceil( ( ra_collection["right"] - ra_collection["left"] ) / NP )
+                P = mp.Pool( NP )
+                # this partial function will only be used in multiprocessing
+                p_call_variants_at_range =  partial(call_variants_at_range, s=s, collection=unitig_collection, top2allelesminr=top2allelesminr, max_allowed_ar = max_allowed_ar, min_altallele_count = min_altallele_count, min_homo_GQ = min_homo_GQ, min_heter_GQ = min_heter_GQ, minQ=minQ)
+                ranges = []
+                for i in range( NP ):
+                    l = i * window_size + ra_collection["left"]
+                    r = min( (i + 1) * window_size + ra_collection["left"], ra_collection["right"] )
+                    ranges.append( (l, r) )
+
+                results = P.map( p_call_variants_at_range, ranges )
+                P.close()
+                P.join()
+                for i in range( NP ):
+                    for result in results[ i ]:
+                        peak_variants.add_variant( result[0], result[1] )
                                 
-                if peak_variants.n_variants() > 0:
-                    peak_variants.merge_continuous_dels()
-                    ovcf.write( peak_variants.toVCF() )
+            if peak_variants.n_variants() > 0:
+                peak_variants.merge_continuous_dels()
+                ovcf.write( peak_variants.toVCF() )
 
     #print ("time to retrieve read alignment information from BAM:",t_prepare_ra,"(",round( 100 * t_prepare_ra/t_total, 2),"% )")
     return
@@ -350,10 +329,12 @@ def call_variants_at_range ( lr, s, collection, top2allelesminr, max_allowed_ar,
         PRI = collection.get_PosReadsInfo_ref_pos ( i, ref_nt, Q=minQ )
         if PRI.raw_read_depth( opt="T" ) == 0: # skip if coverage is 0
             continue
+
         PRI.update_top_alleles( top2allelesminr, min_altallele_count, max_allowed_ar )
-        #PRI.update_top_alleles( top2allelesminr )
-        PRI.call_GT( max_allowed_ar )
-        PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
+        if not PRI.filterflag():
+            #PRI.update_top_alleles( top2allelesminr )
+            PRI.call_GT( max_allowed_ar )
+            PRI.apply_GQ_cutoff(min_homo_GQ, min_heter_GQ)
         if not PRI.filterflag():
             result.append( ( i, PRI.toVariant() ) )
     return result

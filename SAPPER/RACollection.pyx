@@ -163,8 +163,13 @@ cdef class RACollection:
         given, it will be [].
 
         """
+        if len(RAlist_T) == 0:
+            # no reads, return None
+            raise Exception("No reads from ChIP sample to construct RAcollection!")
         self.chrom = chrom
         self.peak = peak
+        #print(len(RAlist_T),"\n")
+        #print(len(RAlist_C),"\n")        
         self.RAlists = [ RAlist_T, RAlist_C ]
         self.left = peak["start"]
         self.right = peak["end"]
@@ -283,7 +288,7 @@ cdef class RACollection:
         n_edits_list.sort()
         # print ( n_edits_list )
         c = Counter( n_edits_list )
-        print( c )
+        #print( c )
 
     cdef tuple __get_peak_REFSEQ ( self ):
         """Get the reference sequence within the peak region.
@@ -330,6 +335,7 @@ cdef class RACollection:
 
         start = min( self.RAs_left, self.left )
 
+        #print(len(ralist),"\n")
         prev_r = ralist[0]["lpos"]
 
         for i in range(  len( ralist ) ):

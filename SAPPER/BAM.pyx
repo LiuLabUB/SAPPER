@@ -285,8 +285,10 @@ cdef class BAMParser:
                 # if reaching the EOF, this will trigger
                 break
             read = self.__fw_binary_parse( fread( entrylength ) )
+            #print( "Got a record", left, right, "\n" )            
             if read != None:
                 if read["chrom"] == chrom and read["lpos"] < right and read["rpos"] > left:
+                    #print( "Found an overlapped read", read["chrom"],read["lpos"],read["rpos"], "\n" )
                     # an overlap is found
                     if previous_read != None and previous_read["lpos"] == read["lpos"] and previous_read["rpos"] == read["rpos"] \
                             and previous_read["strand"] ==  read["strand"] and previous_read["cigar"] == read["cigar"]:
@@ -296,14 +298,16 @@ cdef class BAMParser:
                     if cur_duplicates <= maxDuplicate:
                         readslist.append( read )
                     previous_read = read
-
                 elif read["chrom"] != chrom or read["lpos"] > right:
                     # pass the region, rewind, then trigger 'break'
                     fseek( ftell()-entrylength-4 )
                     #print( "rewind:", ftell() )
                     break
+                #else:
+                #    print( "NOT an overlapped read", read["chrom"],read["lpos"],read["rpos"], "\n" )
 
         #print( "end", ftell() )
+        #print( "Get # of reads:", len(readslist),"\n")
         return readslist
 
     cdef object __fw_binary_parse (self, data, min_MAPQ=1 ):

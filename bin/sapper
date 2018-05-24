@@ -136,8 +136,8 @@ To run SAPPER:
                              help = "The maximum Allele-Ratio allowed while calculating likelihood for allele-specific binding. If we allow higher maxAR, we may mistakenly assign some homozygous loci as heterozygous. Default:0.95", default = 0.95 )
     # group for misc
     group_misc = argparser_call.add_argument_group( "Misc arguments" )
-    group_misc.add_argument( "-m", "--multiple-processing", dest = "np", type = int, default = 0,
-                             help = "CPU used for mutliple processing. A number higher than 1 will turn multiple processing on. Please note that, turning it on does not mean the processing will become faster. Creating multiple processes need memory operations and  may negate benefit from multi processing. Default: 0" )
+    group_misc.add_argument( "-m", "--multiple-processing", dest = "np", type = int, default = 1,
+                             help = "CPU used for mutliple processing. Please note that, assigning more CPUs does not guarantee the process being faster. Creating too many parrallel processes need memory operations and  may negate benefit from multi processing. Default: 1" )
     return
 
 def add_filter_parser( subparsers ):

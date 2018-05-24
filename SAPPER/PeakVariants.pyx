@@ -18,6 +18,7 @@ with the distribution).
 # python modules
 # ------------------------------------
 from SAPPER.Constants import *
+from copy import copy
 from cpython cimport bool
 
 cdef class Variant:
@@ -214,10 +215,17 @@ cdef class PeakVariants:
     cdef:
         str chrom
         dict d_Variants
+        long start
+        long end
+        bytes refseq
+        
 
-    def __init__ ( self, str chrom ):
+    def __init__ ( self, str chrom, long start, long end, bytes s ):
         self.chrom = chrom
         self.d_Variants = {}
+        self.start = start
+        self.end = end
+        self.refseq = s
 
     def __getstate__ ( self ):
         return ( self.d_Variants, self.chrom )
@@ -264,10 +272,10 @@ cdef class PeakVariants:
         assert p in self.d_Variants
         self.d_Variants[ p ] = v
 
-
     cpdef merge_continuous_dels ( self ):
         cdef:
             long p0, p1, p
+            
         p0 = -1                           #start of deletion chunk
         p1 = -1                           #end of deletion chunk
         for p in sorted( self.d_Variants.keys() ):
@@ -279,6 +287,15 @@ cdef class PeakVariants:
             else:
                 p0 = p
                 p1 = p
+        # firx deletion so that if the preceding base is 0/0 -- i.e. not in d_Variants, the reference base will be added.
+        for p in sorted( self.d_Variants.keys() ):
+            if self.d_Variants[ p ].only_del():
+                if not( ( p-1 ) in self.d_Variants ):
+                    if p > self.start:
+                        self.d_Variants[ p-1 ] = copy(self.d_Variants[ p ])
+                        self.d_Variants[ p-1 ]["ref_allele"] = str(self.refseq)[ p - self.start ] + self.d_Variants[ p-1 ]["ref_allele"]
+                        self.d_Variants[ p-1 ]["alt_allele"] = str(self.refseq)[ p - self.start ]
+                        self.d_Variants.pop( p )
         return
                 
     cpdef str toVCF ( self ):

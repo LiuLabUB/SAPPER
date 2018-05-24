@@ -237,7 +237,7 @@ cdef class PosReadsInfo:
         cdef:
             float r
 
-        [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads.get, reverse=True)[:2]
+        [self.top1allele, self.top2allele] = sorted(self.n_reads, key=self.n_reads_T.get, reverse=True)[:2]
 
         # if top2 allele count in ChIP is lower than
         # min_altallele_count, or when allele ratio top1/(top1+top2)
@@ -248,6 +248,10 @@ cdef class PosReadsInfo:
         # max(self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top2allele ]) < min_altallele_count
         #if self.ref_pos == 52608504:
         #    print self.ref_pos, self.n_reads_T[ self.top1allele ], self.n_reads_T[ self.top2allele ], self.n_reads_C[ self.top1allele ], self.n_reads_C[ self.top2allele ]
+        if self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ] == 0:
+            self.filterout = True
+            return
+
         if (len(self.top1allele)==1 and len(self.top2allele)==1) and ( self.top2allele != self.ref_allele and ( ( self.n_reads_T[ self.top2allele ] - self.n_tips[ self.top2allele ] ) < min_altallele_count ) or \
                 self.n_reads_T[ self.top1allele ]/(self.n_reads_T[ self.top1allele ] + self.n_reads_T[ self.top2allele ]) > max_allowed_ar ):
             self.bq_set_T[ self.top2allele ] = []
@@ -303,7 +307,7 @@ cdef class PosReadsInfo:
 
         if self.filterout:
             return
-
+        
         top1_bq_T = np.array( self.bq_set_T[ self.top1allele ], dtype="int32" )
         top2_bq_T = np.array( self.bq_set_T[ self.top2allele ], dtype="int32" )
         top1_bq_C = np.array( self.bq_set_C[ self.top1allele ], dtype="int32" )
@@ -561,7 +565,6 @@ cdef class PosReadsInfo:
     cpdef toVariant ( self ):
         cdef:
             object v
-
         v = Variant( 
                      self.ref_allele.decode(),
                      self.alt_allele.decode(),
