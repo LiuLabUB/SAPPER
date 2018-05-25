@@ -68,9 +68,9 @@ def prepare_argparser ():
     
     add_call_parser( subparsers )    
 
-    add_sum_parser( subparsers )
+    #add_sum_parser( subparsers )
     
-    add_filter_parser( subparsers )
+    #add_filter_parser( subparsers )
 
     return argparser
 

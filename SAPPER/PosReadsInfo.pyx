@@ -428,14 +428,15 @@ cdef class PosReadsInfo:
                 else:
                     self.alt_allele = self.top1allele+b','+self.top2allele
                     self.GT = "1/2"
-                # strand bias filter
+                # strand bias filter, uncomment following if wish to debug
                 # calculate SB score
-                print "calculate SB score for ", self.ref_pos, "a/b/c/d:", self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ]
-                SBscore = self.SB_score_ChIP( self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ] )
+                #print "calculate SB score for ", self.ref_pos, "a/b/c/d:", self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ]
+                #SBscore = self.SB_score_ChIP( self.n_strand[ 0 ][ self.top1allele ], self.n_strand[ 0 ][ self.top2allele ], self.n_strand[ 1 ][ self.top1allele ], self.n_strand[ 1 ][ self.top2allele ] )
                 #SBscore = 0
-                if SBscore >= 1:
-                    print "disgard variant at", self.ref_pos, "type", self.type
-                    self.filterout = True
+                #if SBscore >= 1:
+                #    print "disgard variant at", self.ref_pos, "type", self.type
+                #    self.filterout = True
+                
                 # if self.ref_allele == self.top1allele：
                 #     self.n_strand[ 0 ][ self.top1allele ] + self.n_strand[ 1 ][ self.top1allele ]
                 #     if and self.n_strand[ 0 ][ self.top2allele ] == 0 or self.n_strand[ 1 ][ self.top2allele ] == 0:
